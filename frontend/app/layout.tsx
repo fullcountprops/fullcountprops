@@ -24,24 +24,50 @@ export default function RootLayout({
         <nav className="border-b border-gray-800 px-6 py-4">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-xl font-bold text-blue-400">BASELINE</span>
-              <span className="text-xl font-bold text-white">MLB</span>
+              <a href="/" className="flex items-center gap-2">
+                <span className="text-xl font-bold text-blue-400">BASELINE</span>
+                <span className="text-xl font-bold text-white">MLB</span>
+              </a>
               <span className="ml-2 px-2 py-0.5 text-xs bg-blue-900 text-blue-300 rounded-full border border-blue-700">BETA</span>
             </div>
             <div className="flex items-center gap-6 text-sm">
               <a href="/" className="text-slate-300 hover:text-white transition-colors">Today</a>
               <a href="/props" className="text-slate-300 hover:text-white transition-colors">Props</a>
+              <a href="/projections" className="text-slate-300 hover:text-white transition-colors">Projections</a>
+              <a href="/players" className="text-slate-300 hover:text-white transition-colors">Players</a>
               <a href="https://nrlefty5.github.io/baselinemlb/" target="_blank" className="text-slate-300 hover:text-white transition-colors">Accuracy</a>
               <a href="https://twitter.com/baselinemlb" target="_blank" className="text-blue-400 hover:text-blue-300 transition-colors">@baselinemlb</a>
             </div>
           </div>
         </nav>
+
         <main className="max-w-7xl mx-auto px-6 py-8">
           {children}
         </main>
-        <footer className="border-t border-gray-800 mt-16 px-6 py-8 text-center text-sm text-slate-500">
-          <p>Baseline MLB — Glass-box analytics. Not financial or betting advice. Data sourced from MLB Stats API, Statcast, and The Odds API.</p>
-          <p className="mt-2"><a href="https://twitter.com/baselinemlb" className="text-blue-400 hover:text-blue-300">@baselinemlb</a></p>
+
+        <footer className="border-t border-gray-800 px-6 py-8 mt-16">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="font-bold text-blue-400">BASELINE</span>
+                  <span className="font-bold text-white">MLB</span>
+                </div>
+                <p className="text-xs text-slate-500">Glass-box MLB prop analytics. No black boxes.</p>
+              </div>
+              <div className="flex flex-col sm:items-end gap-1">
+                <div className="flex items-center gap-4 text-sm">
+                  <a href="/" className="text-slate-400 hover:text-white">Today</a>
+                  <a href="/props" className="text-slate-400 hover:text-white">Props</a>
+                  <a href="/projections" className="text-slate-400 hover:text-white">Projections</a>
+                  <a href="/players" className="text-slate-400 hover:text-white">Players</a>
+                </div>
+                <p className="text-xs text-slate-600">
+                  Data: MLB Stats API, The Odds API, Baseball Savant &bull; For informational use only
+                </p>
+              </div>
+            </div>
+          </div>
         </footer>
       </body>
     </html>
