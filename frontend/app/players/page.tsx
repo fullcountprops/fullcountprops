@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
-async function getPlayers(search?: string, position?: string) {
+async function getPlayers(position?: string) {
   if (!supabaseUrl || !supabaseAnonKey) {
     return []
   }
@@ -11,8 +11,9 @@ async function getPlayers(search?: string, position?: string) {
   let query = supabase
     .from('players')
     .select('*')
+    .eq('active', true)
     .order('full_name', { ascending: true })
-    .limit(100)
+    .limit(500)
 
   if (position && position !== 'ALL') {
     query = query.eq('position', position)
@@ -26,34 +27,30 @@ async function getPlayers(search?: string, position?: string) {
   return data || []
 }
 
-const POSITIONS = ['ALL', 'SP', 'RP', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'DH']
-
 function PlayerCard({ player }: { player: any }) {
+  // Schema: bats, throws, team, position, full_name, mlbam_id
   return (
     <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 hover:border-green-500 transition-colors">
       <div className="flex items-start justify-between mb-3">
         <div>
           <div className="text-lg font-semibold text-white">{player.full_name}</div>
           <div className="text-sm text-slate-400 mt-0.5">
-            {player.team_name || player.team_id} &bull; {player.position}
+            {player.team || 'FA'} &bull; {player.position || '--'}
           </div>
         </div>
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-700 text-slate-300">
-          #{player.jersey_number || '--'}
+          {player.position || '--'}
         </span>
       </div>
-      {(player.b_hand || player.p_hand) && (
-        <div className="mt-2 pt-2 border-t border-gray-700 grid grid-cols-2 gap-2 text-xs text-slate-400">
-          {player.b_hand && (
-            <span>Bats: <span className="text-slate-300">{player.b_hand}</span></span>
+      {(player.bats || player.throws) && (
+        <div className="mt-2 pt-2 border-t border-gray-700 flex gap-4 text-xs text-slate-400">
+          {player.bats && (
+            <span>Bats: <span className="text-slate-300">{player.bats}</span></span>
           )}
-          {player.p_hand && (
-            <span>Throws: <span className="text-slate-300">{player.p_hand}</span></span>
+          {player.throws && (
+            <span>Throws: <span className="text-slate-300">{player.throws}</span></span>
           )}
         </div>
-      )}
-      {player.age && (
-        <div className="mt-1 text-xs text-slate-500">Age: {player.age}</div>
       )}
     </div>
   )
@@ -94,7 +91,7 @@ export default async function PlayersPage() {
               </h2>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {pitchers.map((player: any) => (
-                  <PlayerCard key={player.player_id} player={player} />
+                  <PlayerCard key={player.mlbam_id} player={player} />
                 ))}
               </div>
             </section>
@@ -108,7 +105,7 @@ export default async function PlayersPage() {
               </h2>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {batters.map((player: any) => (
-                  <PlayerCard key={player.player_id} player={player} />
+                  <PlayerCard key={player.mlbam_id} player={player} />
                 ))}
               </div>
             </section>
