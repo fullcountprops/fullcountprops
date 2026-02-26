@@ -112,5 +112,11 @@ jobs:
       - name: Fetch Statcast data
         run: python scripts/fetch_statcast.py
 
+              - name: Grade yesterday's projections
+        run: python scripts/grade_accuracy.py
+
+      - name: Track CLV (Closing Line Value)
+        run: python scripts/track_clv.py
+
       - name: Grade yesterday's projections
         run: python scripts/grade_accuracy.py
