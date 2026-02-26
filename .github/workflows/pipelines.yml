@@ -65,6 +65,9 @@ jobs:
       - name: Generate projections
         run: python pipeline/generate_projections.py
 
+              - name: Generate batter projections
+        run: python pipeline/generate_batter_projections.py
+
   # -- Afternoon Pipeline: Props Refresh + Update Projections
   afternoon-props-projections:
     if: github.event_name == 'workflow_dispatch' || github.event.schedule == '30 20 * * *'
@@ -86,6 +89,9 @@ jobs:
 
       - name: Generate projections
         run: python pipeline/generate_projections.py
+
+              - name: Generate batter projections
+        run: python pipeline/generate_batter_projections.py
 
   # -- Overnight Pipeline: Statcast + Grade Accuracy
   overnight-statcast-grading:
