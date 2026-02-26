@@ -135,3 +135,6 @@ Metrics shown:
 ## License
 
 MIT — open source, use freely.
+
+
+<!-- System validated and pipeline tested on 2026-02-26 -->
