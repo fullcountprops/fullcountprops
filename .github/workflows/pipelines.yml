@@ -63,7 +63,7 @@ jobs:
         run: python scripts/fetch_props.py
 
       - name: Generate projections
-        run: python scripts/generate_projections.py
+        run: python pipeline/generate_projections.py
 
   # -- Afternoon Pipeline: Props Refresh + Update Projections
   afternoon-props-projections:
@@ -85,7 +85,7 @@ jobs:
         run: python scripts/fetch_props.py
 
       - name: Generate projections
-        run: python scripts/generate_projections.py
+        run: python pipeline/generate_projections.py
 
   # -- Overnight Pipeline: Statcast + Grade Accuracy
   overnight-statcast-grading:
