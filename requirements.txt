@@ -4,6 +4,7 @@
 # HTTP requests
 requests>=2.31.0
 supabase>=2.0.0
+python-dotenv>=1.0.0
 
 # Data manipulation
 pandas>=2.0.0
