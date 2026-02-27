@@ -1,5 +1,6 @@
 # .github/workflows/static.yml
 # Deploys the /dashboard folder to GitHub Pages
+# Injects SUPABASE_URL and SUPABASE_ANON_KEY into stats.js at build time
 
 name: Deploy Dashboard to GitHub Pages
 
@@ -29,6 +30,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Inject Supabase credentials into stats.js
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          sed -i "s|'https://YOUR_PROJECT_REF.supabase.co'|'${SUPABASE_URL}'|g" dashboard/js/stats.js
+          sed -i "s|'YOUR_ANON_KEY_HERE'|'${SUPABASE_ANON_KEY}'|g" dashboard/js/stats.js
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
