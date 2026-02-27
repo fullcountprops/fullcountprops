@@ -25,7 +25,7 @@ import logging
 import requests
 from datetime import date
 from typing import Optional
-from dotenv import load_dotenv
+# from dotenv import load_dotenv  # DISABLED - GitHub Actions provides env vars
 
 # load_dotenv()
 
@@ -37,6 +37,11 @@ logging.basicConfig(
 log = logging.getLogger("generate_batter_projections")
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").strip()
+
+# Fail fast with a clear error instead of cryptic HTTP 400
+if not SUPABASE_URL.startswith("https://") or not SUPABASE_URL.endswith(".supabase.co"):
+    raise RuntimeError(f"Invalid SUPABASE_URL (length={len(SUPABASE_URL)}, repr={repr(SUPABASE_URL[:30])})")  
+
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "").strip()
 MODEL_VERSION = "v1.1-glass-box-tb-rampup"
 
