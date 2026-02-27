@@ -134,6 +134,106 @@ Metrics shown:
 
 ## License
 
+
+---
+
+## Supabase Setup
+
+### Running Migrations
+
+All database schema changes are versioned in `supabase/migrations/`.
+
+**To apply migrations to your Supabase project:**
+
+```bash
+# Install Supabase CLI (if not already installed)
+brew install supabase/tap/supabase  # macOS
+# or: npm install -g supabase
+
+# Link to your project
+supabase link --project-ref [YOUR_PROJECT_REF]
+
+# Apply all pending migrations
+supabase db push
+```
+
+### Required Tables
+
+The following tables must exist for the pipeline to function:
+
+| Table | Purpose | Migration File |
+|-------|---------|----------------|
+| `games` | MLB game schedule | `schema.sql` |
+| `players` | Active MLB players (40-man rosters) | `schema.sql` |
+| `props` | Prop lines from The Odds API | `schema.sql` |
+| `projections` | Our K/TB projections | `schema.sql` |
+| `statcast` | Pitch-level data from MLB | `schema.sql` |
+| `picks` | Graded projection results | `schema.sql` |
+| `accuracy_summary` | Aggregate hit rate stats | `schema.sql` |
+| **`clv_tracking`** | Closing Line Value analysis | `20260225_create_clv_tracking.sql` |
+
+### CLV Tracking Table Schema
+
+```sql
+CREATE TABLE clv_tracking (
+  id BIGSERIAL PRIMARY KEY,
+  game_date DATE NOT NULL,
+  player_name TEXT NOT NULL,
+  market TEXT NOT NULL,
+  opening_price INTEGER,  -- American odds (e.g., -110, +150)
+  closing_price INTEGER,
+  opening_line NUMERIC,   -- Prop line (e.g., 6.5 Ks)
+  closing_line NUMERIC,
+  price_movement INTEGER, -- opening_price - closing_price
+  clv_percent NUMERIC,    -- (price_movement / abs(closing_price)) * 100
+  calculated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(game_date, player_name, market)
+);
+
+CREATE INDEX idx_clv_game_date ON clv_tracking(game_date);
+CREATE INDEX idx_clv_player ON clv_tracking(player_name);
+```
+
+### Verifying Migrations
+
+To confirm all migrations have been applied:
+
+```bash
+# Check migration status
+supabase migration list
+
+# Or query directly in Supabase SQL Editor:
+SELECT * FROM supabase_migrations.schema_migrations ORDER BY version;
+```
+
+You should see:
+- `20260225_create_clv_tracking` with `inserted_at` timestamp
+
+### Row-Level Security (RLS) for Dashboard
+
+The public dashboard at [baselinemlb.com](https://baselinemlb.com) uses the Supabase **anon key** to fetch read-only data. Enable RLS policies:
+
+```sql
+-- Allow public read access to completed picks
+ALTER TABLE picks ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public read completed picks"
+  ON picks FOR SELECT
+  USING (result IS NOT NULL);  -- Only show graded picks
+
+-- Allow public read access to CLV tracking
+ALTER TABLE clv_tracking ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public read CLV"
+  ON clv_tracking FOR SELECT
+  USING (true);
+
+-- Allow public read access to accuracy summary
+ALTER TABLE accuracy_summary ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public read accuracy"
+  ON accuracy_summary FOR SELECT
+  USING (true);
+```
+
+**⚠️ Important:** Never expose your `SUPABASE_SERVICE_KEY` in client-side code. Only the `SUPABASE_ANON_KEY` should be used in `dashboard/js/stats.js`.
 MIT — open source, use freely.
 
 
