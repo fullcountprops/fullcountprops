@@ -79,7 +79,7 @@
     .stat-value {
       font-size: 2.5rem;
       font-weight: 700;
-      color: #718096;
+      color: #fff;
       line-height: 1;
     }
     .stat-meta {
@@ -118,12 +118,13 @@
       padding: 0.875rem 1rem;
       border-bottom: 1px solid rgba(255,255,255,0.05);
       font-size: 0.95rem;
-      color: #718096;
+      color: #e0e6ed;
     }
     .empty-row td {
       text-align: center;
       padding: 2rem;
       font-style: italic;
+      color: #718096;
     }
     footer {
       text-align: center;
@@ -139,6 +140,7 @@
       font-weight: 600;
     }
     footer a:hover { text-decoration: underline; }
+    #last-updated { color: #a0aec0; }
   </style>
 </head>
 <body>
@@ -148,11 +150,11 @@
       <p class="tagline">Glass-box prop analytics — public accuracy tracking</p>
     </header>
 
-    <div class="prelaunch-banner">
+    <div id="prelaunch-banner" class="prelaunch-banner">
       <h2>Tracking begins Opening Day 2026</h2>
-      <p>Total Picks Graded: 0</p>
-      <p>Hit Rate: —</p>
-      <p>CLV: —</p>
+      <p>Total Picks Graded: <span id="stat-total-picks">0</span></p>
+      <p>Hit Rate: <span id="stat-hit-rate">—</span></p>
+      <p>CLV: <span id="stat-avg-clv">—</span></p>
       <p style="margin-top: 1rem;">Projections will be logged and graded publicly starting with the first game of the 2026 MLB season. Every pick, every factor, every result — tracked here in real time.</p>
       <p class="follow">Follow @baselinemlb for daily analysis.</p>
     </div>
@@ -160,23 +162,23 @@
     <div class="stats-grid">
       <div class="stat-card">
         <div class="stat-label">Overall Hit Rate</div>
-        <div class="stat-value">—</div>
+        <div class="stat-value" id="stat-hit-rate">—</div>
         <div class="stat-meta">Tracking begins Opening Day 2026</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Season Hit Rate</div>
-        <div class="stat-value">—</div>
-        <div class="stat-meta">2026 Season · 0 picks</div>
+        <div class="stat-value" id="stat-season-hit-rate">—</div>
+        <div class="stat-meta">2026 Season · <span id="stat-total-picks">0</span> picks</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">CLV (Closing Line Value)</div>
-        <div class="stat-value">—</div>
+        <div class="stat-value" id="stat-avg-clv">—</div>
         <div class="stat-meta">Avg. line movement</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Highest Conf. Props</div>
-        <div class="stat-value">—</div>
-        <div class="stat-meta">Confidence &ge; 65% · 0 picks</div>
+        <div class="stat-value" id="stat-high-conf">—</div>
+        <div class="stat-meta">Confidence ≥ 65% · 0 picks</div>
       </div>
     </div>
 
@@ -191,7 +193,7 @@
             <th>CLV</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody id="market-table-body">
           <tr class="empty-row">
             <td colspan="4">No data yet — tracking begins Opening Day 2026</td>
           </tr>
@@ -210,7 +212,7 @@
             <th>CLV</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody id="bookmaker-table-body">
           <tr class="empty-row">
             <td colspan="4">No data yet — tracking begins Opening Day 2026</td>
           </tr>
@@ -219,9 +221,14 @@
     </div>
 
     <footer>
-      <p>Data will update daily at 2 AM ET via GitHub Actions starting Opening Day 2026 &middot; <a href="https://github.com/nrlefty5/baselinemlb" target="_blank">View Source on GitHub</a></p>
+      <p>Data updates daily at 2 AM ET via GitHub Actions starting Opening Day 2026 · <a href="https://github.com/nrlefty5/baselinemlb" target="_blank">View Source on GitHub</a></p>
       <p style="margin-top: 0.5rem;">Powered by Statcast, MLB Stats API, and The Odds API</p>
+      <p style="margin-top: 0.5rem;">Last updated: <span id="last-updated">—</span></p>
     </footer>
   </div>
+
+  <!-- Supabase JS client (no SDK install needed) is not required;
+       stats.js uses plain fetch() against the Supabase REST API directly -->
+  <script src="js/stats.js"></script>
 </body>
 </html>
