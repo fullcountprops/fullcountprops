@@ -66,7 +66,7 @@ jobs:
         run: python pipeline/generate_projections.py
 
       - name: Generate batter projections
-          run: python pipeline/generate_batter_projections.py
+        run: python pipeline/generate_batter_projections.py
 
   # -- Afternoon Pipeline: Props Refresh + Update Projections
   afternoon-props-projections:
@@ -91,7 +91,7 @@ jobs:
         run: python pipeline/generate_projections.py
 
       - name: Generate batter projections
-          run: python pipeline/generate_batter_projections.py
+        run: python pipeline/generate_batter_projections.py
 
   # -- Overnight Pipeline: Statcast + Grade Accuracy
   overnight-statcast-grading:
@@ -112,11 +112,8 @@ jobs:
       - name: Fetch Statcast data
         run: python scripts/fetch_statcast.py
 
-              - name: Grade yesterday's projections
+      - name: Grade yesterday's projections
         run: python scripts/grade_accuracy.py
 
       - name: Track CLV (Closing Line Value)
         run: python scripts/track_clv.py
-
-      - name: Grade yesterday's projections
-        run: python scripts/grade_accuracy.py
