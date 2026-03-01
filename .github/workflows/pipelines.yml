@@ -1,7 +1,6 @@
 # .github/workflows/pipelines.yml
 # Automated daily MLB data pipelines for Baseline MLB
 name: MLB Data Pipelines
-
 on:
   schedule:
     # Morning: fetch schedule + rosters (8:00 AM ET = 12:00 UTC during EDT)
@@ -13,12 +12,10 @@ on:
     # Overnight: Statcast ingest + grade accuracy (2:00 AM ET = 06:00 UTC)
     - cron: "0 6 * * *"
   workflow_dispatch:
-
 env:
   SUPABASE_URL: ${{ secrets.SUPABASE_PROJECT_URL }}
   SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
   ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
-
 jobs:
   # -- Morning Pipeline: Schedule + Rosters
   fetch-games-players:
@@ -27,27 +24,20 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
       - name: Install dependencies
         run: pip install -r requirements.txt
-
       - name: Fetch games
         run: python scripts/fetch_games.py
-
       - name: Upsert games to Supabase
         run: python pipeline/fetch_games.py
-
       - name: Fetch players (JSON cache)
         run: python scripts/fetch_players.py
-
       - name: Upsert players to Supabase (with handedness)
         run: python pipeline/fetch_players.py
-
   # -- Late Morning Pipeline: Props + Projections
   morning-props-projections:
     if: github.event_name == 'workflow_dispatch' || github.event.schedule == '30 14 * * *'
@@ -55,31 +45,23 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
       - name: Install dependencies
         run: pip install -r requirements.txt
-
       - name: Debug URL
         run: |
           echo "URL_LENGTH=${#SUPABASE_URL}" && echo "STARTS=$(echo $SUPABASE_URL | cut -c1-8)" && echo "ENDS=$(echo $SUPABASE_URL | tail -c 6)"
-
       - name: Fetch props
         run: python scripts/fetch_props.py
-
       - name: Generate projections
         run: python pipeline/generate_projections.py
-
       - name: Generate batter projections
         run: python pipeline/generate_batter_projections.py
-        
-        - name: Generate daily content
-          run: python scripts/generate_daily_content.py --format all --top 5
-
+      - name: Generate daily content
+        run: python scripts/generate_daily_content.py --format all --top 5
   # -- Afternoon Pipeline: Props Refresh + Update Projections
   afternoon-props-projections:
     if: github.event_name == 'workflow_dispatch' || github.event.schedule == '30 20 * * *'
@@ -87,31 +69,23 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
       - name: Install dependencies
         run: pip install -r requirements.txt
-
       - name: Debug URL
         run: |
           echo "URL_LENGTH=${#SUPABASE_URL}" && echo "STARTS=$(echo $SUPABASE_URL | cut -c1-8)" && echo "ENDS=$(echo $SUPABASE_URL | tail -c 6)"
-
       - name: Fetch props
         run: python scripts/fetch_props.py
-
       - name: Generate projections
         run: python pipeline/generate_projections.py
-
       - name: Generate batter projections
         run: python pipeline/generate_batter_projections.py
-        
-        - name: Generate daily content
-          run: python scripts/generate_daily_content.py --format all --top 5
-
+      - name: Generate daily content
+        run: python scripts/generate_daily_content.py --format all --top 5
   # -- Overnight Pipeline: Statcast + Accuracy Grading
   overnight-statcast-grading:
     if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 6 * * *'
@@ -119,23 +93,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
       - name: Install dependencies
         run: pip install -r requirements.txt
-
       - name: Fetch Statcast data
         run: python scripts/fetch_statcast.py
-
       - name: Grade accuracy
         run: python scripts/grade_accuracy.py
-
       - name: Track CLV
         run: python scripts/track_clv.py
-
       - name: Compute umpire framing composites
         run: python pipeline/fetch_umpire_framing.py
