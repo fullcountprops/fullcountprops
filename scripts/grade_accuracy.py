@@ -85,25 +85,27 @@ def supabase_upsert(table: str, rows: list, batch_size: int = 500):
 
 def fetch_completed_games(date_str: str) -> list:
     """
-    Fetch all completed MLB games for a given date.
+    Fetch all completed games for a given date.
+    Checks both MLB (sportId=1) and WBC (sportId=51).
     Returns list of game_pk IDs.
     """
-    url = f"{MLB_STATS_BASE}/schedule"
-    params = {
-        "sportId": 1,
-        "date": date_str,
-        "hydrate": "linescore",
-    }
-    resp = requests.get(url, params=params)
-    resp.raise_for_status()
-    data = resp.json()
-
     game_pks = []
-    for date_entry in data.get("dates", []):
-        for game in date_entry.get("games", []):
-            status = game.get("status", {}).get("abstractGameState", "")
-            if status == "Final":
-                game_pks.append(game["gamePk"])
+    for sport_id in [1, 51]:
+        url = f"{MLB_STATS_BASE}/schedule"
+        params = {
+            "sportId": sport_id,
+            "date": date_str,
+            "hydrate": "linescore",
+        }
+        resp = requests.get(url, params=params)
+        resp.raise_for_status()
+        data = resp.json()
+
+        for date_entry in data.get("dates", []):
+            for game in date_entry.get("games", []):
+                status = game.get("status", {}).get("abstractGameState", "")
+                if status == "Final":
+                    game_pks.append(game["gamePk"])
 
     log.info(f"Found {len(game_pks)} completed games on {date_str}")
     return game_pks
