@@ -38,6 +38,9 @@ jobs:
 
       - name: Fetch games
         run: python scripts/fetch_games.py
+        
+        - name: Upsert games to Supabase
+          run: python pipeline/fetch_games.py
 
       - name: Fetch players (JSON cache)
         run: python scripts/fetch_players.py
