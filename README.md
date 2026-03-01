@@ -239,3 +239,14 @@ MIT — open source, use freely.
 
 
 <!-- System validated and pipeline tested on 2026-02-26 -->
+
+
+---
+
+## Screenshots
+
+| Homepage | Today's Slate |
+|----------|---------------|
+| ![Homepage](docs/screenshots/homepage.png) | ![Today's Slate](docs/screenshots/todays_slate.png) |
+
+See [`docs/screenshots/`](docs/screenshots/) for all Week 1 launch screenshots.
