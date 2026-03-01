@@ -1,0 +1,22 @@
+{
+  "type": "backtest",
+  "label": "Model Validation: 2025 Season Backtest",
+  "season": "2025",
+  "model": "v1.0-glass-box",
+  "date_range": "2025-04-01 to 2025-09-30",
+  "days_processed": 183,
+  "days_with_games": 179,
+  "total_picks": 4804,
+  "graded_picks": 0,
+  "note": "Projection accuracy only — no prop lines available for 2025 backtest period",
+  "projection_accuracy": {
+    "mean_absolute_error": 1.91,
+    "median_error": 1.62,
+    "within_1k_pct": 32.8,
+    "within_2k_pct": 58.6,
+    "within_3k_pct": 78.7
+  },
+  "hit_rate": null,
+  "avg_clv": null,
+  "generated_at": "2026-03-01T22:00:39Z"
+}
