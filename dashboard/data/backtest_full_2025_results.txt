@@ -1,0 +1,56 @@
+================================================================
+BASELINE MLB - FULL 2025 SEASON BACKTEST RESULTS
+================================================================
+Generated: 2026-03-01
+Run by: GitHub Actions (backtest-test.yml #5)
+Commit: d844a16
+Model: v1.0-glass-box
+Period: 2025-04-01 to 2025-09-30 (183 days)
+Mode: DRY RUN (no data uploaded to Supabase)
+================================================================
+
+Total projections generated: 4804
+Graded with prop lines:       0
+No prop line available:       4804
+
+--- PROJECTION ACCURACY ---
+Mean Absolute Error:  1.91 K
+Median Error:         1.62 K
+Within 1K of actual:  32.8%
+Within 2K of actual:  58.6%
+Within 3K of actual:  78.7%
+
+================================================================
+NOTES
+================================================================
+- No prop line data available for the 2025 season backtest period.
+  All projections are graded on raw accuracy (projected vs actual Ks).
+- MAE of 1.91K is within the acceptable 1.7-2.2 range for v1.0.
+- July 2025 subset (754 starts): MAE 1.88K - consistent with full season.
+- Upload to Supabase accuracy_summary table pending (awaiting approval).
+
+================================================================
+FULL SEASON PROGRESS LOG
+================================================================
+10/183 days:  238 projections
+20/183 days:  500 projections
+30/183 days:  768 projections
+40/183 days:  1044 projections
+50/183 days:  1316 projections
+60/183 days:  1584 projections
+70/183 days:  1866 projections
+80/183 days:  2124 projections
+90/183 days:  2402 projections
+100/183 days: 2676 projections
+110/183 days: 2852 projections
+120/183 days: 3134 projections
+130/183 days: 3386 projections
+140/183 days: 3664 projections
+150/183 days: 3942 projections
+160/183 days: 4204 projections
+170/183 days: 4474 projections
+180/183 days: 4736 projections
+183/183 days: 4804 projections (COMPLETE)
+
+Total runtime: 16m 38s
+================================================================
