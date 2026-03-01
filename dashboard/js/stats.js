@@ -11,8 +11,8 @@
 // ---------------------------------------------------------------------------
 // Configuration — replace these with your actual Supabase project values
 // ---------------------------------------------------------------------------
-const SUPABASE_URL = 'https://YOUR_PROJECT_REF.supabase.co';
-const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY_HERE';
+const SUPABASE_URL = 'https://kjhglcfwuxfkpxbbtlrs.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_SDzRfHJE43rpuAB5Ge4aaA_TLDZEcGT';
 
 // ---------------------------------------------------------------------------
 // Supabase REST helper (no SDK required — plain fetch)
