@@ -1,8 +1,19 @@
 import { createClient } from '@supabase/supabase-js'
+import EmailSignup from './EmailSignup'
+
 export const dynamic = 'force-dynamic'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+
+// Opening Day 2026: March 26, 2026
+const OPENING_DAY = new Date('2026-03-26T16:05:00-04:00')
+
+function getDaysUntilOpeningDay(): number {
+  const now = new Date()
+  const diff = OPENING_DAY.getTime() - now.getTime()
+  return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)))
+}
 
 async function getTodaysGames() {
   if (!supabaseUrl || !supabaseAnonKey) {
@@ -30,7 +41,6 @@ function GameCard({ game }: { game: any }) {
         timeZone: 'America/New_York',
       }) + ' ET'
     : 'TBD'
-
   return (
     <div className="game-card">
       <div className="flex items-center justify-between mb-3">
@@ -69,6 +79,7 @@ function GameCard({ game }: { game: any }) {
 
 export default async function HomePage() {
   const games = await getTodaysGames()
+  const daysUntil = getDaysUntilOpeningDay()
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
@@ -79,23 +90,59 @@ export default async function HomePage() {
 
   return (
     <div>
+      {/* Opening Day Countdown Banner */}
+      {daysUntil > 0 && (
+        <div className="mb-8 p-4 bg-gradient-to-r from-green-900/40 to-gray-900/40 border border-green-700/50 rounded-xl flex items-center justify-between">
+          <div>
+            <div className="text-sm text-green-400 font-medium uppercase tracking-wider mb-0.5">Opening Day 2026</div>
+            <div className="text-white text-sm">March 26 — Full model projections go live</div>
+          </div>
+          <div className="text-right">
+            <div className="text-4xl font-bold text-white">{daysUntil}</div>
+            <div className="text-xs text-slate-400 uppercase tracking-wider">days away</div>
+          </div>
+        </div>
+      )}
+
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-white mb-2">Today's Slate</h1>
         <p className="text-slate-400">{today}</p>
       </div>
 
       {games.length === 0 ? (
-        <div className="text-center py-16">
-          <div className="text-4xl mb-4">⚾</div>
-          <h2 className="text-xl font-semibold text-slate-300 mb-2">No games today</h2>
-          <p className="text-slate-500">
-            {!supabaseUrl
-              ? 'Configure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to load games.'
-              : 'Check back during the regular season. Pipelines run automatically starting Opening Day 2026.'}
-          </p>
-          <div className="mt-8 p-4 bg-gray-900 rounded-lg border border-gray-700 max-w-md mx-auto">
-            <p className="text-sm text-slate-400">Tracking begins Opening Day 2026.</p>
-            <p className="text-sm text-slate-400 mt-1">Follow <a href="https://twitter.com/baselinemlb" className="text-blue-400 hover:text-blue-300">@baselinemlb</a> for daily analysis.</p>
+        <div>
+          <div className="text-center py-12">
+            <div className="text-4xl mb-4">⚾</div>
+            <h2 className="text-xl font-semibold text-slate-300 mb-2">No games today</h2>
+            <p className="text-slate-500 max-w-sm mx-auto">
+              {!supabaseUrl
+                ? 'Configure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to load games.'
+                : 'Pipelines run automatically starting Opening Day 2026. Check the Props and Projections pages for pre-season analysis.'}
+            </p>
+          </div>
+
+          {/* Email signup CTA */}
+          <div className="max-w-sm mx-auto mt-4">
+            <EmailSignup />
+          </div>
+
+          {/* Quick nav to other pages */}
+          <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <a href="/props" className="block p-4 bg-gray-800 border border-gray-700 rounded-xl hover:border-green-500 transition-colors">
+              <div className="text-green-400 text-xl mb-2">📊</div>
+              <div className="font-semibold text-white">Props</div>
+              <div className="text-xs text-slate-400 mt-1">Today's player prop lines with edge %</div>
+            </a>
+            <a href="/projections" className="block p-4 bg-gray-800 border border-gray-700 rounded-xl hover:border-green-500 transition-colors">
+              <div className="text-green-400 text-xl mb-2">🧠</div>
+              <div className="font-semibold text-white">Projections</div>
+              <div className="text-xs text-slate-400 mt-1">Glass-box K projection model</div>
+            </a>
+            <a href="/players" className="block p-4 bg-gray-800 border border-gray-700 rounded-xl hover:border-green-500 transition-colors">
+              <div className="text-green-400 text-xl mb-2">👤</div>
+              <div className="font-semibold text-white">Players</div>
+              <div className="text-xs text-slate-400 mt-1">Search 2,000+ MLB roster entries</div>
+            </a>
           </div>
         </div>
       ) : (
