@@ -2,6 +2,7 @@
  * stats.js — BaselineMLB Public Accuracy Dashboard
  *
  * Fetches live accuracy and CLV metrics from Supabase using the anon key.
+ * Falls back to static backtest JSON when no live season data exists.
  * Populates stat cards, market table, and bookmaker table.
  * Displays today's projections with player handedness.
  * Handles pre-season state gracefully when no data exists.
@@ -31,11 +32,21 @@ async function sbGet(table, params = {}) {
 }
 
 // ---------------------------------------------------------------------------
-// Static JSON fallback — reads from grade_accuracy.py exports
+// Static JSON fallbacks
 // ---------------------------------------------------------------------------
 async function loadFromStaticJSON() {
   try {
     const res = await fetch('./data/accuracy_summary.json');
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (e) {
+    return null;
+  }
+}
+
+async function loadBacktestSummary() {
+  try {
+    const res = await fetch('./data/backtest_summary_2025.json');
     if (!res.ok) return null;
     return await res.json();
   } catch (e) {
@@ -48,6 +59,9 @@ async function updateLastUpdated(data) {
   if (!el) return;
   if (data && data.updated_at) {
     const d = new Date(data.updated_at);
+    el.textContent = 'Last updated: ' + d.toLocaleString('en-US', { timeZone: 'America/New_York' }) + ' ET';
+  } else if (data && data.generated_at) {
+    const d = new Date(data.generated_at);
     el.textContent = 'Last updated: ' + d.toLocaleString('en-US', { timeZone: 'America/New_York' }) + ' ET';
   } else {
     el.textContent = 'Data updates nightly at 2 AM ET';
@@ -105,6 +119,7 @@ async function fetchDashboardStats() {
       byMarket,
       byBookmaker,
       clvByMarket,
+      source: 'live',
     };
   } catch (err) {
     console.error('Failed to fetch dashboard stats:', err);
@@ -200,7 +215,10 @@ function formatHandedness(bats, throws) {
 // ---------------------------------------------------------------------------
 function showPrelaunchState() {
   const banner = document.getElementById('prelaunch-banner');
-  if (banner) banner.style.display = 'block';
+  if (banner) {
+    banner.style.display = 'block';
+    banner.textContent = 'No data yet — tracking begins Opening Day 2026';
+  }
 
   // Keep stat values as dashes
   ['stat-total-picks', 'stat-hit-rate', 'stat-season-hit-rate', 'stat-avg-clv', 'stat-high-conf'].forEach(id => {
@@ -212,6 +230,124 @@ function showPrelaunchState() {
   renderEmptyTable('bookmaker-table-body', 4);
   
   // Hide projections section if no data
+  const projectionsSection = document.getElementById('projections-section');
+  if (projectionsSection) projectionsSection.style.display = 'none';
+}
+
+function showBacktestState(backtest) {
+  // Show the banner with backtest labeling
+  const banner = document.getElementById('prelaunch-banner');
+  if (banner) {
+    banner.style.display = 'block';
+    banner.innerHTML = '<strong>Model Validation: 2025 Season Backtest</strong> · ' +
+      '4,804 projections · April–September 2025 · ' +
+      '<span style="opacity: 0.8;">Live tracking begins Opening Day 2026</span>';
+    banner.style.background = 'linear-gradient(135deg, #1a365d, #2a4a7f)';
+    banner.style.color = '#e2e8f0';
+    banner.style.padding = '12px 20px';
+    banner.style.borderRadius = '8px';
+    banner.style.marginBottom = '20px';
+    banner.style.textAlign = 'center';
+    banner.style.fontSize = '0.95rem';
+  }
+
+  const acc = backtest.projection_accuracy || {};
+
+  // Populate stat cards with backtest data
+  const totalPicksEl = document.getElementById('stat-total-picks');
+  if (totalPicksEl) totalPicksEl.textContent = (backtest.total_picks || 0).toLocaleString();
+
+  // Hit rate not available (no prop lines in backtest) — show MAE instead
+  const hitRateEl = document.getElementById('stat-hit-rate');
+  if (hitRateEl) {
+    hitRateEl.textContent = acc.mean_absolute_error ? `${acc.mean_absolute_error} K` : '—';
+    // Update the label if possible
+    const hitRateLabel = hitRateEl.closest('.stat-card')?.querySelector('.stat-label, h3, .card-title, small');
+    if (hitRateLabel) hitRateLabel.textContent = 'Mean Abs. Error';
+  }
+
+  const seasonHitRateEl = document.getElementById('stat-season-hit-rate');
+  if (seasonHitRateEl) {
+    seasonHitRateEl.textContent = acc.within_1k_pct ? `${acc.within_1k_pct}%` : '—';
+    const seasonLabel = seasonHitRateEl.closest('.stat-card')?.querySelector('.stat-label, h3, .card-title, small');
+    if (seasonLabel) seasonLabel.textContent = 'Within 1K';
+  }
+
+  const avgClvEl = document.getElementById('stat-avg-clv');
+  if (avgClvEl) {
+    avgClvEl.textContent = acc.within_2k_pct ? `${acc.within_2k_pct}%` : '—';
+    const clvLabel = avgClvEl.closest('.stat-card')?.querySelector('.stat-label, h3, .card-title, small');
+    if (clvLabel) clvLabel.textContent = 'Within 2K';
+  }
+
+  const highConfEl = document.getElementById('stat-high-conf');
+  if (highConfEl) {
+    highConfEl.textContent = acc.within_3k_pct ? `${acc.within_3k_pct}%` : '—';
+    const highConfLabel = highConfEl.closest('.stat-card')?.querySelector('.stat-label, h3, .card-title, small');
+    if (highConfLabel) highConfLabel.textContent = 'Within 3K';
+  }
+
+  // Render backtest info in market table area
+  const marketTbody = document.getElementById('market-table-body');
+  if (marketTbody) {
+    marketTbody.innerHTML = `
+      <tr>
+        <td>Pitcher Strikeouts</td>
+        <td>${(backtest.total_picks || 0).toLocaleString()}</td>
+        <td>${acc.mean_absolute_error || '—'} K</td>
+        <td>${acc.median_error || '—'} K</td>
+      </tr>
+    `;
+    // Update table headers if possible
+    const marketTable = marketTbody.closest('table');
+    if (marketTable) {
+      const headers = marketTable.querySelectorAll('thead th');
+      if (headers.length >= 4) {
+        headers[0].textContent = 'Prop Type';
+        headers[1].textContent = 'Projections';
+        headers[2].textContent = 'MAE';
+        headers[3].textContent = 'Median Error';
+      }
+    }
+  }
+
+  // Render accuracy breakdown in bookmaker table area
+  const bookTbody = document.getElementById('bookmaker-table-body');
+  if (bookTbody) {
+    bookTbody.innerHTML = `
+      <tr>
+        <td>Within 1 Strikeout</td>
+        <td>${acc.within_1k_pct || '—'}%</td>
+        <td>${Math.round((acc.within_1k_pct / 100) * backtest.total_picks) || '—'}</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td>Within 2 Strikeouts</td>
+        <td>${acc.within_2k_pct || '—'}%</td>
+        <td>${Math.round((acc.within_2k_pct / 100) * backtest.total_picks) || '—'}</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td>Within 3 Strikeouts</td>
+        <td>${acc.within_3k_pct || '—'}%</td>
+        <td>${Math.round((acc.within_3k_pct / 100) * backtest.total_picks) || '—'}</td>
+        <td>—</td>
+      </tr>
+    `;
+    // Update table headers
+    const bookTable = bookTbody.closest('table');
+    if (bookTable) {
+      const headers = bookTable.querySelectorAll('thead th');
+      if (headers.length >= 4) {
+        headers[0].textContent = 'Accuracy Tier';
+        headers[1].textContent = 'Rate';
+        headers[2].textContent = 'Count';
+        headers[3].textContent = 'CLV';
+      }
+    }
+  }
+
+  // Hide projections section during backtest display
   const projectionsSection = document.getElementById('projections-section');
   if (projectionsSection) projectionsSection.style.display = 'none';
 }
@@ -348,7 +484,10 @@ function escapeHtml(str) {
 }
 
 // ---------------------------------------------------------------------------
-// Entry point
+// Entry point — cascading data strategy:
+//   1. Try Supabase (live 2026 season data)
+//   2. If empty, try backtest summary JSON (2025 validation data)
+//   3. If nothing, show pre-launch placeholder
 // ---------------------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', async () => {
   // Show loading state
@@ -363,10 +502,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     fetchTodaysProjections()
   ]);
 
-  populateDashboard(stats);
-  
-    // Also try static JSON for last-updated timestamp and fallback data
+  // Strategy 1: Live Supabase data exists — show it
+  if (stats && stats.totalPicks > 0) {
+    populateDashboard(stats);
+    renderProjections(projections);
+
     const staticData = await loadFromStaticJSON();
     updateLastUpdated(staticData);
-  renderProjections(projections);
+    return;
+  }
+
+  // Strategy 2: No live data — try backtest summary
+  const backtest = await loadBacktestSummary();
+  if (backtest && backtest.total_picks > 0) {
+    showBacktestState(backtest);
+    updateLastUpdated(backtest);
+    return;
+  }
+
+  // Strategy 3: Nothing available — show pre-launch state
+  showPrelaunchState();
+  const staticData = await loadFromStaticJSON();
+  updateLastUpdated(staticData);
 });
