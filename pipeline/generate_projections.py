@@ -4,6 +4,10 @@ generate_projections.py -- Baseline MLB
 Glass-box pitcher strikeout projection engine.
 Reads games + players from Supabase, computes projections,
 upserts results to the projections table.
+
+Supports manual pitcher overrides via the `pitcher_overrides` table
+for games where the MLB Stats API lacks probable pitcher data
+(e.g., WBC, exhibitions).
 """
 
 import os
@@ -59,7 +63,7 @@ def sb_upsert(table, rows):
         return
     url = f"{SUPABASE_URL}/rest/v1/{table}"
     for i in range(0, len(rows), 500):
-        batch = rows[i : i + 500]
+        batch = rows[i:i+500]
         r = requests.post(url, headers=sb_headers(), json=batch)
         if not r.ok:
             log.warning(f" Upsert failed: {r.status_code} {r.text[:200]}")
@@ -116,6 +120,66 @@ def project_pitcher(mlbam_id, player_name, opponent, venue, expected_ip=5.5):
         "features": json.dumps(features),
     }
 
+
+# ---------------------------------------------------------------------------
+# Pitcher override helpers
+# ---------------------------------------------------------------------------
+
+def fetch_pitcher_overrides(game_date: str) -> dict:
+    """
+    Fetch manual pitcher overrides for a given date.
+    Returns dict keyed by (game_pk, side) -> {pitcher_id, pitcher_name}.
+    """
+    try:
+        rows = sb_get("pitcher_overrides", {
+            "game_date": f"eq.{game_date}",
+            "select": "game_pk,side,pitcher_id,pitcher_name",
+        })
+    except Exception as e:
+        log.warning(f"Failed to fetch pitcher_overrides (table may not exist): {e}")
+        return {}
+
+    overrides = {}
+    for row in rows:
+        key = (row["game_pk"], row["side"])
+        overrides[key] = {
+            "pitcher_id": row["pitcher_id"],
+            "pitcher_name": row.get("pitcher_name") or f"Player {row['pitcher_id']}",
+        }
+
+    if overrides:
+        log.info(f"Loaded {len(overrides)} pitcher overrides for {game_date}")
+
+    return overrides
+
+
+def apply_overrides(games: list, overrides: dict) -> list:
+    """
+    Patch games list with manual pitcher overrides.
+    Overrides take precedence over API-provided probable pitchers.
+    """
+    patched = 0
+    for game in games:
+        game_pk = game["game_pk"]
+
+        home_override = overrides.get((game_pk, "home"))
+        if home_override:
+            game["home_probable_pitcher_id"] = home_override["pitcher_id"]
+            game["home_probable_pitcher"] = home_override["pitcher_name"]
+            patched += 1
+
+        away_override = overrides.get((game_pk, "away"))
+        if away_override:
+            game["away_probable_pitcher_id"] = away_override["pitcher_id"]
+            game["away_probable_pitcher"] = away_override["pitcher_name"]
+            patched += 1
+
+    if patched:
+        log.info(f"Applied {patched} pitcher overrides to games")
+
+    return games
+
+
 def run_projections(game_date=None):
     if game_date is None:
         game_date = date.today().isoformat()
@@ -125,8 +189,8 @@ def run_projections(game_date=None):
     games = sb_get("games", {
         "game_date": f"eq.{game_date}",
         "select": "game_pk,game_date,home_team,away_team,venue,status,"
-        "home_probable_pitcher_id,home_probable_pitcher,"
-        "away_probable_pitcher_id,away_probable_pitcher",
+                  "home_probable_pitcher_id,home_probable_pitcher,"
+                  "away_probable_pitcher_id,away_probable_pitcher",
     })
 
     log.info(f"Found {len(games)} games for {game_date}")
@@ -134,6 +198,11 @@ def run_projections(game_date=None):
     if not games:
         log.info("No games found.")
         return
+
+    # --- Pitcher overrides: patch games with manual assignments ---
+    overrides = fetch_pitcher_overrides(game_date)
+    if overrides:
+        games = apply_overrides(games, overrides)
 
     has_pitchers = any(
         g.get("home_probable_pitcher_id") or g.get("away_probable_pitcher_id")
