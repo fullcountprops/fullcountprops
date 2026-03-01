@@ -22,6 +22,18 @@ async function getProjections(gameDate?: string) {
     console.error('Error fetching projections:', error)
     return []
   }
+      if (!data || data.length === 0) { return [] }
+    // Fetch team names from players table via mlbam_id
+    const mlbamIds = data.map((p: any) => p.mlbam_id).filter(Boolean)
+    if (mlbamIds.length > 0) {
+      const { data: players } = await supabase
+        .from('players')
+        .select('mlbam_id, team')
+        .in('mlbam_id', mlbamIds)
+      const teamMap: Record<string, string> = {}
+      players?.forEach((p: any) => { teamMap[p.mlbam_id] = p.team })
+      data.forEach((proj: any) => { proj.team = teamMap[proj.mlbam_id] || null })
+    }
   return data || []
 }
 
@@ -68,7 +80,7 @@ function ProjectionCard({ proj }: { proj: any }) {
         <div className="flex-1 min-w-0">
           <div className="font-semibold text-white truncate">{proj.player_name}</div>
           <div className="text-xs text-slate-500 mt-0.5">
-            {statLabel}
+                      {proj.team && <span className="mr-1">{proj.team} •</span>}{statLabel}
             {features.venue && <span className="ml-1">&bull; {features.venue}</span>}
           </div>
         </div>
