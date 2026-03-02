@@ -1,21 +1,30 @@
 # .github/workflows/pipelines.yml
 # Automated daily MLB data pipelines for Baseline MLB
 #
-# v2.0 Changes:
-#   - Morning pipeline: consolidated to use pipeline/ only (removed scripts/fetch_games.py, scripts/fetch_players.py)
-#   - Props: consolidated to use pipeline/fetch_props.py only (removed scripts/fetch_props.py)
-#   - Added pytest run on morning pipeline
-#   - Overnight: still uses scripts/ for Statcast + grading (these are unique, not duplicates)
+# v3.0 Changes (Cycle #4):
+#   - Merged morning_data_refresh.yml into this workflow (was a duplicate)
+#   - Added rolling stats computation (extracted from inline Python)
+#   - Added umpire framing to overnight pipeline
+#   - All Statcast references point to pipeline/fetch_statcast.py
+#
+# Schedule (all times ET during EDT):
+#   07:00 — Pre-market data refresh: Statcast, umpire framing, rolling stats
+#   08:00 — Morning: fetch schedule + rosters
+#   10:30 — Late morning: props + projections
+#   16:30 — Afternoon: props refresh + updated projections
+#   02:00 — Overnight: grade accuracy + CLV tracking
 name: MLB Data Pipelines
 on:
   schedule:
-    # Morning: fetch schedule + rosters (8:00 AM ET = 12:00 UTC during EDT)
+    # Pre-market refresh: 7:00 AM ET = 11:00 UTC (EDT) / 12:00 UTC (EST)
+    - cron: "0 11 * * *"
+    # Morning: 8:00 AM ET = 12:00 UTC (EDT)
     - cron: "0 12 * * *"
-    # Late morning: props refresh + generate projections (10:30 AM ET = 14:30 UTC)
+    # Late morning: 10:30 AM ET = 14:30 UTC
     - cron: "30 14 * * *"
-    # Afternoon: props refresh + update projections (4:30 PM ET = 20:30 UTC)
+    # Afternoon: 4:30 PM ET = 20:30 UTC
     - cron: "30 20 * * *"
-    # Overnight: Statcast ingest + grade accuracy (2:00 AM ET = 06:00 UTC)
+    # Overnight: 2:00 AM ET = 06:00 UTC
     - cron: "0 6 * * *"
   workflow_dispatch:
 env:
@@ -24,7 +33,32 @@ env:
   ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
   PYTHONPATH: ${{ github.workspace }}
 jobs:
-  # -- Morning Pipeline: Schedule + Rosters (consolidated to pipeline/ only)
+  # -- Pre-Market Refresh: Statcast + Umpire Framing + Rolling Stats (7 AM ET)
+  pre-market-refresh:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 11 * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install numpy
+      - name: Fetch Statcast data
+        run: python pipeline/fetch_statcast.py
+      - name: Compute umpire framing composites
+        run: python pipeline/fetch_umpire_framing.py
+      - name: Compute 14-day weighted rolling stats
+        run: python pipeline/compute_rolling_stats.py
+
+  # -- Morning Pipeline: Schedule + Rosters (8 AM ET)
   fetch-games-players:
     if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 12 * * *'
     runs-on: ubuntu-latest
@@ -35,6 +69,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: "pip"
       - name: Install dependencies
         run: pip install -r requirements.txt
       - name: Run tests
@@ -46,7 +81,7 @@ jobs:
       - name: Fetch WBC games (sportId=51)
         run: python scripts/fetch_wbc_games.py
 
-  # -- Late Morning Pipeline: Props + Projections
+  # -- Late Morning Pipeline: Props + Projections (10:30 AM ET)
   morning-props-projections:
     if: github.event_name == 'workflow_dispatch' || github.event.schedule == '30 14 * * *'
     runs-on: ubuntu-latest
@@ -57,9 +92,10 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: "pip"
       - name: Install dependencies
         run: pip install -r requirements.txt
-      - name: Fetch props (consolidated to pipeline/)
+      - name: Fetch props
         run: python pipeline/fetch_props.py
       - name: Generate v2.0 pitcher projections
         run: python pipeline/generate_projections.py
@@ -68,7 +104,7 @@ jobs:
       - name: Generate daily content
         run: python scripts/generate_daily_content.py --format all --top 5
 
-  # -- Afternoon Pipeline: Props Refresh + Update Projections
+  # -- Afternoon Pipeline: Props Refresh + Update Projections (4:30 PM ET)
   afternoon-props-projections:
     if: github.event_name == 'workflow_dispatch' || github.event.schedule == '30 20 * * *'
     runs-on: ubuntu-latest
@@ -79,9 +115,10 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: "pip"
       - name: Install dependencies
         run: pip install -r requirements.txt
-      - name: Fetch props (consolidated to pipeline/)
+      - name: Fetch props
         run: python pipeline/fetch_props.py
       - name: Generate v2.0 pitcher projections
         run: python pipeline/generate_projections.py
@@ -90,10 +127,8 @@ jobs:
       - name: Generate daily content
         run: python scripts/generate_daily_content.py --format all --top 5
 
-  # -- Overnight Pipeline: Statcast + Accuracy Grading
-  # Note: scripts/fetch_statcast.py, scripts/grade_accuracy.py, scripts/track_clv.py
-  # are unique (not duplicates of pipeline/) and remain here.
-  overnight-statcast-grading:
+  # -- Overnight Pipeline: Grade Accuracy + CLV Tracking (2 AM ET)
+  overnight-grading:
     if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 6 * * *'
     runs-on: ubuntu-latest
     steps:
@@ -103,13 +138,10 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: "pip"
       - name: Install dependencies
         run: pip install -r requirements.txt
-      - name: Fetch Statcast data
-        run: python pipeline/fetch_statcast.py
       - name: Grade accuracy
         run: python scripts/grade_accuracy.py
       - name: Track CLV
         run: python scripts/track_clv.py
-      - name: Compute umpire framing composites
-        run: python pipeline/fetch_umpire_framing.py
