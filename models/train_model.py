@@ -61,10 +61,10 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import (
     accuracy_score,
+    classification_report,
     log_loss,
     precision_score,
     recall_score,
-    classification_report,
 )
 from sklearn.model_selection import StratifiedKFold
 
