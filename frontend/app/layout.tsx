@@ -42,16 +42,22 @@ export default function RootLayout({
                 Edges
               </Link>
               <Link
+                href="/best-bets"
+                className="text-slate-400 hover:text-slate-100 transition-colors"
+              >
+                Best Bets
+              </Link>
+              <Link
                 href="/newsletter"
                 className="text-slate-400 hover:text-slate-100 transition-colors"
               >
                 Newsletter
               </Link>
               <Link
-                href="/subscribe"
+                href="/pricing"
                 className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-1.5 rounded-lg font-medium transition-colors"
               >
-                Subscribe
+                Pricing
               </Link>
             </div>
           </div>
@@ -69,7 +75,8 @@ export default function RootLayout({
               © {new Date().getFullYear()} BaselineMLB. For entertainment purposes only.
             </p>
             <div className="flex items-center gap-4 text-sm text-slate-500">
-              <Link href="/subscribe" className="hover:text-slate-300 transition-colors">Pricing</Link>
+              <Link href="/pricing" className="hover:text-slate-300 transition-colors">Pricing</Link>
+              <Link href="/best-bets" className="hover:text-slate-300 transition-colors">Best Bets</Link>
               <Link href="/newsletter" className="hover:text-slate-300 transition-colors">Newsletter</Link>
               <a
                 href="/api/v1/status"
