@@ -1310,11 +1310,6 @@ class GameMatchup:
         Multiplicative weather modifier (1.0 = neutral).
     umpire_k_factor:
         Multiplicative umpire strikeout tendency (1.0 = neutral).
-        Derived from ``lib.framing.compute_umpire_k_factor``.
-    catcher_framing_factor:
-        Multiplicative catcher framing effect on strikeout probability
-        (1.0 = neutral).  Derived from
-        ``lib.framing.compute_catcher_k_factor``.  Dampened to ±5%.
 
     Raises
     ------
@@ -1330,7 +1325,6 @@ class GameMatchup:
         park_factor: float = 1.0,
         weather_factor: float = 1.0,
         umpire_k_factor: float = 1.0,
-        catcher_framing_factor: float = 1.0,
     ) -> None:
         if len(lineup) != 9:
             raise ValueError(
@@ -1343,7 +1337,6 @@ class GameMatchup:
         self.park_factor = park_factor
         self.weather_factor = weather_factor
         self.umpire_k_factor = umpire_k_factor
-        self.catcher_framing_factor = catcher_framing_factor
 
 
 # ---------------------------------------------------------------------------
@@ -1596,10 +1589,8 @@ def _apply_pitcher_modifiers(
     park_factor: float,
     weather_factor: float,
     umpire_k_factor: float,
-    catcher_framing_factor: float = 1.0,
 ) -> np.ndarray:
-    """Apply pitcher / park / weather / umpire / catcher modifiers to a
-    probability vector.
+    """Apply pitcher / park / weather / umpire modifiers to a probability vector.
 
     Parameters
     ----------
@@ -1613,10 +1604,6 @@ def _apply_pitcher_modifiers(
         Bullpen profile.
     park_factor, weather_factor, umpire_k_factor:
         Scalar multipliers.
-    catcher_framing_factor:
-        Multiplicative catcher framing effect on K probability.  Supplied by
-        ``lib.framing.compute_catcher_k_factor`` (clamped to [0.95, 1.05]).
-        The inverse is applied to BB probability (dampened to [0.97, 1.03]).
 
     Returns
     -------
@@ -1632,26 +1619,9 @@ def _apply_pitcher_modifiers(
         else pitcher.contact_quality_modifier
     )
 
-    # --- Strikeout modifier (pitcher × umpire × catcher, applied ONCE) ---
-    effective_k_mod = k_mod * umpire_k_factor * catcher_framing_factor
+    # --- Strikeout modifier ---
+    effective_k_mod = k_mod * umpire_k_factor
     probs[K_IDX] *= effective_k_mod
-
-    # --- Walk modifier: inverse of umpire + catcher framing, dampened ---
-    # Good framer / generous ump → fewer walks; tight ump / poor framer → more.
-    # We compute the BB adjustment as the inverse of each framing factor,
-    # then dampen it to stay within a reasonable range.
-    umpire_bb_mod = (1.0 / umpire_k_factor) if umpire_k_factor > 0 else 1.0
-    # Clamp umpire BB modifier to [0.90, 1.10] to match lib.framing bounds
-    umpire_bb_mod = max(0.90, min(1.10, umpire_bb_mod))
-
-    catcher_bb_mod = (1.0 / catcher_framing_factor) if catcher_framing_factor > 0 else 1.0
-    # Clamp catcher BB modifier to [0.97, 1.03] to match lib.framing bounds
-    catcher_bb_mod = max(0.97, min(1.03, catcher_bb_mod))
-
-    effective_bb_mod = umpire_bb_mod * catcher_bb_mod
-    probs[BB_IDX] *= effective_bb_mod
-    # HBP moves with walks (same called-strike influence)
-    probs[HBP_IDX] *= effective_bb_mod
 
     # --- HR modifier (park + weather) ---
     probs[HR_IDX] *= park_factor * weather_factor
@@ -1746,7 +1716,6 @@ def _simulate_game_single(
                 park_factor=matchup.park_factor,
                 weather_factor=matchup.weather_factor,
                 umpire_k_factor=matchup.umpire_k_factor,
-                catcher_framing_factor=matchup.catcher_framing_factor,
             )
 
             # Draw outcome
