@@ -356,7 +356,7 @@ def fetch_game_officials(game_pk):
 # Core projection function — ENHANCED v2.0
 # ---------------------------------------------------------------------------
 
-def project_pitcher(mlbam_id, player_name, opponent, venue, game_pk=None):
+def project_pitcher(mlbam_id, player_name, opponent, venue, game_pk=None, umpire_map=None):
     """
     Project pitcher strikeouts using the v2.0 multi-factor model.
 
@@ -416,6 +416,14 @@ def project_pitcher(mlbam_id, player_name, opponent, venue, game_pk=None):
     adjusted_k9 = blended_k9 * park_factor * umpire_factor * catcher_factor * opp_k_factor
     projected_k = (adjusted_k9 / 9) * expected_ip
 
+    # Apply umpire/catcher adjustment if available
+    umpire_info = (umpire_map or {}).get(game_pk, {})
+    composite_score = umpire_info.get("composite_score", 0.0) or 0.0
+    # composite_score ranges from roughly -1.0 to +1.0
+    # Positive = more called strikes = higher K rate
+    umpire_k_adj = 1.0 + (composite_score * 0.03)  # ±3% K adjustment per unit
+    projected_k = projected_k * umpire_k_adj
+
     # Confidence scoring
     conf = 0.50
     if expected_ip >= 5.0:
@@ -451,6 +459,8 @@ def project_pitcher(mlbam_id, player_name, opponent, venue, game_pk=None):
         "umpire_strike_rate": umpire_sr,
         "catcher_factor": catcher_factor,
         "catcher_composite": catcher_cs,
+        "umpire_composite": composite_score,
+        "umpire_k_adj": umpire_k_adj,
     }
 
     return {
@@ -547,6 +557,14 @@ def run_projections(game_date=None):
     if overrides:
         games = apply_overrides(games, overrides)
 
+    # Fetch umpire/catcher composites for today's games
+    umpire_data = sb_get("umpire_framing", {
+        "select": "*",
+        "game_date": f"eq.{game_date}"
+    })
+    umpire_map = {row.get("game_pk"): row for row in (umpire_data or []) if row.get("game_pk")}
+    log.info(f"Loaded {len(umpire_map)} umpire/catcher composite entries for {game_date}")
+
     has_pitchers = any(
         g.get("home_probable_pitcher_id") or g.get("away_probable_pitcher_id")
         for g in games
@@ -577,7 +595,7 @@ def run_projections(game_date=None):
             log.info(f" Projecting {pname} ({pid}) vs {opp} @ {venue}")
 
             try:
-                proj = project_pitcher(pid, pname, opp, venue, game_pk=game_pk)
+                proj = project_pitcher(pid, pname, opp, venue, game_pk=game_pk, umpire_map=umpire_map)
                 proj["game_pk"] = game_pk
                 proj["game_date"] = game_date
                 projection_rows.append(proj)
