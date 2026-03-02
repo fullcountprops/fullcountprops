@@ -11,9 +11,9 @@ Usage:
                                  [--date 2026-03-01] [--min-edge 0]
                                  [--output json,markdown,text]
 
-Environment / Defaults:
-    SUPABASE_URL        https://kjhglcfwuxfkpxbbtlrs.supabase.co
-    SUPABASE_ANON_KEY   sb_publishable_SDzRfHJE43rpuAB5Ge4aaA_TLDZEcGT
+Environment Variables (required):
+    SUPABASE_URL        Your Supabase project URL
+    SUPABASE_ANON_KEY   Your Supabase anon (public) key
 """
 
 from __future__ import annotations
@@ -37,8 +37,9 @@ except ImportError:
 
 # ── Constants ────────────────────────────────────────────────────────────────
 
-DEFAULT_SUPABASE_URL = "https://kjhglcfwuxfkpxbbtlrs.supabase.co"
-DEFAULT_SUPABASE_KEY = "sb_publishable_SDzRfHJE43rpuAB5Ge4aaA_TLDZEcGT"
+# SECURITY: Credentials must come from environment variables — never hardcode
+DEFAULT_SUPABASE_URL = ""  # Set via SUPABASE_URL env var
+DEFAULT_SUPABASE_KEY = ""  # Set via SUPABASE_ANON_KEY or SUPABASE_SERVICE_KEY env var
 DEFAULT_BANKROLL = 1_000.0
 DEFAULT_KELLY_FRACTION = 0.25  # Quarter Kelly
 DEFAULT_TOP_N = 5
@@ -49,11 +50,15 @@ MAX_KELLY_CAP = 0.05  # Never risk > 5% of bankroll on one play
 # ── Supabase helpers ─────────────────────────────────────────────────────────
 
 def get_supabase_client() -> Client:
-    """Create a Supabase client from env vars or defaults."""
-    url = os.getenv("SUPABASE_URL", DEFAULT_SUPABASE_URL)
-    key = os.getenv("SUPABASE_ANON_KEY") or os.getenv(
-        "SUPABASE_SERVICE_KEY", DEFAULT_SUPABASE_KEY
-    )
+    """Create a Supabase client from environment variables."""
+    url = os.getenv("SUPABASE_URL")
+    key = os.getenv("SUPABASE_ANON_KEY") or os.getenv("SUPABASE_SERVICE_KEY")
+    if not url or not key:
+        sys.exit(
+            "Missing required environment variables.\n"
+            "  Set SUPABASE_URL and SUPABASE_ANON_KEY (or SUPABASE_SERVICE_KEY).\n"
+            "  See .env.example for details."
+        )
     return create_client(url, key)
 
 
