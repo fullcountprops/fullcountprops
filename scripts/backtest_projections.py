@@ -24,15 +24,15 @@ Flow:
   7. Optionally upload results to Supabase accuracy_summary table
 """
 
-import os
-import sys
+import argparse
 import json
 import logging
-import argparse
-import requests
-from datetime import datetime, timedelta
+import os
 from collections import defaultdict
+from datetime import datetime, timedelta
 from typing import Optional
+
+import requests
 
 # ---------------------------------------------------------------------------
 # Config & logging
@@ -449,7 +449,7 @@ def print_report(summary: dict):
 
     ov = summary.get("overall", {})
     if ov:
-        print(f"\n  --- OVERALL HIT RATE ---")
+        print("\n  --- OVERALL HIT RATE ---")
         print(f"  Hits:       {ov['hits']}")
         print(f"  Misses:     {ov['misses']}")
         print(f"  Pushes:     {ov['pushes']}")
@@ -460,7 +460,7 @@ def print_report(summary: dict):
 
     tiers = summary.get("by_confidence_tier", {})
     if tiers:
-        print(f"\n  --- BY CONFIDENCE TIER ---")
+        print("\n  --- BY CONFIDENCE TIER ---")
         for tier in ["HIGH", "MEDIUM", "LOW"]:
             if tier in tiers:
                 t = tiers[tier]
@@ -470,7 +470,7 @@ def print_report(summary: dict):
 
     acc = summary.get("projection_accuracy", {})
     if acc:
-        print(f"\n  --- PROJECTION ACCURACY ---")
+        print("\n  --- PROJECTION ACCURACY ---")
         print(f"  Mean Absolute Error:  {acc['mean_absolute_error']} K")
         print(f"  Median Error:         {acc['median_error']} K")
         print(f"  Within 1K of actual:  {acc['within_1k']}%")
@@ -599,7 +599,7 @@ def run_backtest(start_date: str, end_date: str, dry_run: bool = False, upload: 
             log.warning("Cannot upload: SUPABASE_URL or SUPABASE_SERVICE_KEY not set")
         else:
             if not SUPABASE_URL.startswith("https://") or ".supabase.co" not in SUPABASE_URL:
-                log.warning(f"Invalid SUPABASE_URL, skipping upload")
+                log.warning("Invalid SUPABASE_URL, skipping upload")
             else:
                 log.info("Uploading backtest summary to accuracy_summary...")
                 summary_rows = []
