@@ -60,7 +60,7 @@ LEAGUE_AVG_PROBA: Dict[str, float] = {
     "3B":  0.006,
     "HR":  0.038,
     "HBP": 0.011,
-    "OUT": 0.447,
+    "out": 0.447,
 }
 
 # Park factor defaults when park data is unavailable
@@ -439,7 +439,7 @@ def predict_matchups(
 
     Returns:
         Dict keyed by (pitcher_id, batter_id) mapping to outcome probability
-        dicts, e.g. ``{("K": 0.22, "BB": 0.09, ..., "OUT": 0.44)}``.
+        dicts, e.g. ``{("K": 0.22, "BB": 0.09, ..., "out": 0.44)}``.
     """
     if model is None:
         logger.warning("No model loaded -- returning league-average probabilities for all matchups.")

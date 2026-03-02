@@ -424,7 +424,7 @@ _LEAGUE_AVG_PROBS: dict[str, float] = {
     "2B": 0.050,
     "3B": 0.005,
     "HR": 0.035,
-    "OUT": 0.435,
+    "out": 0.435,
 }
 
 # Weather adjustment factors per outcome
@@ -433,7 +433,7 @@ _WEATHER_ADJUSTMENTS: dict[str, dict[str, float]] = {
     "HR": {"wind_out": 0.08, "wind_in": -0.08, "high_temp": 0.03, "high_humidity": -0.02},
     "2B": {"wind_out": 0.03, "wind_in": -0.02, "high_temp": 0.01, "high_humidity": -0.01},
     "K": {"wind_out": 0.0, "wind_in": 0.0, "high_temp": -0.01, "high_humidity": 0.01},
-    "OUT": {"wind_out": -0.02, "wind_in": 0.02, "high_temp": 0.0, "high_humidity": 0.0},
+    "out": {"wind_out": -0.02, "wind_in": 0.02, "high_temp": 0.0, "high_humidity": 0.0},
 }
 
 
