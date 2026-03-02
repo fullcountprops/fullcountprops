@@ -1,33 +1,32 @@
 """
-BaselineMLB Monte Carlo Game Simulator
-=======================================
+simulation — LEGACY Monte Carlo simulation package.
+=====================================================
 
-A production-grade plate-appearance-level Monte Carlo simulation engine
-for MLB player prop projections. Outputs full probability distributions
-for strikeouts, hits, total bases, home runs, and other player stats.
+STATUS: Legacy. All production code uses the `simulator/` package.
 
-Architecture:
-    config          — Central configuration, feature lists, park factors
-    data_prep       — Statcast / MLB API / Supabase data fetching
-    matchup_model   — PA outcome probability model (LightGBM + odds-ratio fallback)
-    game_engine     — Monte Carlo game simulator (2,500 iterations/game)
-    prop_analyzer   — Compares simulated distributions to sportsbook prop lines
-    train_model     — Training pipeline for the LightGBM matchup model
-    run_simulation  — CLI entry point for daily simulation runs
+This package contains the original Monte Carlo simulation implementation
+(8,636 lines across 7 modules). It is retained because:
 
-Usage:
-    # Run today's simulation
-    python -m simulation.run_simulation --output json markdown --upload
+1. `tests/test_simulation.py` (168 tests) validates this implementation
+2. The code is stable and passing — deleting it would remove test coverage
 
-    # Train the matchup model
-    python -m simulation.train_model --seasons 2021 2022 2023 2024 2025
+The CANONICAL simulation package is `simulator/` which is used by:
+- `pipeline/` scripts (via simulator.run_daily)
+- `scripts/backtest_simulator.py`
+- `scripts/integration_test.py`
+- `Makefile simulate` target
+- `.github/workflows/simulator.yml`
 
-    # Backtest a historical date
-    python -m simulation.run_simulation --backtest --backtest-date 2025-07-15
+For new development, always use `simulator/`.
 
-Model Version: mc-v1.0
+Migration Plan (Cycle #5+):
+- Migrate test_simulation.py to test against simulator/ directly
+- Archive or remove simulation/ entirely
+
+Package version: mc-v1.0 (legacy)
 """
 
 __version__ = "1.0.0"
+__status__ = "legacy"
 __author__ = "BaselineMLB"
 __model_version__ = "mc-v1.0"
