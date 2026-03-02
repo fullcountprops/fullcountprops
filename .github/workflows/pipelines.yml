@@ -10,9 +10,10 @@
 # Schedule (all times ET during EDT):
 #   07:00 — Pre-market data refresh: Statcast, umpire framing, rolling stats
 #   08:00 — Morning: fetch schedule + rosters
-#   10:30 — Late morning: props + projections
-#   16:30 — Afternoon: props refresh + updated projections
+#   10:30 — Late morning: lineups + weather + props + projections
+#   16:30 — Afternoon: props refresh + updated projections + lineups + weather
 #   02:00 — Overnight: grade accuracy + CLV tracking
+#   Sun 03:00 — Weekly: Statcast historical refresh + training data build
 name: MLB Data Pipelines
 on:
   schedule:
@@ -26,6 +27,8 @@ on:
     - cron: "30 20 * * *"
     # Overnight: 2:00 AM ET = 06:00 UTC
     - cron: "0 6 * * *"
+    # Weekly: Statcast historical refresh (Sunday 3:00 AM ET = 07:00 UTC)
+    - cron: "0 7 * * 0"
   workflow_dispatch:
 env:
   SUPABASE_URL: ${{ secrets.SUPABASE_PROJECT_URL }}
@@ -78,6 +81,10 @@ jobs:
         run: python pipeline/fetch_games.py
       - name: Fetch & upsert players to Supabase (with handedness)
         run: python pipeline/fetch_players.py
+      - name: Fetch confirmed lineups
+        run: python pipeline/fetch_lineups.py
+      - name: Fetch game weather
+        run: python pipeline/fetch_weather.py
       - name: Fetch WBC games (sportId=51)
         run: python scripts/fetch_wbc_games.py
 
@@ -95,6 +102,10 @@ jobs:
           cache: "pip"
       - name: Install dependencies
         run: pip install -r requirements.txt
+      - name: Fetch confirmed lineups
+        run: python pipeline/fetch_lineups.py
+      - name: Fetch game weather
+        run: python pipeline/fetch_weather.py
       - name: Fetch props
         run: python pipeline/fetch_props.py
       - name: Generate v2.0 pitcher projections
@@ -118,6 +129,10 @@ jobs:
           cache: "pip"
       - name: Install dependencies
         run: pip install -r requirements.txt
+      - name: Fetch confirmed lineups (refresh)
+        run: python pipeline/fetch_lineups.py
+      - name: Fetch game weather (refresh)
+        run: python pipeline/fetch_weather.py
       - name: Fetch props
         run: python pipeline/fetch_props.py
       - name: Generate v2.0 pitcher projections
@@ -145,3 +160,48 @@ jobs:
         run: python scripts/grade_accuracy.py
       - name: Track CLV
         run: python scripts/track_clv.py
+
+  # -- Weekly Pipeline: Statcast Historical Refresh + Training Data (Sun 3 AM ET)
+  weekly-statcast-historical:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 7 * * 0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Fetch Statcast historical (current season, last 14 days)
+        run: |
+          END_DATE=$(date +%Y-%m-%d)
+          START_DATE=$(date -d '14 days ago' +%Y-%m-%d)
+          python pipeline/fetch_statcast_historical.py \
+            --start-date "$START_DATE" \
+            --end-date "$END_DATE" \
+            --upload-supabase \
+            --output statcast_rolling_14d.parquet
+      - name: Backfill weather for past 7 days
+        run: |
+          python pipeline/fetch_weather.py \
+            --date $(date +%Y-%m-%d) \
+            --backfill-days 7 \
+            --historical
+
+  # -- Notify on failure --
+  notify-on-failure:
+    needs: [pre-market-refresh, fetch-games-players, morning-props-projections, afternoon-props-projections, overnight-grading, weekly-statcast-historical]
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report pipeline failure
+        run: |
+          echo "::error::One or more BaselineMLB pipeline jobs failed."
+          echo "Check the workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          # Future: send Slack/Discord/email notification here
+          # curl -X POST "$WEBHOOK_URL" -H "Content-Type: application/json" \
+          #   -d "{\"text\": \"BaselineMLB pipeline failed: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}"
