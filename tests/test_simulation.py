@@ -1,4 +1,3 @@
-# Migrated from simulation/ to simulator/ — see docs/ARCHITECTURE.md Section 9
 """
 test_simulation.py — Comprehensive unit tests for the BaselineMLB Monte Carlo simulator.
 
@@ -19,24 +18,25 @@ from typing import List
 
 import numpy as np
 import pytest
-from simulator.config import (
+
+from simulation.config import (
     FEATURE_COLUMNS,
     LEAGUE_AVG_RATES,
     MODEL_OUTCOMES,
     PARK_FACTORS,
     SimulationConfig,
 )
-from simulator.game_engine import (
+from simulation.game_engine import (
     GameSimulator,
     GameState,
     PlayerStats,
     SimulationResult,
 )
-from simulator.matchup_model import (
+from simulation.matchup_model import (
     MatchupModel,
     OddsRatioModel,
 )
-from simulator.prop_analyzer import (
+from simulation.prop_analyzer import (
     PropAnalysis,
     PropAnalyzer,
     PropLine,
@@ -775,23 +775,22 @@ class TestGameState:
         gs.runners[1] = 1
         gs.runners[2] = 2
         gs.runners[3] = 3
-        initial_score = dict(gs.score)
-        runs, new_gs = gs.advance_runners_probabilistic("single", rng)
-        # Runs scored must be >= 0
+        initial_score = gs.score["away"]
+        runs = gs.advance_runners_probabilistic("single", rng=rng)
+        assert isinstance(runs, int)
         assert runs >= 0
-        # Score must be non-decreasing
-        assert new_gs.score["away"] >= initial_score["away"]
+        assert gs.score["away"] == initial_score + runs
 
     def test_advance_runners_probabilistic_triple(self):
-        """advance_runners_probabilistic('triple') always scores all runners."""
-        rng = np.random.default_rng(seed=99)
+        """advance_runners_probabilistic('triple') scores all runners."""
+        rng = np.random.default_rng(seed=0)
         gs = GameState()
         gs.half = "top"
-        gs.runners[1] = 1
-        gs.runners[2] = 2
-        runs, _ = gs.advance_runners_probabilistic("triple", rng)
-        # Both runners on 1B and 2B should score on a triple
-        assert runs >= 2
+        gs.runners = {1: 1, 2: 2, 3: 3}
+        runs = gs.advance_runners_probabilistic("triple", rng=rng)
+        # All 3 runners should score on a triple
+        assert runs == 3
+        assert gs.runners[3] is not None  # batter on 3B
 
 
 # ===========================================================================
@@ -800,92 +799,50 @@ class TestGameState:
 
 
 class TestPlayerStats:
-    """Tests for PlayerStats — per-player accumulator for a simulation run."""
+    """Tests for PlayerStats — the aggregated stat container."""
 
-    def test_initial_stats(self):
-        """Freshly created PlayerStats has zero counters."""
-        ps = PlayerStats(mlbam_id=12345, name="John Doe")
-        assert ps.mlbam_id == 12345
-        assert ps.name == "John Doe"
-        assert ps.plate_appearances == 0
-        assert ps.strikeouts == 0
-        assert ps.walks == 0
-        assert ps.hits == 0
-        assert ps.home_runs == 0
+    def test_from_dict_batter(self):
+        """PlayerStats.from_dict creates a valid batter stats object."""
+        raw = _make_player(100, "Test Batter")
+        ps = PlayerStats.from_dict(raw)
+        assert ps.mlbam_id == 100
+        assert ps.name == "Test Batter"
+        for outcome in MODEL_OUTCOMES:
+            assert hasattr(ps, f"{outcome}_rate")
 
-    def test_record_strikeout(self):
-        """record_outcome('strikeout') increments PA and K counter."""
-        ps = PlayerStats(mlbam_id=1, name="Pitcher")
-        ps.record_outcome("strikeout")
-        assert ps.plate_appearances == 1
-        assert ps.strikeouts == 1
+    def test_from_dict_pitcher(self):
+        """PlayerStats.from_dict creates a valid pitcher stats object."""
+        raw = _make_pitcher(200, "Test Pitcher")
+        ps = PlayerStats.from_dict(raw)
+        assert ps.mlbam_id == 200
+        assert ps.name == "Test Pitcher"
 
-    def test_record_walk(self):
-        """record_outcome('walk') increments PA and walk counter."""
-        ps = PlayerStats(mlbam_id=2, name="Walker")
-        ps.record_outcome("walk")
-        assert ps.plate_appearances == 1
-        assert ps.walks == 1
+    def test_rates_non_negative(self):
+        """All rate attributes are non-negative after from_dict."""
+        ps = PlayerStats.from_dict(_make_player(1, "Player"))
+        for outcome in MODEL_OUTCOMES:
+            val = getattr(ps, f"{outcome}_rate")
+            assert val >= 0.0, f"{outcome}_rate is negative: {val}"
 
-    def test_record_home_run(self):
-        """record_outcome('home_run') increments PA, hits, and HR."""
-        ps = PlayerStats(mlbam_id=3, name="Slugger")
-        ps.record_outcome("home_run")
-        assert ps.plate_appearances == 1
-        assert ps.home_runs == 1
-        assert ps.hits == 1
+    def test_sample_pa_preserved(self):
+        """sample_pa is correctly stored from the input dict."""
+        raw = _make_player(99, "A", hand="L")
+        raw["sample_pa"] = 350
+        ps = PlayerStats.from_dict(raw)
+        assert ps.sample_pa == 350
 
-    def test_record_single(self):
-        """record_outcome('single') increments PA and hits."""
-        ps = PlayerStats(mlbam_id=4, name="Singles Hitter")
-        ps.record_outcome("single")
-        assert ps.plate_appearances == 1
-        assert ps.hits == 1
-        assert ps.home_runs == 0
-        assert ps.strikeouts == 0
+    def test_hand_preserved(self):
+        """Hand attribute is correctly stored."""
+        raw = _make_player(88, "B", hand="L")
+        ps = PlayerStats.from_dict(raw)
+        assert ps.hand == "L"
 
-    def test_batting_average_property(self):
-        """batting_average is hits / PA (simple average, not official BA)."""
-        ps = PlayerStats(mlbam_id=5, name="Batter")
-        ps.record_outcome("single")
-        ps.record_outcome("strikeout")
-        ps.record_outcome("home_run")
-        expected = 2 / 3
-        assert abs(ps.batting_average - expected) < 1e-9
-
-    def test_batting_average_zero_pa(self):
-        """batting_average returns 0.0 when PA=0 (no division by zero)."""
-        ps = PlayerStats(mlbam_id=6, name="Idle")
-        assert ps.batting_average == 0.0
-
-    def test_k_rate_property(self):
-        """k_rate is strikeouts / PA."""
-        ps = PlayerStats(mlbam_id=7, name="Strikeout Machine")
-        for _ in range(3):
-            ps.record_outcome("strikeout")
-        ps.record_outcome("single")
-        assert abs(ps.k_rate - 0.75) < 1e-9
-
-    def test_walk_rate_property(self):
-        """walk_rate is walks / PA."""
-        ps = PlayerStats(mlbam_id=8, name="Patient")
-        ps.record_outcome("walk")
-        ps.record_outcome("walk")
-        ps.record_outcome("strikeout")
-        assert abs(ps.walk_rate - 2 / 3) < 1e-9
-
-    def test_multiple_outcomes(self):
-        """Accumulating a mix of outcomes updates all counters correctly."""
-        ps = PlayerStats(mlbam_id=9, name="All-Around")
-        outcomes = ["single", "strikeout", "walk", "home_run", "double",
-                    "strikeout", "out", "triple"]
-        for o in outcomes:
-            ps.record_outcome(o)
-        assert ps.plate_appearances == 8
-        assert ps.strikeouts == 2
-        assert ps.walks == 1
-        assert ps.home_runs == 1
-        assert ps.hits == 4  # single, HR, double, triple
+    def test_missing_hand_defaults_to_r(self):
+        """If 'hand' is missing from dict, defaults to 'R'."""
+        raw = _make_player(77, "C")
+        del raw["hand"]
+        ps = PlayerStats.from_dict(raw)
+        assert ps.hand == "R"
 
 
 # ===========================================================================
@@ -894,173 +851,217 @@ class TestPlayerStats:
 
 
 class TestGameSimulator:
-    """Tests for GameSimulator — the main simulation orchestrator."""
+    """Tests for GameSimulator — the full Monte Carlo game engine."""
 
     @pytest.fixture(autouse=True)
     def setup(self):
-        """Build a minimal 9-batter lineup + starter for both teams."""
-        self.away_lineup = [_make_player(i, f"Away{i}") for i in range(1, 10)]
-        self.home_lineup = [_make_player(i + 10, f"Home{i}") for i in range(1, 10)]
-        self.away_starter = _make_pitcher(101, "Away Starter")
-        self.home_starter = _make_pitcher(102, "Home Starter")
+        """Build a standard 9-batter lineup for both teams."""
+        self.away_lineup = [_make_player(i, f"Away {i}") for i in range(1, 10)]
+        self.home_lineup = [_make_player(i + 100, f"Home {i}") for i in range(1, 10)]
+        self.away_starter = _make_pitcher(201, "Away SP")
+        self.home_starter = _make_pitcher(202, "Home SP")
         self.game_data = _make_game_data(
             self.away_lineup,
             self.home_lineup,
             self.away_starter,
             self.home_starter,
         )
+        self.matchup_model = MockMatchupModel()
+        self.cfg = SimulationConfig(NUM_SIMULATIONS=100, RANDOM_SEED=42)
         self.sim = GameSimulator(
-            matchup_model=MockMatchupModel(),
+            game_data=self.game_data,
+            matchup_model=self.matchup_model,
+            config=self.cfg,
         )
 
-    def test_simulate_returns_result(self):
-        """simulate_game returns a SimulationResult."""
-        result = self.sim.simulate_game(
-            self.game_data, context=_neutral_context(), n_simulations=10
-        )
+    def test_run_returns_simulation_result(self):
+        """GameSimulator.run() returns a SimulationResult."""
+        result = self.sim.run()
         assert isinstance(result, SimulationResult)
 
-    def test_simulation_result_has_score_distributions(self):
-        """SimulationResult has away_scores and home_scores arrays."""
-        result = self.sim.simulate_game(
-            self.game_data, context=_neutral_context(), n_simulations=10
-        )
-        assert hasattr(result, "away_scores")
-        assert hasattr(result, "home_scores")
-        assert len(result.away_scores) == 10
-        assert len(result.home_scores) == 10
-
-    def test_scores_non_negative(self):
-        """All simulated scores are >= 0."""
-        result = self.sim.simulate_game(
-            self.game_data, context=_neutral_context(), n_simulations=50
-        )
-        assert all(s >= 0 for s in result.away_scores)
-        assert all(s >= 0 for s in result.home_scores)
-
-    def test_win_probabilities_sum_to_one(self):
+    def test_win_probs_sum_to_one(self):
         """away_win_prob + home_win_prob + tie_prob == 1.0."""
-        result = self.sim.simulate_game(
-            self.game_data, context=_neutral_context(), n_simulations=100
-        )
+        result = self.sim.run()
         total = result.away_win_prob + result.home_win_prob + result.tie_prob
-        assert abs(total - 1.0) < 1e-6, f"Win probs sum = {total}"
+        assert abs(total - 1.0) < 1e-9, f"Win probs sum = {total}"
 
-    def test_win_probabilities_in_range(self):
-        """All win/tie probabilities are in [0, 1]."""
-        result = self.sim.simulate_game(
-            self.game_data, context=_neutral_context(), n_simulations=100
-        )
+    def test_win_probs_in_range(self):
+        """All win probabilities are in [0, 1]."""
+        result = self.sim.run()
         assert 0.0 <= result.away_win_prob <= 1.0
         assert 0.0 <= result.home_win_prob <= 1.0
         assert 0.0 <= result.tie_prob <= 1.0
 
-    def test_reproducibility_with_seed(self):
-        """Same random seed produces identical results."""
-        r1 = self.sim.simulate_game(
-            self.game_data, context=_neutral_context(), n_simulations=20, seed=42
-        )
-        r2 = self.sim.simulate_game(
-            self.game_data, context=_neutral_context(), n_simulations=20, seed=42
-        )
-        np.testing.assert_array_equal(r1.away_scores, r2.away_scores)
-        np.testing.assert_array_equal(r1.home_scores, r2.home_scores)
+    def test_total_runs_non_negative(self):
+        """Average runs scored per team is non-negative."""
+        result = self.sim.run()
+        assert result.avg_away_runs >= 0.0
+        assert result.avg_home_runs >= 0.0
 
-    def test_different_seeds_produce_different_results(self):
-        """Different seeds produce (almost certainly) different results."""
-        r1 = self.sim.simulate_game(
-            self.game_data, context=_neutral_context(), n_simulations=50, seed=1
-        )
-        r2 = self.sim.simulate_game(
-            self.game_data, context=_neutral_context(), n_simulations=50, seed=2
-        )
-        # It's astronomically unlikely all 50 scores match with different seeds
-        assert not np.array_equal(r1.away_scores, r2.away_scores)
+    def test_player_stats_present(self):
+        """SimulationResult contains player_stats dict with at least one entry."""
+        result = self.sim.run()
+        assert isinstance(result.player_stats, dict)
+        assert len(result.player_stats) > 0
 
-    def test_pitcher_strikeout_stats_accumulated(self):
-        """Pitcher stats accumulate strikeouts across simulations."""
-        result = self.sim.simulate_game(
-            self.game_data, context=_neutral_context(), n_simulations=50
-        )
-        assert hasattr(result, "away_pitcher_stats")
-        away_ps = result.away_pitcher_stats  # stats for away_starter pitching to home batters
-        assert away_ps.strikeouts >= 0
-        assert away_ps.plate_appearances >= 0
+    def test_player_stats_hits_non_negative(self):
+        """Every player's average hits is non-negative."""
+        result = self.sim.run()
+        for player_id, stats in result.player_stats.items():
+            assert stats.get("avg_hits", 0) >= 0.0, (
+                f"Player {player_id} has negative avg_hits"
+            )
 
-    def test_high_k_pitcher_strikes_out_more(self):
-        """High-K pitcher should average more K's per game than league-avg pitcher."""
-        # High-K starter
-        high_k_starter = _make_pitcher(999, "High K Pitcher")
-        high_k_starter["strikeout_rate"] = 0.50
+    def test_player_stats_contains_lineup_players(self):
+        """All lineup players appear in player_stats."""
+        result = self.sim.run()
+        for player in self.away_lineup + self.home_lineup:
+            pid = player["mlbam_id"]
+            assert pid in result.player_stats, (
+                f"Player {pid} missing from player_stats"
+            )
 
-        low_k_starter = _make_pitcher(998, "Low K Pitcher")
-        low_k_starter["strikeout_rate"] = 0.10
+    def test_simulation_count_matches_config(self):
+        """The internal simulation ran exactly NUM_SIMULATIONS times."""
+        result = self.sim.run()
+        assert result.num_simulations == self.cfg.NUM_SIMULATIONS
 
-        gd_high_k = _make_game_data(
-            self.away_lineup, self.home_lineup, high_k_starter, self.home_starter
+    def test_random_seed_reproducibility(self):
+        """Two simulators with the same seed produce identical results."""
+        cfg1 = SimulationConfig(NUM_SIMULATIONS=50, RANDOM_SEED=99)
+        cfg2 = SimulationConfig(NUM_SIMULATIONS=50, RANDOM_SEED=99)
+        sim1 = GameSimulator(
+            game_data=self.game_data, matchup_model=self.matchup_model, config=cfg1
         )
-        gd_low_k = _make_game_data(
-            self.away_lineup, self.home_lineup, low_k_starter, self.home_starter
+        sim2 = GameSimulator(
+            game_data=self.game_data, matchup_model=self.matchup_model, config=cfg2
+        )
+        r1 = sim1.run()
+        r2 = sim2.run()
+        assert r1.away_win_prob == r2.away_win_prob
+        assert r1.home_win_prob == r2.home_win_prob
+        assert r1.avg_away_runs == r2.avg_away_runs
+
+    def test_different_seeds_usually_differ(self):
+        """Two simulators with different seeds almost always produce different results."""
+        cfg1 = SimulationConfig(NUM_SIMULATIONS=200, RANDOM_SEED=1)
+        cfg2 = SimulationConfig(NUM_SIMULATIONS=200, RANDOM_SEED=2)
+        sim1 = GameSimulator(
+            game_data=self.game_data, matchup_model=self.matchup_model, config=cfg1
+        )
+        sim2 = GameSimulator(
+            game_data=self.game_data, matchup_model=self.matchup_model, config=cfg2
+        )
+        r1 = sim1.run()
+        r2 = sim2.run()
+        # It is astronomically unlikely both are identical with 200 sims
+        assert (
+            r1.away_win_prob != r2.away_win_prob
+            or r1.avg_away_runs != r2.avg_away_runs
         )
 
-        result_high = self.sim.simulate_game(
-            gd_high_k, context=_neutral_context(), n_simulations=200, seed=0
-        )
-        result_low = self.sim.simulate_game(
-            gd_low_k, context=_neutral_context(), n_simulations=200, seed=0
+    def test_result_has_score_distribution(self):
+        """SimulationResult contains a score_distribution dict."""
+        result = self.sim.run()
+        assert hasattr(result, "score_distribution")
+        assert isinstance(result.score_distribution, dict)
+
+    def test_score_distribution_probabilities_sum_to_one(self):
+        """All values in score_distribution sum to approximately 1.0."""
+        result = self.sim.run()
+        total = sum(result.score_distribution.values())
+        assert abs(total - 1.0) < 1e-6, f"Score dist sum = {total}"
+
+    def test_over_under_line_returns_probs(self):
+        """get_over_under returns a dict with 'over' and 'under' keys."""
+        result = self.sim.run()
+        ou = result.get_over_under(line=8.5)
+        assert "over" in ou and "under" in ou
+        assert abs(ou["over"] + ou["under"] - 1.0) < 1e-9
+
+    def test_over_under_at_zero_line_all_over(self):
+        """Line of 0.0 means virtually all simulated games go over (≥1 total run)."""
+        result = self.sim.run()
+        ou = result.get_over_under(line=0.0)
+        assert ou["over"] > 0.99, f"Expected >99% over at line 0.0, got {ou['over']:.4f}"
+
+    def test_over_under_at_huge_line_all_under(self):
+        """Line of 100.0 means virtually all simulated games go under."""
+        result = self.sim.run()
+        ou = result.get_over_under(line=100.0)
+        assert ou["under"] > 0.99, (
+            f"Expected >99% under at line 100.0, got {ou['under']:.4f}"
         )
 
-        avg_k_high = np.mean(result_high.away_pitcher_k_distribution)
-        avg_k_low = np.mean(result_low.away_pitcher_k_distribution)
+    def test_single_game_sim_returns_valid_dict(self):
+        """_run_single_game returns a dict with required keys."""
+        rng = np.random.default_rng(seed=0)
+        game_result = self.sim._run_single_game(rng=rng)
+        required_keys = {"away_score", "home_score", "innings_played", "player_log"}
+        for key in required_keys:
+            assert key in game_result, f"Missing key '{key}' in single-game result"
 
-        assert avg_k_high > avg_k_low, (
-            f"High-K pitcher mean K/game ({avg_k_high:.2f}) should exceed "
-            f"low-K pitcher ({avg_k_low:.2f})"
-        )
+    def test_single_game_score_non_negative(self):
+        """Single game scores are non-negative integers."""
+        rng = np.random.default_rng(seed=1)
+        game_result = self.sim._run_single_game(rng=rng)
+        assert game_result["away_score"] >= 0
+        assert game_result["home_score"] >= 0
 
-    def test_simulate_game_9_innings(self):
-        """Standard simulation runs exactly 9 innings (no extras)."""
-        result = self.sim.simulate_game(
-            self.game_data,
-            context=_neutral_context(),
-            n_simulations=10,
-            extra_innings=False,
-        )
-        # All simulations end at or after 9 innings
-        assert all(i >= 9 for i in result.innings_played)
+    def test_single_game_innings_at_least_9(self):
+        """A single game simulation plays at least 9 innings."""
+        rng = np.random.default_rng(seed=2)
+        game_result = self.sim._run_single_game(rng=rng)
+        assert game_result["innings_played"] >= 9
 
-    def test_tie_games_go_to_extra_innings(self):
-        """When extra_innings=True, tied games don't end at 9."""
-        # This is probabilistic — with enough simulations, ties should occur
-        result = self.sim.simulate_game(
-            self.game_data,
-            context=_neutral_context(),
-            n_simulations=500,
-            extra_innings=True,
-            seed=777,
+    def test_run_is_idempotent(self):
+        """Calling run() twice on the same simulator produces consistent results
+        (with a fixed seed, results should be identical)."""
+        cfg = SimulationConfig(NUM_SIMULATIONS=50, RANDOM_SEED=7)
+        sim = GameSimulator(
+            game_data=self.game_data,
+            matchup_model=self.matchup_model,
+            config=cfg,
         )
-        # At least some games should end > 9 innings (due to extra-inning ties)
-        if result.tie_count > 0:
-            assert any(i > 9 for i in result.innings_played)
+        r1 = sim.run()
+        r2 = sim.run()
+        assert r1.away_win_prob == r2.away_win_prob
+        assert r1.home_win_prob == r2.home_win_prob
 
-    def test_pitcher_k_distribution_shape(self):
-        """away_pitcher_k_distribution has correct length (one entry per sim)."""
-        n_sims = 25
-        result = self.sim.simulate_game(
-            self.game_data, context=_neutral_context(), n_simulations=n_sims
-        )
-        assert len(result.away_pitcher_k_distribution) == n_sims
-        assert len(result.home_pitcher_k_distribution) == n_sims
+    def test_high_k_pitcher_produces_more_ks(self):
+        """Lineup facing a high-K pitcher accumulates more strikeouts per sim."""
 
-    def test_runs_per_game_plausible(self):
-        """Average runs per team per game should be between 2 and 8 (plausible MLB range)."""
-        result = self.sim.simulate_game(
-            self.game_data, context=_neutral_context(), n_simulations=500, seed=42
+        class HighKModel:
+            def predict_pa_probs(self, pitcher, batter, context, **kwargs):
+                probs = dict(LEAGUE_AVG_RATES)
+                k_boost = 0.15
+                probs["strikeout"] = min(1.0, probs["strikeout"] + k_boost)
+                # Re-normalise
+                total = sum(probs.values())
+                return {k: v / total for k, v in probs.items()}
+
+        cfg = SimulationConfig(NUM_SIMULATIONS=200, RANDOM_SEED=42)
+        sim_highk = GameSimulator(
+            game_data=self.game_data, matchup_model=HighKModel(), config=cfg
         )
-        avg_away = np.mean(result.away_scores)
-        avg_home = np.mean(result.home_scores)
-        assert 2.0 <= avg_away <= 8.0, f"Away avg runs {avg_away:.2f} out of plausible range"
-        assert 2.0 <= avg_home <= 8.0, f"Home avg runs {avg_home:.2f} out of plausible range"
+        result_highk = sim_highk.run()
+
+        sim_baseline = GameSimulator(
+            game_data=self.game_data, matchup_model=self.matchup_model, config=cfg
+        )
+        result_baseline = sim_baseline.run()
+
+        # High-K model should produce more total strikeouts
+        def total_ks(result):
+            return sum(
+                stats.get("avg_strikeouts", 0)
+                for stats in result.player_stats.values()
+            )
+
+        assert total_ks(result_highk) > total_ks(result_baseline), (
+            f"High-K model KS={total_ks(result_highk):.2f} should exceed "
+            f"baseline KS={total_ks(result_baseline):.2f}"
+        )
 
 
 # ===========================================================================
@@ -1069,182 +1070,193 @@ class TestGameSimulator:
 
 
 class TestPropAnalyzer:
-    """Tests for PropAnalyzer — converts simulation K distributions into prop edges."""
+    """Tests for PropAnalyzer — the prop-bet analysis layer."""
 
-    def _make_k_distribution(self, mean: float = 6.0, std: float = 2.0, n: int = 1000):
-        """Generate a synthetic K distribution centred on `mean`."""
-        rng = np.random.default_rng(seed=42)
-        raw = rng.normal(loc=mean, scale=std, size=n)
-        return np.clip(np.round(raw), 0, 27).astype(int)
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        """Set up a standard PropAnalyzer with a pre-built SimulationResult."""
+        away_lineup = [_make_player(i, f"Away {i}") for i in range(1, 10)]
+        home_lineup = [_make_player(i + 100, f"Home {i}") for i in range(1, 10)]
+        away_starter = _make_pitcher(201, "Away SP")
+        home_starter = _make_pitcher(202, "Home SP")
+        game_data = _make_game_data(away_lineup, home_lineup, away_starter, home_starter)
 
-    def test_analyze_over_edge(self):
-        """With a high K mean and low prop line, PropAnalyzer should recommend OVER."""
-        analyzer = PropAnalyzer()
-        dist = self._make_k_distribution(mean=8.0, std=1.5)
-        line = PropLine(pitcher_id=1, pitcher_name="Ace", stat_type="strikeouts",
-                        line=5.5, over_odds=-115, under_odds=-105)
-        analysis = analyzer.analyze(dist, line)
-        assert isinstance(analysis, PropAnalysis)
-        assert analysis.recommendation in ("over", "under", "no_play")
-        if analysis.recommendation == "over":
-            assert analysis.over_prob > analysis.under_prob
-
-    def test_analyze_under_edge(self):
-        """With a low K mean and high prop line, PropAnalyzer should recommend UNDER."""
-        analyzer = PropAnalyzer()
-        dist = self._make_k_distribution(mean=3.0, std=1.0)
-        line = PropLine(pitcher_id=2, pitcher_name="Soft Tosser", stat_type="strikeouts",
-                        line=6.5, over_odds=-110, under_odds=-110)
-        analysis = analyzer.analyze(dist, line)
-        assert isinstance(analysis, PropAnalysis)
-        if analysis.recommendation == "under":
-            assert analysis.under_prob > analysis.over_prob
-
-    def test_analyze_returns_probabilities_in_range(self):
-        """over_prob and under_prob are both in [0, 1]."""
-        analyzer = PropAnalyzer()
-        dist = self._make_k_distribution()
-        line = PropLine(pitcher_id=3, pitcher_name="Pitcher", stat_type="strikeouts",
-                        line=6.5, over_odds=-110, under_odds=-110)
-        analysis = analyzer.analyze(dist, line)
-        assert 0.0 <= analysis.over_prob <= 1.0
-        assert 0.0 <= analysis.under_prob <= 1.0
-
-    def test_analyze_probs_sum_approx_to_one(self):
-        """over_prob + under_prob + push_prob ≈ 1.0 for half-point lines (no push)."""
-        analyzer = PropAnalyzer()
-        dist = self._make_k_distribution()
-        # .5 line means no exact push
-        line = PropLine(pitcher_id=4, pitcher_name="Pitcher", stat_type="strikeouts",
-                        line=6.5, over_odds=-110, under_odds=-110)
-        analysis = analyzer.analyze(dist, line)
-        total = analysis.over_prob + analysis.under_prob + analysis.push_prob
-        assert abs(total - 1.0) < 1e-6, f"Probs sum = {total}"
-
-    def test_analyze_whole_number_line_has_push_mass(self):
-        """Whole-number line (e.g. 6.0) should have some push probability."""
-        analyzer = PropAnalyzer()
-        dist = self._make_k_distribution(mean=6.0, std=1.5)
-        line = PropLine(pitcher_id=5, pitcher_name="Pitcher", stat_type="strikeouts",
-                        line=6.0, over_odds=-110, under_odds=-110)
-        analysis = analyzer.analyze(dist, line)
-        # With mean=6.0, some exact hits on 6 are expected
-        assert analysis.push_prob >= 0.0  # Always true; we just ensure no exception
-
-    def test_edge_value_calculation(self):
-        """edge_pct reflects how much the model price differs from vig-free odds."""
-        analyzer = PropAnalyzer()
-        # Very high K dist vs low line — large edge expected
-        dist = self._make_k_distribution(mean=10.0, std=1.0)
-        line = PropLine(pitcher_id=6, pitcher_name="Ace", stat_type="strikeouts",
-                        line=5.5, over_odds=-110, under_odds=-110)
-        analysis = analyzer.analyze(dist, line)
-        # Edge should be positive (model > vig-free implied)
-        if analysis.recommendation == "over":
-            assert analysis.ev_pct > 0.0
-
-    def test_no_play_when_edge_below_threshold(self):
-        """When model prob is very close to vig-free, recommendation is 'no_play'."""
-        analyzer = PropAnalyzer(min_edge=0.10)  # 10% edge threshold
-        dist = self._make_k_distribution(mean=6.0, std=2.0)
-        # Line at exactly the mean — no edge
-        line = PropLine(pitcher_id=7, pitcher_name="Pitcher", stat_type="strikeouts",
-                        line=6.0, over_odds=-110, under_odds=-110)
-        analysis = analyzer.analyze(dist, line)
-        # With mean exactly at line and 10% threshold, likely no_play
-        # (or possibly a play if variance creates slight edge)
-        assert analysis.recommendation in ("over", "under", "no_play")
-
-    def test_kelly_fraction_positive_for_edge(self):
-        """kelly_fraction is positive when there is a genuine edge."""
-        analyzer = PropAnalyzer()
-        dist = self._make_k_distribution(mean=9.0, std=0.5)
-        line = PropLine(pitcher_id=8, pitcher_name="Ace", stat_type="strikeouts",
-                        line=5.5, over_odds=-110, under_odds=-110)
-        analysis = analyzer.analyze(dist, line)
-        if analysis.recommendation == "over":
-            assert analysis.kelly_fraction >= 0.0
-
-    def test_kelly_fraction_capped(self):
-        """kelly_fraction never exceeds 1.0 (capped for bet-sizing safety)."""
-        analyzer = PropAnalyzer()
-        dist = self._make_k_distribution(mean=15.0, std=0.1)  # extreme edge
-        line = PropLine(pitcher_id=9, pitcher_name="Robot", stat_type="strikeouts",
-                        line=1.5, over_odds=-110, under_odds=-110)
-        analysis = analyzer.analyze(dist, line)
-        assert analysis.kelly_fraction <= 1.0
-
-    def test_analyze_batch(self):
-        """analyze_batch returns one PropAnalysis per input."""
-        analyzer = PropAnalyzer()
-        dists = [
-            self._make_k_distribution(mean=m) for m in [4.0, 6.0, 8.0]
-        ]
-        lines = [
-            PropLine(pitcher_id=i, pitcher_name=f"P{i}", stat_type="strikeouts",
-                     line=5.5, over_odds=-110, under_odds=-110)
-            for i in range(3)
-        ]
-        results = analyzer.analyze_batch(list(zip(dists, lines)))
-        assert len(results) == 3
-        assert all(isinstance(r, PropAnalysis) for r in results)
-
-    def test_analyze_empty_distribution(self):
-        """PropAnalyzer raises ValueError for an empty distribution."""
-        analyzer = PropAnalyzer()
-        line = PropLine(pitcher_id=10, pitcher_name="Ghost", stat_type="strikeouts",
-                        line=5.5, over_odds=-110, under_odds=-110)
-        with pytest.raises((ValueError, IndexError)):
-            analyzer.analyze(np.array([], dtype=int), line)
-
-    def test_summary_string_representation(self):
-        """str(PropAnalysis) or repr(PropAnalysis) is a non-empty string."""
-        analyzer = PropAnalyzer()
-        dist = self._make_k_distribution()
-        line = PropLine(pitcher_id=11, pitcher_name="Test", stat_type="strikeouts",
-                        line=6.5, over_odds=-110, under_odds=-110)
-        analysis = analyzer.analyze(dist, line)
-        s = str(analysis)
-        assert isinstance(s, str)
-        assert len(s) > 0
-
-    @pytest.mark.parametrize("over_odds,under_odds", [
-        (-110, -110),   # balanced market
-        (-120, +100),   # favourite over
-        (+100, -120),   # favourite under
-        (-150, +125),   # heavy favourite over
-    ])
-    def test_various_odds_structures(self, over_odds, under_odds):
-        """PropAnalyzer handles various American odds structures without error."""
-        analyzer = PropAnalyzer()
-        dist = self._make_k_distribution(mean=6.0)
-        line = PropLine(pitcher_id=12, pitcher_name="Pitcher", stat_type="strikeouts",
-                        line=5.5, over_odds=over_odds, under_odds=under_odds)
-        analysis = analyzer.analyze(dist, line)
-        assert isinstance(analysis, PropAnalysis)
-        assert 0.0 <= analysis.over_prob <= 1.0
-        assert 0.0 <= analysis.under_prob <= 1.0
-
-    def test_ev_pct_zero_for_coin_flip(self):
-        """EV% is approximately zero when model prob matches vig-free implied prob.
-
-        We construct a case where model over_prob ≈ 0.5 and market is -110/-110
-        (vig-free ≈ 0.5). Expected value should be near zero.
-        """
-        analyzer = PropAnalyzer()
-        # dist symmetric around line → over_prob ≈ 0.5
-        rng = np.random.default_rng(seed=0)
-        dist = np.round(rng.normal(6.5, 2.0, 10000)).astype(int)
-        dist = np.clip(dist, 0, 27)
-        line = PropLine(
-            pitcher_id=13, pitcher_name="Coin Flip", stat_type="strikeouts",
-            line=6.5, over_odds=-110, under_odds=-110
+        cfg = SimulationConfig(NUM_SIMULATIONS=500, RANDOM_SEED=42)
+        sim = GameSimulator(
+            game_data=game_data,
+            matchup_model=MockMatchupModel(),
+            config=cfg,
         )
-        analysis = analyzer.analyze(dist, line)
-        # over_prob ≈ 0.50 and vig-free implied ≈ 0.4762 → small positive EV
-        # Accept |EV| < 5% as "near zero"
-        if analysis.recommendation in ("over", "no_play"):
-            expected_ev = analysis.ev_pct if analysis.recommendation == "over" else 0.0
+        self.result = sim.run()
+        self.analyzer = PropAnalyzer(simulation_result=self.result)
+
+        # Pick a player that exists in player_stats
+        self.player_id = away_lineup[0]["mlbam_id"]
+        self.player_name = away_lineup[0]["name"]
+
+    # --- PropLine tests ---
+
+    def test_prop_line_valid(self):
+        """PropLine can be created with valid inputs."""
+        prop = PropLine(
+            player_id=self.player_id,
+            player_name=self.player_name,
+            prop_type="hits",
+            line=0.5,
+            over_odds=-115,
+            under_odds=-105,
+        )
+        assert prop.player_id == self.player_id
+        assert prop.line == 0.5
+
+    def test_prop_line_negative_line_raises(self):
+        """PropLine with a negative line raises ValueError."""
+        with pytest.raises(ValueError, match="line"):
+            PropLine(
+                player_id=1,
+                player_name="X",
+                prop_type="hits",
+                line=-0.5,
+                over_odds=-110,
+                under_odds=-110,
+            )
+
+    def test_prop_line_invalid_prop_type_raises(self):
+        """PropLine with an unknown prop_type raises ValueError."""
+        with pytest.raises(ValueError, match="prop_type"):
+            PropLine(
+                player_id=1,
+                player_name="X",
+                prop_type="fantasy_points",
+                line=0.5,
+                over_odds=-110,
+                under_odds=-110,
+            )
+
+    # --- PropAnalysis tests ---
+
+    def _make_prop(self, prop_type="hits", line=0.5):
+        return PropLine(
+            player_id=self.player_id,
+            player_name=self.player_name,
+            prop_type=prop_type,
+            line=line,
+            over_odds=-110,
+            under_odds=-110,
+        )
+
+    def test_analyze_returns_prop_analysis(self):
+        """PropAnalyzer.analyze() returns a PropAnalysis object."""
+        prop = self._make_prop()
+        analysis = self.analyzer.analyze(prop)
+        assert isinstance(analysis, PropAnalysis)
+
+    def test_over_under_probs_sum_to_one(self):
+        """over_prob + under_prob + push_prob == 1.0."""
+        prop = self._make_prop()
+        analysis = self.analyzer.analyze(prop)
+        total = analysis.over_prob + analysis.under_prob + analysis.push_prob
+        assert abs(total - 1.0) < 1e-9, f"Over/under/push sum = {total}"
+
+    def test_over_prob_in_range(self):
+        """over_prob is in [0, 1]."""
+        prop = self._make_prop()
+        analysis = self.analyzer.analyze(prop)
+        assert 0.0 <= analysis.over_prob <= 1.0
+
+    def test_under_prob_in_range(self):
+        """under_prob is in [0, 1]."""
+        prop = self._make_prop()
+        analysis = self.analyzer.analyze(prop)
+        assert 0.0 <= analysis.under_prob <= 1.0
+
+    def test_recommended_side_valid(self):
+        """recommended_side is one of 'over', 'under', or 'no_bet'."""
+        prop = self._make_prop()
+        analysis = self.analyzer.analyze(prop)
+        assert analysis.recommended_side in ("over", "under", "no_bet")
+
+    def test_hits_prop_analysis(self):
+        """Hits prop returns a valid analysis."""
+        analysis = self.analyzer.analyze(self._make_prop("hits", 0.5))
+        assert isinstance(analysis, PropAnalysis)
+        assert analysis.prop_type == "hits"
+
+    def test_strikeouts_prop_analysis(self):
+        """Strikeouts prop returns a valid analysis (pitcher K prop)."""
+        # Use a batter for simplicity — analyzer treats same as any counter
+        analysis = self.analyzer.analyze(self._make_prop("strikeouts", 0.5))
+        assert isinstance(analysis, PropAnalysis)
+
+    def test_home_runs_prop_analysis(self):
+        """Home runs prop works correctly."""
+        analysis = self.analyzer.analyze(self._make_prop("home_runs", 0.5))
+        assert isinstance(analysis, PropAnalysis)
+        assert analysis.prop_type == "home_runs"
+
+    def test_walks_prop_analysis(self):
+        """Walks prop works correctly."""
+        analysis = self.analyzer.analyze(self._make_prop("walks", 0.5))
+        assert isinstance(analysis, PropAnalysis)
+
+    def test_total_bases_prop_analysis(self):
+        """Total bases prop works correctly."""
+        analysis = self.analyzer.analyze(self._make_prop("total_bases", 1.5))
+        assert isinstance(analysis, PropAnalysis)
+        assert analysis.prop_type == "total_bases"
+
+    def test_rbi_prop_analysis(self):
+        """RBI prop works correctly."""
+        analysis = self.analyzer.analyze(self._make_prop("rbi", 0.5))
+        assert isinstance(analysis, PropAnalysis)
+
+    def test_runs_prop_analysis(self):
+        """Runs scored prop works correctly."""
+        analysis = self.analyzer.analyze(self._make_prop("runs", 0.5))
+        assert isinstance(analysis, PropAnalysis)
+
+    def test_unknown_player_raises(self):
+        """Analyzing a prop for an unknown player_id raises KeyError or ValueError."""
+        bad_prop = PropLine(
+            player_id=99999,  # not in player_stats
+            player_name="Ghost Player",
+            prop_type="hits",
+            line=0.5,
+            over_odds=-110,
+            under_odds=-110,
+        )
+        with pytest.raises((KeyError, ValueError)):
+            self.analyzer.analyze(bad_prop)
+
+    def test_ev_pct_present_and_numeric(self):
+        """ev_pct is a float (expected value as a percentage)."""
+        analysis = self.analyzer.analyze(self._make_prop())
+        assert isinstance(analysis.ev_pct, float)
+
+    def test_ev_pct_non_negative_for_good_bet(self):
+        """A highly favorable bet (line=0.5 hits, heavy over prob) has positive EV."""
+        # Create a prop where the line is very low so over is near certain
+        prop = self._make_prop("hits", line=0.5)
+        analysis = self.analyzer.analyze(prop)
+        if analysis.recommended_side in ("over", "under"):
+            assert analysis.ev_pct >= 0.0, (
+                f"Recommended bet has negative EV: {analysis.ev_pct:.4f}"
+            )
+
+    def test_edge_values_are_finite(self):
+        """edge_over and edge_under are finite floats."""
+        analysis = self.analyzer.analyze(self._make_prop())
+        import math
+        assert math.isfinite(analysis.edge_over)
+        assert math.isfinite(analysis.edge_under)
+
+    def test_edge_calculation_consistency(self):
+        """ev_pct is consistent with edge_over / edge_under and recommended_side."""
+        analysis = self.analyzer.analyze(self._make_prop())
+        if analysis.recommended_side == "over":
+            expected_ev = round(analysis.edge_over * 100, 4)
+        elif analysis.recommended_side == "under":
+            expected_ev = round(analysis.edge_under * 100, 4)
         else:
             expected_ev = 0.0
         assert abs(analysis.ev_pct - expected_ev) < 1e-6
