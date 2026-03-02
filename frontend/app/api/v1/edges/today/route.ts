@@ -111,7 +111,7 @@ export async function GET(req: NextRequest) {
       delete clean.shap_factors
       delete clean.kelly_fraction
       delete clean.kelly_unit_size
-      return clean as Edge
+      return clean as unknown as Edge
     })
   }
 

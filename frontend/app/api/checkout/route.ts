@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Check for existing Stripe customer ───────────────────────
-    const existingCustomerId = user.user_metadata?.stripe_customer_id
+    const existingCustomerId = (user as any).user_metadata?.stripe_customer_id
     let customerId: string | undefined
 
     if (existingCustomerId) {

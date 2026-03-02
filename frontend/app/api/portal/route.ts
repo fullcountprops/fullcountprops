@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Get Stripe customer ID from user metadata ─────────────────
-    const customerId = user.user_metadata?.stripe_customer_id
+    const customerId = (user as any).user_metadata?.stripe_customer_id
 
     if (!customerId) {
       return NextResponse.json(
