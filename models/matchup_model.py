@@ -4,9 +4,10 @@ models/matchup_model.py
 XGBoost multiclass classifier that predicts plate-appearance outcome probabilities
 for pitcher-batter matchups in the BaselineMLB Monte Carlo simulator.
 
-Outcome classes (8):
-    0 = K    1 = BB   2 = 1B   3 = 2B   4 = 3B
-    5 = HR   6 = HBP  7 = OUT
+Outcome classes (8) — canonical order matching simulator/monte_carlo_engine.py
+and pipeline/build_training_dataset.py:
+    0 = K    1 = BB   2 = HBP  3 = 1B   4 = 2B
+    5 = 3B   6 = HR   7 = out
 
 Usage
 -----
@@ -43,7 +44,9 @@ logger = logging.getLogger(__name__)
 # Constants
 # ---------------------------------------------------------------------------
 
-OUTCOME_CLASSES: List[str] = ["K", "BB", "1B", "2B", "3B", "HR", "HBP", "OUT"]
+# Canonical 8-class outcome list — matches simulator/monte_carlo_engine.py OUTCOMES
+# and pipeline/build_training_dataset.py OUTCOME_LABELS.
+OUTCOME_CLASSES: List[str] = ["K", "BB", "HBP", "1B", "2B", "3B", "HR", "out"]
 
 PITCHER_FEATURES: List[str] = [
     "career_k9",
@@ -155,7 +158,7 @@ class MatchupModel:
     """XGBoost multiclass classifier for plate-appearance outcome probabilities.
 
     The model predicts a probability distribution over 8 outcome classes
-    (K, BB, 1B, 2B, 3B, HR, HBP, OUT) for every pitcher-batter matchup.
+    (K, BB, HBP, 1B, 2B, 3B, HR, out) for every pitcher-batter matchup.
 
     Attributes:
         clf: Underlying XGBoost classifier (set after fit()).
@@ -303,7 +306,7 @@ class MatchupModel:
             X: Feature DataFrame with ALL_FEATURES columns.
 
         Returns:
-            List of outcome class strings, e.g. ['K', 'HR', 'OUT', ...].
+            List of outcome class strings, e.g. ['K', 'HR', 'out', ...].
         """
         indices = self.predict(X)
         return [OUTCOME_CLASSES[i] for i in indices]
@@ -455,7 +458,7 @@ if __name__ == "__main__":
         "park_factor": rng.uniform(0.88, 1.12, n),
     }
     df = pd.DataFrame(data)
-    labels = rng.choice(OUTCOME_CLASSES, size=n, p=[0.22, 0.09, 0.14, 0.05, 0.01, 0.04, 0.01, 0.44])
+    labels = rng.choice(OUTCOME_CLASSES, size=n, p=[0.22, 0.09, 0.01, 0.14, 0.05, 0.01, 0.04, 0.44])
 
     split = int(n * 0.8)
     X_tr, X_va = df.iloc[:split], df.iloc[split:]

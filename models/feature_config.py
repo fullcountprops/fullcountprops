@@ -14,45 +14,42 @@ hard-coded in multiple places.
 
 from collections import OrderedDict
 
-# ── Plate Appearance Outcome Classes ─────────────────────────────────────
-# These are the 11 mutually exclusive outcomes the model predicts.
-# Order matters: this is the label encoding used by LightGBM.
+# ── Plate Appearance Outcome Classes ───────────────────────────────────────
+# These are the 8 mutually exclusive outcomes the model predicts.
+# flyout / groundout / lineout / popup are all collapsed into "out".
+# Order matches simulator/monte_carlo_engine.py OUTCOMES and
+# pipeline/build_training_dataset.py OUTCOME_LABELS.
+# Order matters: this is the label encoding used by XGBoost/LightGBM.
 
 PA_OUTCOMES = [
-    "strikeout",
-    "walk",
-    "hit_by_pitch",
-    "single",
-    "double",
-    "triple",
-    "home_run",
-    "flyout",
-    "groundout",
-    "lineout",
-    "popup",
+    "K",
+    "BB",
+    "HBP",
+    "1B",
+    "2B",
+    "3B",
+    "HR",
+    "out",
 ]
 
 OUTCOME_TO_IDX = {label: i for i, label in enumerate(PA_OUTCOMES)}
 IDX_TO_OUTCOME = {i: label for i, label in enumerate(PA_OUTCOMES)}
-NUM_CLASSES = len(PA_OUTCOMES)
+NUM_CLASSES = len(PA_OUTCOMES)  # 8
 
-# Short display names for charts / SHAP plots
+# Display names for charts / SHAP plots
 OUTCOME_SHORT = {
-    "strikeout": "K",
-    "walk": "BB",
-    "hit_by_pitch": "HBP",
-    "single": "1B",
-    "double": "2B",
-    "triple": "3B",
-    "home_run": "HR",
-    "flyout": "FO",
-    "groundout": "GO",
-    "lineout": "LO",
-    "popup": "PU",
+    "K":   "K",
+    "BB":  "BB",
+    "HBP": "HBP",
+    "1B":  "1B",
+    "2B":  "2B",
+    "3B":  "3B",
+    "HR":  "HR",
+    "out": "out",
 }
 
 
-# ── Feature Groups ───────────────────────────────────────────────────────
+# ── Feature Groups ────────────────────────────────────────────────────
 # Organized by source / meaning.  Each tuple: (column_name, description, dtype)
 
 PITCHER_FEATURES = OrderedDict([
@@ -118,7 +115,7 @@ CONTEXT_FEATURES = OrderedDict([
 ])
 
 
-# ── Combined Feature List (training order) ───────────────────────────────
+# ── Combined Feature List (training order) ──────────────────────────────────────
 
 def get_all_feature_defs():
     """Return ordered dict of ALL features used in training."""
@@ -199,7 +196,7 @@ FEATURE_DEFAULTS = {
 }
 
 
-# ── Target Column ────────────────────────────────────────────────────────
+# ── Target Column ─────────────────────────────────────────────────────────────
 
 TARGET_COL = "pa_outcome"
 
@@ -210,21 +207,19 @@ RAW_EVENT_COL = "events"
 DATE_COL = "game_date"
 
 
-# ── League-Average Outcome Distribution ──────────────────────────────────
+# ── League-Average Outcome Distribution ──────────────────────────────────────
 # 2020-2024 approximate MLB averages (used as naive baseline).
+# flyout / groundout / lineout / popup are collapsed into "out".
 
 LEAGUE_AVG_PROBS = {
-    "strikeout":    0.224,
-    "walk":         0.082,
-    "hit_by_pitch": 0.012,
-    "single":       0.152,
-    "double":       0.044,
-    "triple":       0.004,
-    "home_run":     0.031,
-    "flyout":       0.170,
-    "groundout":    0.183,
-    "lineout":      0.065,
-    "popup":        0.033,
+    "K":   0.224,
+    "BB":  0.082,
+    "HBP": 0.012,
+    "1B":  0.152,
+    "2B":  0.044,
+    "3B":  0.004,
+    "HR":  0.031,
+    "out": 0.451,  # flyout(0.170) + groundout(0.183) + lineout(0.065) + popup(0.033)
 }
 
 # Sanity check
@@ -232,67 +227,64 @@ assert abs(sum(LEAGUE_AVG_PROBS.values()) - 1.0) < 0.01, \
     f"League avg probs should sum to ~1.0, got {sum(LEAGUE_AVG_PROBS.values()):.3f}"
 
 
-# ── Statcast Event-Name Mapping ──────────────────────────────────────────
-# Maps the raw Statcast `events` column values → our 11-class labels.
+# ── Statcast Event-Name Mapping ───────────────────────────────────────────────
+# Maps the raw Statcast `events` column values → our 8-class labels.
+# All batted-ball outs (flyout, groundout, lineout, popup) map to "out".
 
 EVENT_MAP = {
     # Strikeouts
-    "strikeout":             "strikeout",
-    "strikeout_double_play": "strikeout",
+    "strikeout":                  "K",
+    "strikeout_double_play":      "K",
     # Walks
-    "walk":                  "walk",
-    "intent_walk":           "walk",
+    "walk":                       "BB",
+    "intent_walk":                "BB",
     # HBP
-    "hit_by_pitch":          "hit_by_pitch",
+    "hit_by_pitch":               "HBP",
     # Hits
-    "single":                "single",
-    "double":                "double",
-    "triple":                "triple",
-    "home_run":              "home_run",
-    # Outs — map by bb_type (batted ball type) or default
-    "field_out":             "_by_bb_type",   # resolved dynamically
-    "force_out":             "groundout",
-    "grounded_into_double_play": "groundout",
-    "double_play":           "groundout",
-    "fielders_choice":       "groundout",
-    "fielders_choice_out":   "groundout",
-    "sac_fly":               "flyout",
-    "sac_fly_double_play":   "flyout",
-    "sac_bunt":              "groundout",
-    "sac_bunt_double_play":  "groundout",
-    "triple_play":           "groundout",
+    "single":                     "1B",
+    "double":                     "2B",
+    "triple":                     "3B",
+    "home_run":                   "HR",
+    # Outs — all batted-ball out types collapse to "out"
+    "field_out":                  "out",
+    "force_out":                  "out",
+    "grounded_into_double_play":  "out",
+    "double_play":                "out",
+    "fielders_choice":            "out",
+    "fielders_choice_out":        "out",
+    "sac_fly":                    "out",
+    "sac_fly_double_play":        "out",
+    "sac_bunt":                   "out",
+    "sac_bunt_double_play":       "out",
+    "triple_play":                "out",
 }
 
-# For "field_out" events, use bb_type to classify
+# BB_TYPE_MAP is no longer needed for outcome classification (all batted-ball
+# outs map to "out"), but is retained for informational / diagnostic use.
 BB_TYPE_MAP = {
-    "fly_ball":    "flyout",
-    "ground_ball": "groundout",
-    "line_drive":  "lineout",
-    "popup":       "popup",
+    "fly_ball":    "out",
+    "ground_ball": "out",
+    "line_drive":  "out",
+    "popup":       "out",
 }
 
 
 def map_event(event: str, bb_type: str = None) -> str:
     """
-    Map a raw Statcast event string to one of our 11 PA outcome classes.
+    Map a raw Statcast event string to one of our 8 PA outcome classes.
 
     Args:
         event:   Value from the Statcast `events` column
-        bb_type: Value from the Statcast `bb_type` column (for field outs)
+        bb_type: Unused (kept for backward compatibility). Previously used
+                 to distinguish flyout/groundout/lineout/popup; all batted-ball
+                 outs now map to "out".
 
     Returns:
-        One of PA_OUTCOMES, or None if the event should be excluded
+        One of PA_OUTCOMES ("K", "BB", "HBP", "1B", "2B", "3B", "HR", "out"),
+        or None if the event should be excluded
         (e.g., caught_stealing, pickoff — not a PA outcome).
     """
     if not event:
         return None
 
-    mapped = EVENT_MAP.get(event)
-
-    if mapped is None:
-        return None   # event not a PA outcome (e.g., caught_stealing)
-
-    if mapped == "_by_bb_type":
-        return BB_TYPE_MAP.get(bb_type, "flyout")  # default field_out → flyout
-
-    return mapped
+    return EVENT_MAP.get(event)  # returns None for non-PA events
