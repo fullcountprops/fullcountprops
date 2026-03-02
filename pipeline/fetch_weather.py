@@ -1,351 +1,404 @@
+#!/usr/bin/env python3
 """
-pipeline/fetch_weather.py
+fetch_weather.py — Baseline MLB
+Fetch weather data for each MLB ballpark using Open-Meteo (free, no API key).
+Stores temperature, wind speed, wind direction, and humidity for game-time
+conditions. Used as context features in the Monte Carlo simulation.
 
-Fetch current weather conditions for MLB game venues and compute a
-K-rate impact multiplier for the BaselineMLB Monte Carlo simulator.
+Data source: api.open-meteo.com (free, no key required)
 
-Uses the OpenWeatherMap free-tier current weather API.
-Returns a neutral multiplier (1.0) gracefully on any API failure.
+Usage:
+    # Fetch weather for today's games
+    python pipeline/fetch_weather.py
+
+    # Specific date
+    python pipeline/fetch_weather.py --date 2025-06-15
+
+    # Fetch historical weather for backfill
+    python pipeline/fetch_weather.py --date 2024-07-04 --historical
+
+    # Don't upload to Supabase
+    python pipeline/fetch_weather.py --no-upload
+
+Output:
+    Upserts rows to the `game_weather` table in Supabase.
 """
 
+import os
+import sys
+import json
 import argparse
 import logging
-import os
 import time
-from datetime import date
+from datetime import date, datetime, timedelta
+from pathlib import Path
 from typing import Optional
 
 import requests
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
-logger = logging.getLogger(__name__)
+# ── Project imports ───────────────────────────────────────────────────────────
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from lib.supabase import sb_upsert, sb_get
 
-# ---------------------------------------------------------------------------
-# Stadium coordinates -- all 30 MLB venues (lat, lon)
-# ---------------------------------------------------------------------------
-STADIUM_COORDS: dict[str, tuple[float, float]] = {
-    # American League East
-    "BAL": (39.2838, -76.6215),   # Camden Yards
-    "BOS": (42.3467, -71.0972),   # Fenway Park
-    "NYY": (40.8296, -73.9262),   # Yankee Stadium
-    "TB":  (27.7683, -82.6534),   # Tropicana Field (dome -- weather neutral)
-    "TOR": (43.6414, -79.3894),   # Rogers Centre (dome)
-    # American League Central
-    "CWS": (41.8300, -87.6339),   # Guaranteed Rate Field
-    "CLE": (41.4959, -81.6852),   # Progressive Field
-    "DET": (42.3390, -83.0485),   # Comerica Park
-    "KC":  (39.0517, -94.4803),   # Kauffman Stadium
-    "MIN": (44.9817, -93.2777),   # Target Field
-    # American League West
-    "HOU": (29.7573, -95.3555),   # Minute Maid Park (retractable)
-    "LAA": (33.8003, -117.8827),  # Angel Stadium
-    "OAK": (37.7516, -122.2005),  # Oakland Coliseum (or future venue)
-    "SEA": (47.5913, -122.3325),  # T-Mobile Park (retractable)
-    "TEX": (32.7473, -97.0832),   # Globe Life Field (dome)
-    # National League East
-    "ATL": (33.8908, -84.4679),   # Truist Park
-    "MIA": (25.7781, -80.2197),   # loanDepot Park (retractable)
-    "NYM": (40.7571, -73.8458),   # Citi Field
-    "PHI": (39.9057, -75.1665),   # Citizens Bank Park
-    "WSH": (38.8730, -77.0074),   # Nationals Park
-    # National League Central
-    "CHC": (41.9484, -87.6553),   # Wrigley Field
-    "CIN": (39.0979, -84.5074),   # Great American Ball Park
-    "MIL": (43.0280, -87.9712),   # American Family Field (retractable)
-    "PIT": (40.4469, -80.0057),   # PNC Park
-    "STL": (38.6226, -90.1928),   # Busch Stadium
-    # National League West
-    "ARI": (33.4455, -112.0667),  # Chase Field (retractable)
-    "COL": (39.7559, -104.9942),  # Coors Field
-    "LAD": (34.0739, -118.2400),  # Dodger Stadium
-    "SD":  (32.7076, -117.1570),  # Petco Park
-    "SF":  (37.7786, -122.3893),  # Oracle Park
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+log = logging.getLogger("fetch_weather")
+
+# ── Constants ─────────────────────────────────────────────────────────────────
+MLB_API_BASE = "https://statsapi.mlb.com/api/v1"
+OPEN_METEO_FORECAST = "https://api.open-meteo.com/v1/forecast"
+OPEN_METEO_ARCHIVE = "https://archive-api.open-meteo.com/v1/archive"
+
+# MLB ballpark coordinates (lat, lon)
+# Source: official stadium locations
+BALLPARK_COORDS = {
+    "Chase Field":              (33.4455, -112.0667),
+    "Truist Park":              (33.8907, -84.4677),
+    "Oriole Park at Camden Yards": (39.2838, -76.6218),
+    "Fenway Park":              (42.3467, -71.0972),
+    "Wrigley Field":            (41.9484, -87.6553),
+    "Guaranteed Rate Field":    (41.8299, -87.6338),
+    "Great American Ball Park": (39.0974, -84.5065),
+    "Progressive Field":        (41.4962, -81.6852),
+    "Coors Field":              (39.7561, -104.9942),
+    "Comerica Park":            (42.3390, -83.0485),
+    "Minute Maid Park":         (29.7573, -95.3555),
+    "Kauffman Stadium":         (39.0517, -94.4803),
+    "Angel Stadium":            (33.8003, -117.8827),
+    "Dodger Stadium":           (34.0739, -118.2400),
+    "loanDepot park":           (25.7781, -80.2196),
+    "American Family Field":    (43.0280, -87.9712),
+    "Target Field":             (44.9818, -93.2775),
+    "Citi Field":               (40.7571, -73.8458),
+    "Yankee Stadium":           (40.8296, -73.9262),
+    "Oakland Coliseum":         (37.7516, -122.2005),
+    "Citizens Bank Park":       (39.9061, -75.1665),
+    "PNC Park":                 (40.4469, -80.0058),
+    "Petco Park":               (32.7076, -117.1570),
+    "Oracle Park":              (37.7786, -122.3893),
+    "T-Mobile Park":            (47.5914, -122.3325),
+    "Busch Stadium":            (38.6226, -90.1928),
+    "Tropicana Field":          (27.7682, -82.6534),
+    "Globe Life Field":         (32.7473, -97.0845),
+    "Rogers Centre":            (43.6414, -79.3894),
+    "Nationals Park":           (38.8730, -77.0074),
+    # 2025 relocated / new venues
+    "Sacramento":               (38.5816, -121.4944),  # Athletics temporary
 }
 
-# Dome / fully enclosed stadiums -- weather doesn't affect play
-DOME_STADIUMS: set[str] = {"TB", "TOR", "HOU", "TEX", "MIA", "MIL", "ARI", "SEA"}
+# Retractable/indoor roofs — weather less impactful
+DOME_STADIUMS = {
+    "Tropicana Field",        # Fixed dome
+    "Minute Maid Park",       # Retractable
+    "Globe Life Field",       # Retractable
+    "Chase Field",            # Retractable
+    "Rogers Centre",          # Retractable
+    "American Family Field",  # Retractable
+    "loanDepot park",         # Retractable
+    "T-Mobile Park",          # Retractable
+}
 
-OWM_BASE_URL = "https://api.openweathermap.org/data/2.5/weather"
 
-MAX_RETRIES   = 3
-RETRY_BACKOFF = [2, 5, 10]
+def get_ballpark_coords(venue_name: str) -> Optional[tuple]:
+    """Look up lat/lon for a venue name, with fuzzy matching."""
+    if venue_name in BALLPARK_COORDS:
+        return BALLPARK_COORDS[venue_name]
 
+    # Fuzzy match: check if venue name contains a known name
+    venue_lower = venue_name.lower()
+    for known_name, coords in BALLPARK_COORDS.items():
+        if known_name.lower() in venue_lower or venue_lower in known_name.lower():
+            return coords
 
-# ---------------------------------------------------------------------------
-# HTTP helper
-# ---------------------------------------------------------------------------
-def _get_with_retry(url: str, params: dict, retries: int = MAX_RETRIES) -> Optional[dict]:
-    """
-    Perform an HTTP GET with retry and exponential backoff.
-
-    Args:
-        url:     Request URL.
-        params:  Query parameters dict.
-        retries: Maximum attempts before giving up.
-
-    Returns:
-        Parsed JSON response dict, or None on persistent failure.
-    """
-    for attempt in range(retries):
-        try:
-            resp = requests.get(url, params=params, timeout=10)
-            resp.raise_for_status()
-            return resp.json()
-        except requests.RequestException as exc:
-            wait = RETRY_BACKOFF[min(attempt, len(RETRY_BACKOFF) - 1)]
-            logger.warning(
-                "OWM request failed (attempt %d/%d): %s -- retrying in %ds",
-                attempt + 1, retries, exc, wait,
-            )
-            time.sleep(wait)
+    log.warning(f"Unknown venue: {venue_name}")
     return None
 
 
-# ---------------------------------------------------------------------------
-# Weather fetch
-# ---------------------------------------------------------------------------
-def fetch_weather_for_venue(
-    team_abbr: str,
-    api_key: str,
-) -> dict:
+def fetch_weather_for_location(
+    lat: float,
+    lon: float,
+    target_date: str,
+    game_hour: int = 19,
+    historical: bool = False,
+) -> Optional[dict]:
     """
-    Fetch current weather for a given MLB team's home stadium.
-
-    Returns neutral values if the stadium is a dome or if the API call fails.
+    Fetch hourly weather from Open-Meteo for a specific location and date.
 
     Args:
-        team_abbr: Three-letter MLB team abbreviation (e.g. "NYY").
-        api_key:   OpenWeatherMap API key.
+        lat, lon: Coordinates.
+        target_date: YYYY-MM-DD.
+        game_hour: Expected game start hour (local time, 24h). Default 7pm.
+        historical: Use archive API for past dates.
 
     Returns:
-        Dict with keys: team, temp_f, wind_speed_mph, wind_deg,
-        humidity_pct, description, is_dome, k_rate_multiplier.
+        Dict with temp_f, wind_speed_mph, wind_direction, humidity, conditions.
     """
-    neutral = {
-        "team": team_abbr,
-        "temp_f": None,
-        "wind_speed_mph": None,
-        "wind_deg": None,
-        "humidity_pct": None,
-        "description": "unavailable",
-        "is_dome": team_abbr in DOME_STADIUMS,
-        "k_rate_multiplier": 1.0,
-    }
-
-    if team_abbr in DOME_STADIUMS:
-        logger.info("%s plays in a dome -- weather neutral (multiplier=1.0)", team_abbr)
-        neutral["description"] = "dome/retractable roof -- weather neutral"
-        return neutral
-
-    coords = STADIUM_COORDS.get(team_abbr)
-    if not coords:
-        logger.warning("No coordinates found for team %s -- returning neutral", team_abbr)
-        return neutral
-
-    lat, lon = coords
+    base_url = OPEN_METEO_ARCHIVE if historical else OPEN_METEO_FORECAST
     params = {
-        "lat":   lat,
-        "lon":   lon,
-        "appid": api_key,
-        "units": "imperial",  # Fahrenheit, mph
+        "latitude": lat,
+        "longitude": lon,
+        "hourly": "temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,precipitation,weathercode",
+        "temperature_unit": "fahrenheit",
+        "wind_speed_unit": "mph",
+        "timezone": "America/New_York",
     }
 
-    data = _get_with_retry(OWM_BASE_URL, params)
-    if not data:
-        logger.warning("Weather API unavailable for %s -- returning neutral multiplier", team_abbr)
-        return neutral
+    if historical:
+        params["start_date"] = target_date
+        params["end_date"] = target_date
+    else:
+        params["start_date"] = target_date
+        params["end_date"] = target_date
 
     try:
-        temp_f     = float(data["main"]["temp"])
-        wind_speed = float(data["wind"].get("speed", 0.0))
-        wind_deg   = float(data["wind"].get("deg", 0.0))
-        humidity   = float(data["main"].get("humidity", 50.0))
-        desc       = data["weather"][0]["description"] if data.get("weather") else ""
+        r = requests.get(base_url, params=params, timeout=15)
+        r.raise_for_status()
+        data = r.json()
 
-        multiplier = _compute_k_multiplier(temp_f, wind_speed, wind_deg, humidity)
+        hourly = data.get("hourly", {})
+        times = hourly.get("time", [])
+        temps = hourly.get("temperature_2m", [])
+        humidity = hourly.get("relative_humidity_2m", [])
+        wind_speed = hourly.get("wind_speed_10m", [])
+        wind_dir = hourly.get("wind_direction_10m", [])
+        precip = hourly.get("precipitation", [])
+        weather_codes = hourly.get("weathercode", [])
 
-        logger.info(
-            "%s weather: %.1f F  wind=%.1f mph @ %.0f deg  humidity=%d%%  desc='%s'  K-mult=%.3f",
-            team_abbr, temp_f, wind_speed, wind_deg, humidity, desc, multiplier,
-        )
+        if not times:
+            return None
+
+        # Find the hour closest to game time
+        target_idx = min(game_hour, len(times) - 1)
+        for i, t in enumerate(times):
+            if f"T{game_hour:02d}:" in t:
+                target_idx = i
+                break
+
+        weather_code = weather_codes[target_idx] if target_idx < len(weather_codes) else None
+        conditions = _decode_weather_code(weather_code)
 
         return {
-            "team": team_abbr,
-            "temp_f": round(temp_f, 1),
-            "wind_speed_mph": round(wind_speed, 1),
-            "wind_deg": round(wind_deg, 1),
-            "humidity_pct": int(humidity),
-            "description": desc,
-            "is_dome": False,
-            "k_rate_multiplier": round(multiplier, 4),
+            "temp_f": round(temps[target_idx], 1) if target_idx < len(temps) else None,
+            "humidity_pct": round(humidity[target_idx], 1) if target_idx < len(humidity) else None,
+            "wind_speed_mph": round(wind_speed[target_idx], 1) if target_idx < len(wind_speed) else None,
+            "wind_direction_deg": round(wind_dir[target_idx], 0) if target_idx < len(wind_dir) else None,
+            "precipitation_mm": round(precip[target_idx], 2) if target_idx < len(precip) else None,
+            "conditions": conditions,
         }
 
-    except (KeyError, TypeError, ValueError) as exc:
-        logger.warning("Unexpected OWM response structure for %s: %s", team_abbr, exc)
-        return neutral
+    except Exception as e:
+        log.warning(f"Weather fetch failed for ({lat}, {lon}): {e}")
+        return None
 
 
-# ---------------------------------------------------------------------------
-# K-rate multiplier computation
-# ---------------------------------------------------------------------------
-def _is_wind_outward(wind_deg: float, stadium_orientation: Optional[float] = None) -> bool:
+def _decode_weather_code(code) -> str:
+    """Decode WMO weather code to human-readable string."""
+    if code is None:
+        return "unknown"
+    WMO_CODES = {
+        0: "clear", 1: "mainly_clear", 2: "partly_cloudy", 3: "overcast",
+        45: "fog", 48: "fog", 51: "light_drizzle", 53: "drizzle",
+        55: "heavy_drizzle", 61: "light_rain", 63: "rain", 65: "heavy_rain",
+        71: "light_snow", 73: "snow", 75: "heavy_snow", 80: "light_showers",
+        81: "showers", 82: "heavy_showers", 95: "thunderstorm",
+        96: "thunderstorm_hail", 99: "thunderstorm_hail",
+    }
+    return WMO_CODES.get(int(code), "unknown")
+
+
+def _wind_direction_label(degrees: float) -> str:
+    """Convert wind direction in degrees to compass label."""
+    if degrees is None:
+        return "unknown"
+    dirs = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+            "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
+    idx = int((degrees + 11.25) / 22.5) % 16
+    return dirs[idx]
+
+
+def fetch_todays_games(target_date: str) -> list[dict]:
+    """Get games from Supabase or MLB API for the target date."""
+    # Try Supabase first (games table populated by fetch_games.py)
+    try:
+        games = sb_get("games", {
+            "game_date": f"eq.{target_date}",
+            "select": "game_pk,game_date,venue,home_team,away_team,game_time",
+        })
+        if games:
+            return games
+    except Exception as e:
+        log.debug(f"Supabase games fetch failed: {e}")
+
+    # Fall back to MLB API
+    log.info("Falling back to MLB Stats API for schedule ...")
+    url = f"{MLB_API_BASE}/schedule"
+    params = {"sportId": 1, "date": target_date, "hydrate": "venue"}
+    try:
+        r = requests.get(url, params=params, timeout=15)
+        r.raise_for_status()
+        data = r.json()
+        games = []
+        for day in data.get("dates", []):
+            for game in day.get("games", []):
+                games.append({
+                    "game_pk": game.get("gamePk"),
+                    "game_date": target_date,
+                    "venue": game.get("venue", {}).get("name"),
+                    "home_team": game.get("teams", {}).get("home", {}).get("team", {}).get("name"),
+                    "away_team": game.get("teams", {}).get("away", {}).get("team", {}).get("name"),
+                    "game_time": game.get("gameDate", "")[11:16],
+                })
+        return games
+    except Exception as e:
+        log.error(f"Failed to fetch schedule: {e}")
+        return []
+
+
+def estimate_game_hour(game_time: str) -> int:
+    """Estimate local game hour from UTC time string (HH:MM)."""
+    if not game_time:
+        return 19  # Default 7pm local
+    try:
+        hour = int(game_time.split(":")[0])
+        # Convert UTC to approximate ET (subtract 4-5 hours)
+        local_hour = (hour - 4) % 24
+        return local_hour
+    except (ValueError, IndexError):
+        return 19
+
+
+def process_weather(target_date: str, historical: bool = False, upload: bool = True) -> list[dict]:
     """
-    Heuristic: treat wind blowing from home plate toward the outfield as 'outward'.
-
-    Without per-stadium orientation data we approximate based on the wind
-    direction being roughly northward (270-90 deg) since most stadiums orient
-    home plate toward the south. Override by supplying stadium_orientation.
-
-    Args:
-        wind_deg:            Wind direction in meteorological degrees (0=N, 90=E...).
-        stadium_orientation: Optional compass bearing from home to CF for the stadium.
-
-    Returns:
-        True if wind is blowing outward (toward CF), False otherwise.
+    Main logic: fetch weather for all games on the target date.
     """
-    if stadium_orientation is not None:
-        # Difference between wind direction and CF bearing -- outward if < 90 deg
-        diff = abs((wind_deg - stadium_orientation + 360) % 360)
-        return diff < 90
-    # Default heuristic: wind from S (135-225 deg) blows toward outfield for most parks
-    return 135 <= wind_deg <= 225
+    games = fetch_todays_games(target_date)
+    log.info(f"Found {len(games)} games for {target_date}")
 
+    weather_rows = []
+    for game in games:
+        venue = game.get("venue", "Unknown")
+        game_pk = game.get("game_pk")
+        game_time = game.get("game_time")
+        game_hour = estimate_game_hour(game_time)
 
-def _compute_k_multiplier(
-    temp_f: float,
-    wind_speed_mph: float,
-    wind_deg: float,
-    humidity_pct: float,
-) -> float:
-    """
-    Compute a K-rate multiplier based on environmental conditions.
+        coords = get_ballpark_coords(venue)
+        if not coords:
+            log.warning(f"  Skipping {venue} (unknown coordinates)")
+            continue
 
-    Adjustments (additive, then clamped to [0.80, 1.25]):
+        is_dome = venue in DOME_STADIUMS
+        lat, lon = coords
 
-        Temperature:
-          - Below 55 F  -> -3 pp  (cold = fewer Ks)
-          - Above 85 F  -> +2 pp  (heat = more Ks / fatigue)
+        log.info(f"  {venue}: ({lat}, {lon}) {'[dome]' if is_dome else ''}")
 
-        Wind (>15 mph):
-          - Blowing outward -> -5 pp  (ball carries, batters swing more freely)
-          - Blowing inward  -> +3 pp  (ball dies, more Ks)
+        weather = fetch_weather_for_location(
+            lat, lon, target_date,
+            game_hour=game_hour,
+            historical=historical,
+        )
 
-        Humidity:
-          - Above 80%  -> -1 pp  (heavier air, ball carries less -- inconsistent effect)
+        if weather:
+            row = {
+                "game_pk": game_pk,
+                "game_date": target_date,
+                "venue": venue,
+                "home_team": game.get("home_team"),
+                "is_dome": is_dome,
+                "temp_f": weather["temp_f"],
+                "humidity_pct": weather["humidity_pct"],
+                "wind_speed_mph": weather["wind_speed_mph"],
+                "wind_direction_deg": weather["wind_direction_deg"],
+                "wind_direction_label": _wind_direction_label(weather["wind_direction_deg"]),
+                "precipitation_mm": weather["precipitation_mm"],
+                "conditions": weather["conditions"],
+                "game_hour_local": game_hour,
+            }
+            weather_rows.append(row)
 
-    Args:
-        temp_f:         Temperature in Fahrenheit.
-        wind_speed_mph: Wind speed in miles per hour.
-        wind_deg:       Wind direction in meteorological degrees.
-        humidity_pct:   Relative humidity as a percentage (0-100).
-
-    Returns:
-        K-rate multiplier as a float (base 1.0).
-    """
-    adjustment = 0.0
-
-    # Temperature effect
-    if temp_f < 55:
-        adjustment -= 0.03
-    elif temp_f > 85:
-        adjustment += 0.02
-
-    # Wind effect
-    if wind_speed_mph > 15:
-        if _is_wind_outward(wind_deg):
-            adjustment -= 0.05
+            log.info(
+                f"    {weather['temp_f']}°F, "
+                f"wind {weather['wind_speed_mph']}mph "
+                f"{_wind_direction_label(weather['wind_direction_deg'])}, "
+                f"humidity {weather['humidity_pct']}%, "
+                f"{weather['conditions']}"
+            )
         else:
-            adjustment += 0.03
+            log.warning(f"    No weather data available")
 
-    # Humidity effect
-    if humidity_pct > 80:
-        adjustment -= 0.01
+        # Rate limit: Open-Meteo allows 10,000 requests/day but be polite
+        time.sleep(0.5)
 
-    # Clamp to reasonable bounds
-    multiplier = max(0.80, min(1.25, 1.0 + adjustment))
-    return multiplier
+    log.info(f"\nWeather data for {len(weather_rows)}/{len(games)} games")
 
+    if upload and weather_rows:
+        sb_upsert("game_weather", weather_rows)
+        log.info(f"Uploaded {len(weather_rows)} weather rows to Supabase.")
 
-# ---------------------------------------------------------------------------
-# Batch fetch for a full game day
-# ---------------------------------------------------------------------------
-def fetch_all_venue_weather(
-    home_teams: list[str],
-    api_key: str,
-    delay: float = 0.5,
-) -> dict[str, dict]:
-    """
-    Fetch weather for all home teams playing on a given day.
-
-    Args:
-        home_teams: List of team abbreviations for home teams.
-        api_key:    OpenWeatherMap API key.
-        delay:      Seconds to wait between API calls (rate limiting).
-
-    Returns:
-        Dict mapping team abbreviation -> weather dict.
-    """
-    results: dict[str, dict] = {}
-    for team in home_teams:
-        results[team] = fetch_weather_for_venue(team, api_key)
-        time.sleep(delay)
-    return results
+    return weather_rows
 
 
-# ---------------------------------------------------------------------------
-# Main entry point
-# ---------------------------------------------------------------------------
-def main() -> None:
-    """CLI entry point: fetch weather for all MLB home stadiums on a given date."""
+# ── CLI ───────────────────────────────────────────────────────────────────────
+
+def parse_args():
     parser = argparse.ArgumentParser(
-        description="Fetch weather data for MLB game venues and compute K-rate multipliers."
+        description="Fetch weather data for MLB ballparks using Open-Meteo."
     )
     parser.add_argument(
-        "--date",
-        default=date.today().strftime("%Y-%m-%d"),
-        help="Game date (YYYY-MM-DD, default: today) -- used for display only; fetches current wx",
+        "--date", type=str, default=None,
+        help="Game date (YYYY-MM-DD). Default: today."
     )
     parser.add_argument(
-        "--api-key",
-        default=os.environ.get("OPENWEATHER_API_KEY", ""),
-        help="OpenWeatherMap API key (or set OPENWEATHER_API_KEY env var)",
+        "--historical", action="store_true",
+        help="Use archive API for past dates."
     )
     parser.add_argument(
-        "--teams",
-        nargs="+",
-        default=list(STADIUM_COORDS.keys()),
-        help="Space-separated list of home team abbreviations to fetch (default: all 30)",
+        "--no-upload", action="store_true",
+        help="Skip Supabase upload."
     )
-    args = parser.parse_args()
+    parser.add_argument(
+        "--json", action="store_true",
+        help="Output weather data as JSON."
+    )
+    parser.add_argument(
+        "--backfill-days", type=int, default=None,
+        help="Backfill weather for N days before --date."
+    )
+    return parser.parse_args()
 
-    if not args.api_key:
-        logger.warning(
-            "No OpenWeatherMap API key provided. "
-            "Set --api-key or OPENWEATHER_API_KEY env var. "
-            "All venues will return neutral multiplier (1.0)."
-        )
-        # Still produce neutral output for all requested teams
-        for team in args.teams:
-            logger.info("%-3s  K-rate multiplier: 1.0000  (no API key)", team)
-        return
 
-    logger.info("Fetching weather for %d venue(s) on %s", len(args.teams), args.date)
-    weather_map = fetch_all_venue_weather(args.teams, args.api_key)
+def main():
+    args = parse_args()
+    target_date = args.date or date.today().isoformat()
+    upload = not args.no_upload
 
-    # Print summary table
-    logger.info("%-5s  %-6s  %-8s  %-6s  %-8s  %-12s  %s",
-                "TEAM", "TEMP_F", "WIND_MPH", "WIND_DEG", "HUMIDITY", "K_MULTIPLIER", "DESC")
-    for team, wx in sorted(weather_map.items()):
-        logger.info(
-            "%-5s  %-6s  %-8s  %-6s  %-8s  %-12.4f  %s",
-            wx["team"],
-            f"{wx['temp_f']} F" if wx["temp_f"] is not None else "N/A",
-            f"{wx['wind_speed_mph']}" if wx["wind_speed_mph"] is not None else "N/A",
-            f"{wx['wind_deg']}" if wx["wind_deg"] is not None else "N/A",
-            f"{wx['humidity_pct']}%" if wx["humidity_pct"] is not None else "N/A",
-            wx["k_rate_multiplier"],
-            wx["description"],
-        )
+    # Auto-detect if we need historical API
+    historical = args.historical
+    if not historical:
+        try:
+            if date.fromisoformat(target_date) < date.today():
+                historical = True
+        except ValueError:
+            pass
+
+    if args.backfill_days:
+        log.info(f"Backfilling {args.backfill_days} days of weather data ...")
+        end_date = date.fromisoformat(target_date)
+        for i in range(args.backfill_days):
+            d = end_date - timedelta(days=i)
+            log.info(f"\n=== {d} ===")
+            rows = process_weather(str(d), historical=True, upload=upload)
+            if args.json and rows:
+                print(json.dumps(rows, indent=2, default=str))
+            time.sleep(1)
+    else:
+        rows = process_weather(target_date, historical=historical, upload=upload)
+        if args.json:
+            print(json.dumps(rows, indent=2, default=str))
+
+    log.info("=== Done ===")
 
 
 if __name__ == "__main__":
