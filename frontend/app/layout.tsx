@@ -42,6 +42,7 @@ export default function RootLayout({
               <a href="/" className="text-slate-300 hover:text-white transition-colors">Today</a>
               <a href="/props" className="text-slate-300 hover:text-white transition-colors">Props</a>
               <a href="/projections" className="text-slate-300 hover:text-white transition-colors">Projections</a>
+              <a href="/simulator" className="text-purple-400 hover:text-purple-300 transition-colors font-medium">Simulator</a>
               <a href="/players" className="text-slate-300 hover:text-white transition-colors">Players</a>
               <a href="/best-bets" className="text-slate-300 hover:text-white transition-colors">Best Bets</a>
               <a href="/accuracy" className="text-slate-300 hover:text-white transition-colors">Accuracy</a>
@@ -65,10 +66,11 @@ export default function RootLayout({
                 </div>
                 <p className="text-xs text-slate-500">Glass-box MLB prop analytics. No black boxes.</p>
               </div>
-              <div className="flex flex-col sm:items-end gap-1">
+              <div className="flex flex-col sm:items-end gap-1 text-sm">
                 <a href="/" className="text-slate-400 hover:text-white">Today</a>
                 <a href="/props" className="text-slate-400 hover:text-white">Props</a>
                 <a href="/projections" className="text-slate-400 hover:text-white">Projections</a>
+                <a href="/simulator" class="text-purple-400 hover:text-white">Simulator</a>
                 <a href="/players" className="text-slate-400 hover:text-white">Players</a>
                 <a href="/best-bets" className="text-slate-400 hover:text-white">Best Bets</a>
                 <a href="/accuracy" className="text-slate-400 hover:text-white">Accuracy</a>
