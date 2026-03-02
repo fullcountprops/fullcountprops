@@ -13,13 +13,10 @@ Run with:
 
 from __future__ import annotations
 
-import sys
 import os
-from collections import Counter
-from copy import deepcopy
+import sys
 from types import SimpleNamespace
-from typing import Any, Dict, List
-from unittest.mock import MagicMock, patch
+from typing import List
 
 import numpy as np
 import pytest
@@ -41,22 +38,21 @@ from simulation.config import (
     PARK_FACTORS,
     SimulationConfig,
 )
-from simulation.matchup_model import (
-    MatchupModel,
-    OddsRatioModel,
-)
 from simulation.game_engine import (
     GameSimulator,
     GameState,
     PlayerStats,
     SimulationResult,
 )
+from simulation.matchup_model import (
+    MatchupModel,
+    OddsRatioModel,
+)
 from simulation.prop_analyzer import (
     PropAnalysis,
     PropAnalyzer,
     PropLine,
 )
-
 
 # ===========================================================================
 # Shared fixtures and helpers
