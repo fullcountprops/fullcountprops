@@ -47,7 +47,7 @@ warnings.warn(
 #   import simulation; simulation.DEFAULT_N_SIMS
 # continues to work without modification.
 # ---------------------------------------------------------------------------
-from simulator import VERSION, DEFAULT_N_SIMS  # noqa: E402, F401
+from simulator import DEFAULT_N_SIMS, VERSION  # noqa: E402, F401
 
 # Legacy metadata preserved for backward compatibility
 __version__ = "1.0.0"
