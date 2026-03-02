@@ -11,14 +11,9 @@ Run:
 """
 
 import json
-import os
-import sys
 
 import numpy as np
 import pytest
-
-# Add parent directory to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from simulator.monte_carlo_engine import (
     BB_IDX,

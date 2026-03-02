@@ -13,24 +13,11 @@ Run with:
 
 from __future__ import annotations
 
-import os
-import sys
 from types import SimpleNamespace
 from typing import List
 
 import numpy as np
 import pytest
-
-# ---------------------------------------------------------------------------
-# Ensure workspace root is on sys.path so imports resolve
-# ---------------------------------------------------------------------------
-WORKSPACE = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-if WORKSPACE not in sys.path:
-    sys.path.insert(0, WORKSPACE)
-
-# ---------------------------------------------------------------------------
-# Import modules under test
-# ---------------------------------------------------------------------------
 from simulation.config import (
     FEATURE_COLUMNS,
     LEAGUE_AVG_RATES,
