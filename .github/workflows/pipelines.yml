@@ -22,6 +22,7 @@ env:
   SUPABASE_URL: ${{ secrets.SUPABASE_PROJECT_URL }}
   SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
   ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+  PYTHONPATH: ${{ github.workspace }}
 jobs:
   # -- Morning Pipeline: Schedule + Rosters (consolidated to pipeline/ only)
   fetch-games-players:

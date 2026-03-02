@@ -21,6 +21,7 @@ env:
   SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
   ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
   OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
+  PYTHONPATH: ${{ github.workspace }}
 
 jobs:
   # Skip during off-season (Nov 16 – Feb 14)
