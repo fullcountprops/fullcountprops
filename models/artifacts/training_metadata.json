@@ -1,0 +1,8 @@
+{
+  "model_type": "lightgbm_multiclass",
+  "status": "awaiting_training_data",
+  "outcome_classes": ["K", "BB", "HBP", "1B", "2B", "3B", "HR", "out"],
+  "n_features": 32,
+  "note": "Run pipeline/fetch_statcast_historical.py then pipeline/build_training_dataset.py before training",
+  "last_updated": "2026-03-02"
+}

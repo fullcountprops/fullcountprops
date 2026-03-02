@@ -1,411 +1,828 @@
+#!/usr/bin/env python3
 """
 models/train_model.py
 =====================
-End-to-end training orchestration script for the BaselineMLB XGBoost matchup model.
+Production-ready training script for the BaselineMLB LightGBM matchup model.
 
-Reads pre-built CSV datasets, trains a MatchupModel, evaluates on a held-out test
-set, saves SHAP importances, and writes a comprehensive training report.
+Reads X_train / y_train (and optionally X_test / y_test) parquet files
+produced by pipeline/build_training_dataset.py, trains a LightGBM multiclass
+classifier over 8 PA outcome classes, runs 5-fold cross-validation, and
+writes all artifacts to models/artifacts/.
+
+Outcome classes (8):
+    0 = K     1 = BB    2 = HBP   3 = 1B
+    4 = 2B    5 = 3B    6 = HR    7 = out
 
 Expected data layout
 --------------------
-    <data_dir>/train_matchups.csv   -- training rows
-    <data_dir>/test_matchups.csv    -- test rows
+    data/training/X_train.parquet    -- feature matrix (produced by build_training_dataset.py)
+    data/training/y_train.parquet    -- label column "label" (int 0-7)
+    data/training/X_test.parquet     -- (optional) held-out test features
+    data/training/y_test.parquet     -- (optional) held-out test labels
 
-Both CSVs must contain all columns listed in matchup_model.ALL_FEATURES plus an
-``outcome`` column with string labels from matchup_model.OUTCOME_CLASSES.
+Artifacts written
+-----------------
+    models/artifacts/matchup_model.lgb          -- trained LightGBM model
+    models/artifacts/feature_importance.json    -- feature importance dict
+    models/artifacts/training_metadata.json     -- date, metrics, hyperparams
 
 Usage
 -----
+    # Standard multiclass training
     python -m models.train_model
-    python -m models.train_model --data-dir data/ --output-dir models/trained/
-    python -m models.train_model --data-dir data/ --output-dir models/trained/ --val-split 0.15
+
+    # Custom data directory
+    python -m models.train_model --data-dir data/training
+
+    # Binary target (strikeouts vs everything else)
+    python -m models.train_model --binary-target K
+
+    # Tune learning rate
+    python -m models.train_model --learning-rate 0.03 --n-estimators 1000
+
+    # Skip CV (faster, useful for iteration)
+    python -m models.train_model --no-cv
 """
+
+from __future__ import annotations
 
 import argparse
 import json
 import logging
-import os
 import sys
 import time
+import warnings
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
+import lightgbm as lgb
 import numpy as np
 import pandas as pd
 from sklearn.metrics import (
     accuracy_score,
-    classification_report,
-    confusion_matrix,
     log_loss,
+    precision_score,
+    recall_score,
+    classification_report,
 )
+from sklearn.model_selection import StratifiedKFold
+from sklearn.preprocessing import LabelEncoder
 
-# Local import -- works when run as `python -m models.train_model` or directly
-try:
-    from models.matchup_model import ALL_FEATURES, OUTCOME_CLASSES, MatchupModel
-except ImportError:
-    from matchup_model import ALL_FEATURES, OUTCOME_CLASSES, MatchupModel
+warnings.filterwarnings("ignore", category=UserWarning)
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
-logger = logging.getLogger(__name__)
+# ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger("train_model")
 
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
 
-LABEL_COL: str = "outcome"
-DEFAULT_DATA_DIR: str = "data"
-DEFAULT_OUTPUT_DIR: str = "models/trained"
-DEFAULT_VAL_SPLIT: float = 0.15  # fraction of *training* data held out for early stopping
-RANDOM_SEED: int = 42
+OUTCOME_CLASSES: List[str] = ["K", "BB", "HBP", "1B", "2B", "3B", "HR", "out"]
+NUM_CLASSES: int = len(OUTCOME_CLASSES)
+
+# MLB 2020-2024 approximate outcome frequencies (for class weighting)
+OUTCOME_FREQ: Dict[str, float] = {
+    "K":   0.224,
+    "BB":  0.082,
+    "HBP": 0.012,
+    "1B":  0.152,
+    "2B":  0.044,
+    "3B":  0.004,
+    "HR":  0.031,
+    "out": 0.451,
+}
+
+# Default directories (relative to project root)
+DEFAULT_DATA_DIR: str = "data/training"
+DEFAULT_ARTIFACT_DIR: str = "models/artifacts"
+
+# Sensible LightGBM hyperparameters tuned for this use case:
+#   - Multiclass PA outcome prediction with ~32 mixed features
+#   - Training set size: typically 500k-2M rows (5 MLB seasons)
+#   - Rare classes (3B, HBP) require generous min_child_samples / class weights
+DEFAULT_LGBM_PARAMS: Dict[str, Any] = {
+    "objective": "multiclass",
+    "num_class": NUM_CLASSES,
+    "metric": ["multi_logloss", "multi_error"],
+    "n_estimators": 800,
+    "learning_rate": 0.05,
+    "max_depth": 7,
+    "num_leaves": 63,          # 2^(max_depth-1) - 1 is a good starting point
+    "min_child_samples": 50,   # Prevents overfitting on rare outcomes (3B, HBP)
+    "min_child_weight": 1e-3,
+    "feature_fraction": 0.8,   # Sample 80% of features per tree
+    "bagging_fraction": 0.85,  # Row subsampling
+    "bagging_freq": 5,         # Apply bagging every 5 iterations
+    "reg_alpha": 0.1,          # L1 regularization
+    "reg_lambda": 1.0,         # L2 regularization
+    "class_weight": "balanced",
+    "verbose": -1,
+    "n_jobs": -1,
+    "random_state": 42,
+    "importance_type": "gain", # Feature importance by gain (more reliable than split)
+}
+
+# For binary classification
+DEFAULT_LGBM_PARAMS_BINARY: Dict[str, Any] = {
+    "objective": "binary",
+    "metric": ["binary_logloss", "binary_error"],
+    "n_estimators": 600,
+    "learning_rate": 0.05,
+    "max_depth": 6,
+    "num_leaves": 31,
+    "min_child_samples": 50,
+    "feature_fraction": 0.8,
+    "bagging_fraction": 0.85,
+    "bagging_freq": 5,
+    "reg_alpha": 0.1,
+    "reg_lambda": 1.0,
+    "class_weight": "balanced",
+    "verbose": -1,
+    "n_jobs": -1,
+    "random_state": 42,
+    "importance_type": "gain",
+}
+
+N_CV_FOLDS: int = 5
 
 
 # ---------------------------------------------------------------------------
-# Data loading helpers
+# Data loading
 # ---------------------------------------------------------------------------
 
-def load_dataset(csv_path: str) -> Tuple[pd.DataFrame, pd.Series]:
-    """Load a matchup CSV and return features + labels.
+def load_parquet_pair(
+    data_dir: Path,
+    split: str = "train",
+) -> Tuple[pd.DataFrame, np.ndarray]:
+    """Load X_{split}.parquet and y_{split}.parquet from *data_dir*.
 
     Args:
-        csv_path: Path to a CSV file containing ALL_FEATURES columns and an
-                  ``outcome`` column.
+        data_dir: Directory containing the parquet files.
+        split: One of "train" or "test".
 
     Returns:
-        Tuple of (X, y) where X is the feature DataFrame and y is the label Series.
+        Tuple of (X, y_array) where y_array is a 1-D int numpy array.
 
     Raises:
-        FileNotFoundError: If *csv_path* does not exist.
-        ValueError: If required columns are absent.
+        FileNotFoundError: If the parquet files are absent.
     """
-    path = Path(csv_path)
-    if not path.exists():
-        raise FileNotFoundError(f"Dataset not found: {path}")
+    x_path = data_dir / f"X_{split}.parquet"
+    y_path = data_dir / f"y_{split}.parquet"
 
-    df = pd.read_csv(path)
-    logger.info("Loaded %d rows from %s", len(df), path)
+    if not x_path.exists():
+        raise FileNotFoundError(
+            f"Feature file not found: {x_path}\n"
+            "Run pipeline/build_training_dataset.py first."
+        )
+    if not y_path.exists():
+        raise FileNotFoundError(
+            f"Label file not found: {y_path}\n"
+            "Run pipeline/build_training_dataset.py first."
+        )
 
-    required = ALL_FEATURES + [LABEL_COL]
-    missing = [c for c in required if c not in df.columns]
-    if missing:
-        raise ValueError(f"Missing columns in {path}: {missing}")
+    X = pd.read_parquet(x_path)
+    y_df = pd.read_parquet(y_path)
 
-    X = df[ALL_FEATURES].copy()
-    y = df[LABEL_COL].copy()
+    # build_training_dataset.py writes a single "label" column
+    label_col = "label" if "label" in y_df.columns else y_df.columns[0]
+    y = y_df[label_col].values.astype(int)
+
+    logger.info(
+        "Loaded %s split: X=%s  y=%s  (classes: %s)",
+        split, X.shape, y.shape, np.unique(y).tolist(),
+    )
     return X, y
 
 
-def train_val_split(
+# ---------------------------------------------------------------------------
+# Cross-validation
+# ---------------------------------------------------------------------------
+
+def run_cross_validation(
     X: pd.DataFrame,
-    y: pd.Series,
-    val_fraction: float,
-    seed: int = RANDOM_SEED,
-) -> Tuple[pd.DataFrame, pd.Series, pd.DataFrame, pd.Series]:
-    """Split training data into a train and validation subset.
+    y: np.ndarray,
+    params: Dict[str, Any],
+    n_folds: int = N_CV_FOLDS,
+    binary: bool = False,
+) -> Dict[str, Any]:
+    """Perform stratified K-fold cross-validation and return aggregated metrics.
 
     Args:
         X: Feature DataFrame.
-        y: Label Series.
-        val_fraction: Proportion of rows to use as validation (0 < val_fraction < 1).
-        seed: Random seed for reproducibility.
+        y: Integer label array.
+        params: LightGBM hyperparameters (without n_estimators for CV).
+        n_folds: Number of folds (default: 5).
+        binary: If True, compute binary classification metrics.
 
     Returns:
-        Tuple of (X_train, y_train, X_val, y_val).
+        Dict with per-fold and aggregate metrics: accuracy, log_loss, and
+        per-class precision/recall for multiclass.
     """
-    rng = np.random.default_rng(seed)
+    logger.info("Starting %d-fold stratified cross-validation ...", n_folds)
+
+    skf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=42)
+
+    fold_accuracies: List[float] = []
+    fold_log_losses: List[float] = []
+    fold_results: List[Dict[str, Any]] = []
+
+    X_arr = X.values  # LightGBM accepts numpy arrays
+    feature_names = list(X.columns)
+
+    for fold_idx, (train_idx, val_idx) in enumerate(skf.split(X_arr, y), start=1):
+        X_tr, X_va = X_arr[train_idx], X_arr[val_idx]
+        y_tr, y_va = y[train_idx], y[val_idx]
+
+        dtrain = lgb.Dataset(X_tr, label=y_tr, feature_name=feature_names, free_raw_data=False)
+        dval = lgb.Dataset(X_va, label=y_va, feature_name=feature_names, reference=dtrain, free_raw_data=False)
+
+        # Extract params without sklearn-style keys
+        lgb_params = {k: v for k, v in params.items()
+                      if k not in ("n_estimators", "class_weight", "random_state", "n_jobs")}
+        lgb_params["seed"] = params.get("random_state", 42)
+        lgb_params["num_threads"] = params.get("n_jobs", -1)
+
+        # Handle class_weight
+        if params.get("class_weight") == "balanced":
+            classes, counts = np.unique(y_tr, return_counts=True)
+            total = len(y_tr)
+            weight_map = {int(c): total / (len(classes) * cnt) for c, cnt in zip(classes, counts)}
+            sample_weights = np.array([weight_map.get(int(lbl), 1.0) for lbl in y_tr])
+            dtrain = lgb.Dataset(X_tr, label=y_tr, weight=sample_weights,
+                                 feature_name=feature_names, free_raw_data=False)
+
+        callbacks = [lgb.early_stopping(stopping_rounds=50, verbose=False),
+                     lgb.log_evaluation(period=-1)]
+
+        booster = lgb.train(
+            lgb_params,
+            dtrain,
+            num_boost_round=params.get("n_estimators", 800),
+            valid_sets=[dval],
+            callbacks=callbacks,
+        )
+
+        # Predict
+        if binary:
+            proba = booster.predict(X_va)  # shape (n,)
+            preds = (proba >= 0.5).astype(int)
+            acc = float(accuracy_score(y_va, preds))
+            ll = float(log_loss(y_va, np.column_stack([1 - proba, proba])))
+        else:
+            proba = booster.predict(X_va)  # shape (n, num_class)
+            preds = np.argmax(proba, axis=1)
+            acc = float(accuracy_score(y_va, preds))
+            ll = float(log_loss(y_va, proba, labels=list(range(NUM_CLASSES))))
+
+        fold_accuracies.append(acc)
+        fold_log_losses.append(ll)
+
+        logger.info(
+            "Fold %d/%d: accuracy=%.4f  log_loss=%.4f  best_iter=%d",
+            fold_idx, n_folds, acc, ll, booster.best_iteration,
+        )
+        fold_results.append({
+            "fold": fold_idx,
+            "accuracy": acc,
+            "log_loss": ll,
+            "best_iteration": int(booster.best_iteration),
+            "val_samples": int(len(y_va)),
+        })
+
+    cv_results = {
+        "n_folds": n_folds,
+        "fold_results": fold_results,
+        "mean_accuracy": float(np.mean(fold_accuracies)),
+        "std_accuracy": float(np.std(fold_accuracies)),
+        "mean_log_loss": float(np.mean(fold_log_losses)),
+        "std_log_loss": float(np.std(fold_log_losses)),
+    }
+
+    logger.info(
+        "CV complete -- accuracy=%.4f+/-%.4f  log_loss=%.4f+/-%.4f",
+        cv_results["mean_accuracy"], cv_results["std_accuracy"],
+        cv_results["mean_log_loss"], cv_results["std_log_loss"],
+    )
+    return cv_results
+
+
+# ---------------------------------------------------------------------------
+# Full-data training
+# ---------------------------------------------------------------------------
+
+def train_final_model(
+    X: pd.DataFrame,
+    y: np.ndarray,
+    params: Dict[str, Any],
+    binary: bool = False,
+) -> lgb.Booster:
+    """Train a LightGBM model on the full training set with early stopping
+    against a 10% validation hold-out.
+
+    Args:
+        X: Training feature DataFrame.
+        y: Integer label array.
+        params: LightGBM hyperparameters.
+        binary: Whether this is a binary classification task.
+
+    Returns:
+        Trained lgb.Booster.
+    """
+    logger.info("Training final model on %d rows, %d features ...", len(X), X.shape[1])
+
+    # 10% hold-out for early stopping on the final model
+    rng = np.random.default_rng(42)
     n = len(X)
-    val_n = max(1, int(n * val_fraction))
+    val_n = max(1, int(n * 0.10))
     indices = rng.permutation(n)
     val_idx = indices[:val_n]
     train_idx = indices[val_n:]
 
-    return (
-        X.iloc[train_idx].reset_index(drop=True),
-        y.iloc[train_idx].reset_index(drop=True),
-        X.iloc[val_idx].reset_index(drop=True),
-        y.iloc[val_idx].reset_index(drop=True),
+    X_arr = X.values
+    feature_names = list(X.columns)
+
+    X_tr, X_va = X_arr[train_idx], X_arr[val_idx]
+    y_tr, y_va = y[train_idx], y[val_idx]
+
+    # Build sample weights for class balance
+    lgb_params = {k: v for k, v in params.items()
+                  if k not in ("n_estimators", "class_weight", "random_state", "n_jobs")}
+    lgb_params["seed"] = params.get("random_state", 42)
+    lgb_params["num_threads"] = params.get("n_jobs", -1)
+
+    sample_weights = None
+    if params.get("class_weight") == "balanced":
+        classes, counts = np.unique(y_tr, return_counts=True)
+        total = len(y_tr)
+        weight_map = {int(c): total / (len(classes) * cnt) for c, cnt in zip(classes, counts)}
+        sample_weights = np.array([weight_map.get(int(lbl), 1.0) for lbl in y_tr])
+
+    dtrain = lgb.Dataset(X_tr, label=y_tr, weight=sample_weights,
+                         feature_name=feature_names, free_raw_data=False)
+    dval = lgb.Dataset(X_va, label=y_va, feature_name=feature_names,
+                       reference=dtrain, free_raw_data=False)
+
+    callbacks = [
+        lgb.early_stopping(stopping_rounds=50, verbose=False),
+        lgb.log_evaluation(period=100),
+    ]
+
+    booster = lgb.train(
+        lgb_params,
+        dtrain,
+        num_boost_round=params.get("n_estimators", 800),
+        valid_sets=[dval],
+        callbacks=callbacks,
     )
 
+    logger.info(
+        "Final model trained. Best iteration: %d",
+        booster.best_iteration,
+    )
+    return booster
+
 
 # ---------------------------------------------------------------------------
-# Evaluation helpers
+# Evaluation
 # ---------------------------------------------------------------------------
 
-def evaluate_model(
-    model: MatchupModel,
+def evaluate(
+    booster: lgb.Booster,
     X: pd.DataFrame,
-    y: pd.Series,
+    y: np.ndarray,
     split_name: str = "test",
+    binary: bool = False,
+    outcome_classes: List[str] = OUTCOME_CLASSES,
 ) -> Dict[str, Any]:
-    """Run full evaluation on a held-out split and return a metrics dict.
-
-    Computes accuracy, per-class precision/recall/F1, confusion matrix, and
-    log-loss over the provided split.
+    """Evaluate a trained booster on a labeled dataset.
 
     Args:
-        model: A fitted MatchupModel instance.
+        booster: Trained lgb.Booster.
         X: Feature DataFrame.
-        y: Ground-truth label Series (string outcomes).
-        split_name: Label used in log messages (e.g. ``"test"``).
+        y: True integer labels.
+        split_name: Label for log messages.
+        binary: Whether this is binary classification.
+        outcome_classes: Ordered class name list.
 
     Returns:
-        Dict containing all computed metrics serialisable to JSON.
+        Dict with accuracy, log_loss, and per-class precision/recall.
     """
-    proba = model.predict_proba(X)
-    preds_idx = np.argmax(proba, axis=1)
-    preds_str = [OUTCOME_CLASSES[i] for i in preds_idx]
+    raw = booster.predict(X.values)
 
-    le = model.label_encoder
-    y_enc = le.transform(y)
+    if binary:
+        proba = np.column_stack([1 - raw, raw])
+        preds = (raw >= 0.5).astype(int)
+        classes_used = ["not_target", "target"]
+    else:
+        proba = raw  # shape (n, num_class)
+        preds = np.argmax(proba, axis=1)
+        classes_used = outcome_classes
 
-    acc = float(accuracy_score(y_enc, preds_idx))
-    ll = float(log_loss(y_enc, proba, labels=list(range(len(OUTCOME_CLASSES)))))
+    acc = float(accuracy_score(y, preds))
 
+    # log_loss requires labels argument when some classes may be absent in y
+    n_cls = proba.shape[1] if proba.ndim == 2 else 2
+    ll = float(log_loss(y, proba, labels=list(range(n_cls))))
+
+    # Per-class precision / recall
+    precision_per_class = precision_score(
+        y, preds, average=None, zero_division=0, labels=list(range(n_cls))
+    ).tolist()
+    recall_per_class = recall_score(
+        y, preds, average=None, zero_division=0, labels=list(range(n_cls))
+    ).tolist()
+
+    per_class: Dict[str, Dict[str, float]] = {}
+    for i, cls_name in enumerate(classes_used):
+        if i < len(precision_per_class):
+            per_class[cls_name] = {
+                "precision": round(precision_per_class[i], 4),
+                "recall": round(recall_per_class[i], 4),
+                "support": int((y == i).sum()),
+            }
+
+    # Full sklearn classification report for convenience
+    target_names = classes_used[:n_cls]
     report = classification_report(
-        y,
-        preds_str,
-        labels=OUTCOME_CLASSES,
+        y, preds,
+        labels=list(range(n_cls)),
+        target_names=target_names,
         output_dict=True,
         zero_division=0,
     )
 
-    cm = confusion_matrix(y, preds_str, labels=OUTCOME_CLASSES).tolist()
+    logger.info(
+        "[%s]  accuracy=%.4f  log_loss=%.4f  n=%d",
+        split_name, acc, ll, len(y),
+    )
 
-    logger.info("[%s] accuracy=%.4f  log_loss=%.4f", split_name, acc, ll)
     return {
         "split": split_name,
-        "n_samples": int(len(X)),
-        "accuracy": acc,
-        "log_loss": ll,
-        "classification_report": report,
-        "confusion_matrix": {
-            "labels": OUTCOME_CLASSES,
-            "matrix": cm,
+        "n_samples": int(len(y)),
+        "accuracy": round(acc, 6),
+        "log_loss": round(ll, 6),
+        "per_class_metrics": per_class,
+        "classification_report": {
+            k: v for k, v in report.items()
+            if k not in ("accuracy",)  # already stored separately
         },
     }
 
 
-def compute_shap_importances(
-    model: MatchupModel,
-    X_sample: pd.DataFrame,
-    output_path: str,
+# ---------------------------------------------------------------------------
+# Feature importance
+# ---------------------------------------------------------------------------
+
+def build_feature_importance(
+    booster: lgb.Booster,
+    feature_names: List[str],
 ) -> Dict[str, Any]:
-    """Compute and persist SHAP feature importances.
+    """Build a feature importance dict from the trained booster.
+
+    Returns both raw gain values and a ranked list for easy inspection.
 
     Args:
-        model: A fitted MatchupModel instance.
-        X_sample: Subset of features to explain (e.g. first 500 rows of test set).
-        output_path: JSON file path where importances will be written.
+        booster: Trained lgb.Booster.
+        feature_names: Ordered list of feature column names.
 
     Returns:
-        Dict with ``feature_names``, ``mean_abs_shap``, and ``per_class`` keys.
+        Dict with raw importance values and top-ranked feature list.
     """
-    logger.info("Computing SHAP importances on %d rows ...", len(X_sample))
-    shap_info = model.explain(X_sample)
+    gain = booster.feature_importance(importance_type="gain").tolist()
+    split = booster.feature_importance(importance_type="split").tolist()
 
-    # Drop raw shap_values array -- not JSON-serialisable
-    payload = {
-        "feature_names": shap_info["feature_names"],
-        "mean_abs_shap": shap_info["mean_abs_shap"],
-        "per_class": shap_info["per_class"],
-    }
+    # Normalise gain to [0, 1]
+    total_gain = sum(gain) or 1.0
+    gain_norm = [round(g / total_gain, 6) for g in gain]
 
-    path = Path(output_path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w") as fh:
-        json.dump(payload, fh, indent=2)
-    logger.info("SHAP importances saved to %s", path)
-    return payload
-
-
-# ---------------------------------------------------------------------------
-# Report formatting
-# ---------------------------------------------------------------------------
-
-def format_summary_table(
-    train_metrics: Dict[str, Any],
-    test_metrics: Dict[str, Any],
-    shap_payload: Dict[str, Any],
-) -> str:
-    """Build a human-readable summary table for stdout.
-
-    Args:
-        train_metrics: Evaluation dict from evaluate_model() on training data.
-        test_metrics: Evaluation dict from evaluate_model() on test data.
-        shap_payload: SHAP dict from compute_shap_importances().
-
-    Returns:
-        Multi-line formatted string suitable for printing.
-    """
-    sep = "=" * 60
-
-    lines: List[str] = [
-        sep,
-        "  BaselineMLB XGBoost Matchup Model -- Training Summary",
-        sep,
-        f"  {'Metric':<25s}  {'Train':>10s}  {'Test':>10s}",
-        f"  {'-'*25}  {'-'*10}  {'-'*10}",
-        f"  {'Accuracy':<25s}  {train_metrics['accuracy']:>10.4f}  {test_metrics['accuracy']:>10.4f}",
-        f"  {'Log Loss':<25s}  {train_metrics['log_loss']:>10.4f}  {test_metrics['log_loss']:>10.4f}",
-        sep,
-        "  Per-Class Test F1",
-        f"  {'-'*25}",
-    ]
-
-    cls_report = test_metrics["classification_report"]
-    for cls_name in OUTCOME_CLASSES:
-        if cls_name in cls_report:
-            f1 = cls_report[cls_name]["f1-score"]
-            support = cls_report[cls_name]["support"]
-            lines.append(f"  {cls_name:<10s}  F1={f1:.3f}  support={int(support)}")
-
-    lines += [
-        sep,
-        "  Top-10 Features by Mean |SHAP|",
-        f"  {'-'*45}",
-    ]
-    pairs = sorted(
-        zip(shap_payload["feature_names"], shap_payload["mean_abs_shap"]),
-        key=lambda x: x[1],
+    ranked = sorted(
+        [{"feature": fn, "gain": g, "gain_normalized": gn, "split_count": s}
+         for fn, g, gn, s in zip(feature_names, gain, gain_norm, split)],
+        key=lambda x: x["gain"],
         reverse=True,
     )
-    for rank, (fname, imp) in enumerate(pairs[:10], start=1):
-        lines.append(f"  {rank:>2d}. {fname:<32s}  {imp:.5f}")
 
-    lines.append(sep)
-    return "\n".join(lines)
+    return {
+        "importance_type": "gain",
+        "feature_names": feature_names,
+        "gain": gain,
+        "gain_normalized": gain_norm,
+        "split_count": split,
+        "ranked": ranked,
+    }
 
 
 # ---------------------------------------------------------------------------
-# Main training orchestrator
+# Artifact persistence
+# ---------------------------------------------------------------------------
+
+def save_artifacts(
+    booster: lgb.Booster,
+    feature_importance: Dict[str, Any],
+    training_metadata: Dict[str, Any],
+    artifact_dir: Path,
+) -> None:
+    """Write model, feature importance, and metadata to *artifact_dir*.
+
+    Args:
+        booster: Trained lgb.Booster.
+        feature_importance: Output of build_feature_importance().
+        training_metadata: Metadata dict to persist.
+        artifact_dir: Destination directory (created if missing).
+    """
+    artifact_dir.mkdir(parents=True, exist_ok=True)
+
+    # -- Model binary
+    model_path = artifact_dir / "matchup_model.lgb"
+    booster.save_model(str(model_path))
+    logger.info("Model saved to %s", model_path)
+
+    # -- Feature importance
+    fi_path = artifact_dir / "feature_importance.json"
+    with open(fi_path, "w") as fh:
+        json.dump(feature_importance, fh, indent=2)
+    logger.info("Feature importance saved to %s", fi_path)
+
+    # -- Training metadata
+    meta_path = artifact_dir / "training_metadata.json"
+    with open(meta_path, "w") as fh:
+        json.dump(training_metadata, fh, indent=2)
+    logger.info("Training metadata saved to %s", meta_path)
+
+
+# ---------------------------------------------------------------------------
+# Summary printing
+# ---------------------------------------------------------------------------
+
+def print_summary(
+    training_metadata: Dict[str, Any],
+    feature_importance: Dict[str, Any],
+) -> None:
+    """Print a formatted training summary to stdout."""
+    sep = "=" * 64
+    m = training_metadata
+    cv = m.get("cv_results", {}) or {}
+    eval_test = m.get("test_eval") or {}
+
+    lines = [
+        sep,
+        "  BaselineMLB LightGBM Training Summary",
+        sep,
+        f"  Model type  : {m.get('model_type', 'N/A')}",
+        f"  Trained at  : {m.get('trained_at', 'N/A')}",
+        f"  Features    : {m.get('n_features', 'N/A')}",
+        f"  Best iter   : {m.get('best_iteration', 'N/A')}",
+        sep,
+        f"  {'Metric':<20s}  {'CV Mean':>10s}  {'CV Std':>10s}  {'Test':>10s}",
+        f"  {'-'*20}  {'-'*10}  {'-'*10}  {'-'*10}",
+        (
+            f"  {'Accuracy':<20s}  "
+            f"{cv.get('mean_accuracy', 0.0):>10.4f}  "
+            f"{cv.get('std_accuracy', 0.0):>10.4f}  "
+            f"{str(eval_test.get('accuracy', 'N/A')):>10s}"
+        ),
+        (
+            f"  {'Log Loss':<20s}  "
+            f"{cv.get('mean_log_loss', 0.0):>10.4f}  "
+            f"{cv.get('std_log_loss', 0.0):>10.4f}  "
+            f"{str(eval_test.get('log_loss', 'N/A')):>10s}"
+        ),
+        sep,
+        "  Top-10 Features by Gain",
+        f"  {'-'*48}",
+    ]
+
+    for rank, entry in enumerate(feature_importance.get("ranked", [])[:10], start=1):
+        lines.append(
+            f"  {rank:>2d}. {entry['feature']:<35s}  {entry['gain_normalized']:.5f}"
+        )
+
+    if eval_test and "per_class_metrics" in eval_test:
+        lines += [sep, "  Per-Class Test Metrics", f"  {'-'*48}"]
+        for cls_name, metrics in eval_test["per_class_metrics"].items():
+            lines.append(
+                f"  {cls_name:<6s}  "
+                f"precision={metrics['precision']:.3f}  "
+                f"recall={metrics['recall']:.3f}  "
+                f"support={metrics['support']:,}"
+            )
+
+    lines.append(sep)
+    print("\n".join(lines))
+
+
+# ---------------------------------------------------------------------------
+# Main orchestrator
 # ---------------------------------------------------------------------------
 
 def run_training(
     data_dir: str,
-    output_dir: str,
-    val_split: float,
-    shap_sample_size: int,
+    artifact_dir: str,
+    run_cv: bool,
+    binary_target: Optional[str],
+    lgbm_params: Dict[str, Any],
 ) -> None:
-    """Orchestrate end-to-end model training, evaluation, and artefact writing.
+    """End-to-end training pipeline.
 
     Args:
-        data_dir: Directory containing ``train_matchups.csv`` and
-                  ``test_matchups.csv``.
-        output_dir: Directory where the trained model and reports will be written.
-        val_split: Fraction of training rows to reserve for early-stopping validation.
-        shap_sample_size: Number of test rows used for SHAP explanation (caps at
-                          actual test size).
+        data_dir: Directory with X_train.parquet / y_train.parquet.
+        artifact_dir: Destination for model artifacts.
+        run_cv: Whether to run 5-fold CV before fitting the final model.
+        binary_target: If set (e.g. "K"), run binary classification.
+        lgbm_params: LightGBM hyperparameter dict.
     """
     start_ts = time.time()
-    logger.info("Starting training run -- data_dir=%s  output_dir=%s", data_dir, output_dir)
+    data_path = Path(data_dir)
+    artifact_path = Path(artifact_dir)
+    binary = binary_target is not None
 
-    # ---- Load data -------------------------------------------------------
-    train_csv = os.path.join(data_dir, "train_matchups.csv")
-    test_csv = os.path.join(data_dir, "test_matchups.csv")
-    X_all_train, y_all_train = load_dataset(train_csv)
-    X_test, y_test = load_dataset(test_csv)
+    # -- Load training data
+    X_train, y_train = load_parquet_pair(data_path, split="train")
+    n_features = X_train.shape[1]
+    feature_names = list(X_train.columns)
 
-    # ---- Train / val split -----------------------------------------------
-    X_train, y_train, X_val, y_val = train_val_split(X_all_train, y_all_train, val_split)
+    # -- Load test data if available
+    X_test, y_test = None, None
+    try:
+        X_test, y_test = load_parquet_pair(data_path, split="test")
+    except FileNotFoundError:
+        logger.warning("No test split found -- skipping test evaluation.")
+
+    # -- Determine outcome classes for this run
+    if binary:
+        target_name = binary_target
+        classes_used = [f"not_{target_name}", target_name]
+        model_type = f"lightgbm_binary_{target_name}_vs_rest"
+        params = DEFAULT_LGBM_PARAMS_BINARY.copy()
+        params.update({k: v for k, v in lgbm_params.items()
+                       if k in DEFAULT_LGBM_PARAMS_BINARY})
+    else:
+        classes_used = OUTCOME_CLASSES
+        model_type = "lightgbm_multiclass"
+        params = lgbm_params.copy()
+
     logger.info(
-        "Split: train=%d  val=%d  test=%d",
-        len(X_train), len(X_val), len(X_test),
+        "Training %s | %d features | %d train samples | binary=%s",
+        model_type, n_features, len(X_train), binary,
     )
 
-    # ---- Instantiate and train -------------------------------------------
-    model = MatchupModel()
-    model.fit(X_train, y_train, X_val, y_val)
+    # -- Cross-validation
+    cv_results: Optional[Dict[str, Any]] = None
+    if run_cv:
+        cv_results = run_cross_validation(
+            X_train, y_train, params, n_folds=N_CV_FOLDS, binary=binary
+        )
+    else:
+        logger.info("CV skipped (--no-cv flag set).")
 
-    # ---- Evaluate --------------------------------------------------------
-    # Use full train (train+val) for train metrics reporting
-    train_metrics = evaluate_model(model, X_all_train, y_all_train, split_name="train")
-    test_metrics = evaluate_model(model, X_test, y_test, split_name="test")
+    # -- Train final model
+    booster = train_final_model(X_train, y_train, params, binary=binary)
 
-    # ---- SHAP ------------------------------------------------------------
-    sample_n = min(shap_sample_size, len(X_test))
-    shap_path = os.path.join(output_dir, "shap_importances.json")
-    shap_payload = compute_shap_importances(model, X_test.head(sample_n), shap_path)
+    # -- Evaluate
+    train_eval = evaluate(booster, X_train, y_train, "train", binary, classes_used)
+    test_eval = None
+    if X_test is not None and y_test is not None:
+        test_eval = evaluate(booster, X_test, y_test, "test", binary, classes_used)
 
-    # ---- Save model ------------------------------------------------------
-    model_path = os.path.join(output_dir, "matchup_model.joblib")
-    model.save(model_path)
+    # -- Feature importance
+    feature_importance = build_feature_importance(booster, feature_names)
 
-    # ---- Write training report -------------------------------------------
-    elapsed = time.time() - start_ts
-    report = {
-        "model_version": model.metadata.get("version"),
-        "trained_at": model.metadata.get("trained_at"),
-        "elapsed_seconds": round(elapsed, 2),
-        "data": {
-            "train_csv": train_csv,
-            "test_csv": test_csv,
-            "n_train": int(len(X_all_train)),
-            "n_test": int(len(X_test)),
-            "val_split": val_split,
-        },
-        "hyperparameters": model.hyperparams,
-        "best_iteration": model.metadata.get("best_iteration"),
-        "train_metrics": train_metrics,
-        "test_metrics": test_metrics,
-        "shap_importances_path": shap_path,
+    # -- Build metadata
+    elapsed = round(time.time() - start_ts, 2)
+    training_metadata: Dict[str, Any] = {
+        "model_type": model_type,
+        "status": "trained",
+        "trained_at": datetime.now(timezone.utc).isoformat(),
+        "elapsed_seconds": elapsed,
+        "outcome_classes": classes_used,
+        "n_features": n_features,
+        "feature_names": feature_names,
+        "n_train_samples": int(len(X_train)),
+        "n_test_samples": int(len(X_test)) if X_test is not None else None,
+        "best_iteration": int(booster.best_iteration),
+        "hyperparameters": params,
+        "cv_results": cv_results,
+        "train_eval": train_eval,
+        "test_eval": test_eval,
+        "data_dir": str(data_path.resolve()),
+        "artifact_dir": str(artifact_path.resolve()),
+        "last_updated": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
     }
 
-    report_path = os.path.join(output_dir, "training_report.json")
-    Path(report_path).parent.mkdir(parents=True, exist_ok=True)
-    with open(report_path, "w") as fh:
-        json.dump(report, fh, indent=2)
-    logger.info("Training report saved to %s", report_path)
+    # -- Save artifacts
+    save_artifacts(booster, feature_importance, training_metadata, artifact_path)
 
-    # ---- Print summary ---------------------------------------------------
-    summary = format_summary_table(train_metrics, test_metrics, shap_payload)
-    print(summary)
-    print(f"\n  Total training time: {elapsed:.1f}s")
-    print(f"  Model saved to:      {model_path}")
-    print(f"  Report saved to:     {report_path}")
+    # -- Print summary
+    print_summary(training_metadata, feature_importance)
+    print(f"\n  Elapsed: {elapsed:.1f}s")
+    print(f"  Model  : {artifact_path / 'matchup_model.lgb'}")
+    print(f"  Metadata: {artifact_path / 'training_metadata.json'}")
 
 
 # ---------------------------------------------------------------------------
-# __main__
+# CLI
 # ---------------------------------------------------------------------------
 
-if __name__ == "__main__":
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Train the BaselineMLB XGBoost matchup model.",
+        description="Train the BaselineMLB LightGBM matchup model.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
         "--data-dir",
         default=DEFAULT_DATA_DIR,
-        help="Directory containing train_matchups.csv and test_matchups.csv",
+        help="Directory containing X_train.parquet and y_train.parquet",
     )
     parser.add_argument(
-        "--output-dir",
-        default=DEFAULT_OUTPUT_DIR,
-        help="Directory where model artefacts (joblib, JSON) will be written",
+        "--artifact-dir",
+        default=DEFAULT_ARTIFACT_DIR,
+        help="Directory where model artifacts will be written",
     )
     parser.add_argument(
-        "--val-split",
-        type=float,
-        default=DEFAULT_VAL_SPLIT,
-        help="Fraction of training rows held out for early-stopping validation",
+        "--binary-target",
+        default=None,
+        choices=OUTCOME_CLASSES,
+        metavar="OUTCOME",
+        help=(
+            "Train a binary classifier (OUTCOME vs rest). "
+            f"Choices: {', '.join(OUTCOME_CLASSES)}"
+        ),
     )
     parser.add_argument(
-        "--shap-sample-size",
+        "--no-cv",
+        action="store_true",
+        help="Skip 5-fold cross-validation (faster for iteration)",
+    )
+    parser.add_argument(
+        "--n-estimators",
         type=int,
-        default=500,
-        help="Number of test rows used for SHAP explanation",
+        default=None,
+        help="Override n_estimators hyperparameter",
     )
-    args = parser.parse_args()
+    parser.add_argument(
+        "--learning-rate",
+        type=float,
+        default=None,
+        help="Override learning_rate hyperparameter",
+    )
+    parser.add_argument(
+        "--max-depth",
+        type=int,
+        default=None,
+        help="Override max_depth hyperparameter",
+    )
+    parser.add_argument(
+        "--num-leaves",
+        type=int,
+        default=None,
+        help="Override num_leaves hyperparameter",
+    )
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = parse_args()
+
+    # Build hyperparameter dict from defaults + CLI overrides
+    binary = args.binary_target is not None
+    base_params = DEFAULT_LGBM_PARAMS_BINARY.copy() if binary else DEFAULT_LGBM_PARAMS.copy()
+
+    overrides = {
+        k: v for k, v in {
+            "n_estimators": args.n_estimators,
+            "learning_rate": args.learning_rate,
+            "max_depth": args.max_depth,
+            "num_leaves": args.num_leaves,
+        }.items() if v is not None
+    }
+    base_params.update(overrides)
+    if overrides:
+        logger.info("Hyperparameter overrides: %s", overrides)
 
     try:
         run_training(
             data_dir=args.data_dir,
-            output_dir=args.output_dir,
-            val_split=args.val_split,
-            shap_sample_size=args.shap_sample_size,
+            artifact_dir=args.artifact_dir,
+            run_cv=not args.no_cv,
+            binary_target=args.binary_target,
+            lgbm_params=base_params,
         )
     except FileNotFoundError as exc:
-        logger.error("Data file not found: %s", exc)
+        logger.error("%s", exc)
         sys.exit(1)
-    except ValueError as exc:
-        logger.error("Data validation error: %s", exc)
-        sys.exit(1)
+    except KeyboardInterrupt:
+        logger.warning("Training interrupted by user.")
+        sys.exit(130)
+
+
+if __name__ == "__main__":
+    main()
