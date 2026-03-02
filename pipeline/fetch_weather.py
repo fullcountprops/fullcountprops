@@ -24,13 +24,12 @@ Output:
     Upserts rows to the `game_weather` table in Supabase.
 """
 
-import os
 import sys
 import json
 import argparse
 import logging
 import time
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Optional
 
@@ -326,7 +325,7 @@ def process_weather(target_date: str, historical: bool = False, upload: bool = T
                 f"{weather['conditions']}"
             )
         else:
-            log.warning(f"    No weather data available")
+            log.warning("    No weather data available")
 
         # Rate limit: Open-Meteo allows 10,000 requests/day but be polite
         time.sleep(0.5)

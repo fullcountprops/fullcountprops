@@ -67,7 +67,6 @@ from sklearn.metrics import (
     classification_report,
 )
 from sklearn.model_selection import StratifiedKFold
-from sklearn.preprocessing import LabelEncoder
 
 warnings.filterwarnings("ignore", category=UserWarning)
 

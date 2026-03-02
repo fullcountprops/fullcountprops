@@ -26,7 +26,6 @@ Output:
     data/statcast_pa_features_<start>_<end>.parquet
 """
 
-import os
 import sys
 import time
 import argparse
@@ -34,7 +33,6 @@ import logging
 from datetime import date, timedelta
 from io import StringIO
 from pathlib import Path
-from typing import Optional
 
 import pandas as pd
 import numpy as np
@@ -714,7 +712,7 @@ def main():
     log.info(f"  Seasons:       {pa_df['game_year'].nunique()}")
     log.info(f"  Pitchers:      {pa_df['pitcher_id'].nunique():,}")
     log.info(f"  Batters:       {pa_df['batter_id'].nunique():,}")
-    log.info(f"  Outcome dist:")
+    log.info("  Outcome dist:")
     for outcome, count in pa_df["pa_outcome"].value_counts().items():
         log.info(f"    {outcome:>5s}: {count:>8,} ({count/len(pa_df)*100:.1f}%)")
 
