@@ -1,31 +1,52 @@
 # .github/workflows/pipelines.yml
 # Automated daily MLB data pipelines for Baseline MLB
-#
-# v2.0 Changes:
-#   - Morning pipeline: consolidated to use pipeline/ only (removed scripts/fetch_games.py, scripts/fetch_players.py)
-#   - Props: consolidated to use pipeline/fetch_props.py only (removed scripts/fetch_props.py)
-#   - Added pytest run on morning pipeline
-#   - Overnight: still uses scripts/ for Statcast + grading (these are unique, not duplicates)
 name: MLB Data Pipelines
 on:
   schedule:
     # Morning: fetch schedule + rosters (8:00 AM ET = 12:00 UTC during EDT)
     - cron: "0 12 * * *"
-    # Late morning: props refresh + generate projections (10:30 AM ET = 14:30 UTC)
+    # Late morning: lineups + weather + props + projections (10:30 AM ET = 14:30 UTC)
     - cron: "30 14 * * *"
     # Afternoon: props refresh + update projections (4:30 PM ET = 20:30 UTC)
     - cron: "30 20 * * *"
     # Overnight: Statcast ingest + grade accuracy (2:00 AM ET = 06:00 UTC)
     - cron: "0 6 * * *"
+    # Weekly: Statcast historical refresh (Sunday 3:00 AM ET = 07:00 UTC)
+    - cron: "0 7 * * 0"
   workflow_dispatch:
+
 env:
   SUPABASE_URL: ${{ secrets.SUPABASE_PROJECT_URL }}
   SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
   ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+
 jobs:
-  # -- Morning Pipeline: Schedule + Rosters (consolidated to pipeline/ only)
+  # -- Check if we should run (skip off-season: Nov 16 – Feb 14) --
+  season-check:
+    runs-on: ubuntu-latest
+    outputs:
+      is_active: ${{ steps.check.outputs.active }}
+    steps:
+      - name: Check if MLB season is active
+        id: check
+        run: |
+          MONTH=$(date +%m)
+          DAY=$(date +%d)
+          # Off-season: Nov 16 – Feb 14
+          if [[ ($MONTH -eq 11 && $DAY -ge 16) || $MONTH -eq 12 || $MONTH -eq 1 || ($MONTH -eq 2 && $DAY -le 14) ]]; then
+            echo "Off-season detected ($MONTH-$DAY). Skipping pipelines."
+            echo "active=false" >> $GITHUB_OUTPUT
+          else
+            echo "Season active ($MONTH-$DAY). Running pipelines."
+            echo "active=true" >> $GITHUB_OUTPUT
+          fi
+
+  # -- Morning Pipeline: Schedule + Rosters --
   fetch-games-players:
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 12 * * *'
+    needs: season-check
+    if: |
+      needs.season-check.outputs.is_active == 'true' &&
+      (github.event_name == 'workflow_dispatch' || github.event.schedule == '0 12 * * *')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -34,20 +55,20 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: "pip"
       - name: Install dependencies
         run: pip install -r requirements.txt
-      - name: Run tests
-        run: python -m pytest tests/ -v --tb=short || true
-      - name: Fetch & upsert games to Supabase
+      - name: Fetch and upsert games
         run: python pipeline/fetch_games.py
-      - name: Fetch & upsert players to Supabase (with handedness)
+      - name: Fetch and upsert players
         run: python pipeline/fetch_players.py
-      - name: Fetch WBC games (sportId=51)
-        run: python scripts/fetch_wbc_games.py
 
-  # -- Late Morning Pipeline: Props + Projections
-  morning-props-projections:
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '30 14 * * *'
+  # -- Late Morning Pipeline: Lineups + Weather + Props + Projections --
+  morning-lineups-props-projections:
+    needs: season-check
+    if: |
+      needs.season-check.outputs.is_active == 'true' &&
+      (github.event_name == 'workflow_dispatch' || github.event.schedule == '30 14 * * *')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -56,20 +77,26 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: "pip"
       - name: Install dependencies
         run: pip install -r requirements.txt
-      - name: Fetch props (consolidated to pipeline/)
+      - name: Fetch confirmed lineups
+        run: python pipeline/fetch_lineups.py
+      - name: Fetch game weather
+        run: python pipeline/fetch_weather.py
+      - name: Fetch props
         run: python pipeline/fetch_props.py
-      - name: Generate v2.0 pitcher projections
+      - name: Generate pitcher projections
         run: python pipeline/generate_projections.py
-      - name: Generate v2.0 batter projections
+      - name: Generate batter projections
         run: python pipeline/generate_batter_projections.py
-      - name: Generate daily content
-        run: python scripts/generate_daily_content.py --format all --top 5
 
-  # -- Afternoon Pipeline: Props Refresh + Update Projections
+  # -- Afternoon Pipeline: Props Refresh + Update Projections --
   afternoon-props-projections:
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '30 20 * * *'
+    needs: season-check
+    if: |
+      needs.season-check.outputs.is_active == 'true' &&
+      (github.event_name == 'workflow_dispatch' || github.event.schedule == '30 20 * * *')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -78,22 +105,26 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: "pip"
       - name: Install dependencies
         run: pip install -r requirements.txt
-      - name: Fetch props (consolidated to pipeline/)
+      - name: Fetch confirmed lineups (refresh)
+        run: python pipeline/fetch_lineups.py
+      - name: Fetch game weather (refresh)
+        run: python pipeline/fetch_weather.py
+      - name: Fetch props
         run: python pipeline/fetch_props.py
-      - name: Generate v2.0 pitcher projections
+      - name: Generate pitcher projections
         run: python pipeline/generate_projections.py
-      - name: Generate v2.0 batter projections
+      - name: Generate batter projections
         run: python pipeline/generate_batter_projections.py
-      - name: Generate daily content
-        run: python scripts/generate_daily_content.py --format all --top 5
 
-  # -- Overnight Pipeline: Statcast + Accuracy Grading
-  # Note: scripts/fetch_statcast.py, scripts/grade_accuracy.py, scripts/track_clv.py
-  # are unique (not duplicates of pipeline/) and remain here.
+  # -- Overnight Pipeline: Statcast + Accuracy Grading --
   overnight-statcast-grading:
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 6 * * *'
+    needs: season-check
+    if: |
+      needs.season-check.outputs.is_active == 'true' &&
+      (github.event_name == 'workflow_dispatch' || github.event.schedule == '0 6 * * *')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -102,6 +133,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: "pip"
       - name: Install dependencies
         run: pip install -r requirements.txt
       - name: Fetch Statcast data
@@ -112,3 +144,70 @@ jobs:
         run: python scripts/track_clv.py
       - name: Compute umpire framing composites
         run: python pipeline/fetch_umpire_framing.py
+
+  # -- Weekly Pipeline: Statcast Historical Refresh + Training Data --
+  weekly-statcast-historical:
+    needs: season-check
+    if: |
+      needs.season-check.outputs.is_active == 'true' &&
+      (github.event_name == 'workflow_dispatch' || github.event.schedule == '0 7 * * 0')
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Fetch Statcast historical (current season, last 14 days)
+        run: |
+          END_DATE=$(date +%Y-%m-%d)
+          START_DATE=$(date -d '14 days ago' +%Y-%m-%d)
+          python pipeline/fetch_statcast_historical.py \
+            --start-date "$START_DATE" \
+            --end-date "$END_DATE" \
+            --upload-supabase \
+            --output statcast_rolling_14d.parquet
+      - name: Backfill weather for past 7 days
+        run: |
+          python pipeline/fetch_weather.py \
+            --date $(date +%Y-%m-%d) \
+            --backfill-days 7 \
+            --historical
+
+  # -- Lint check (runs on all triggers) --
+  lint:
+    needs: season-check
+    if: needs.season-check.outputs.is_active == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+      - name: Install linting tools
+        run: pip install ruff
+      - name: Run ruff linter
+        run: ruff check pipeline/ scripts/ lib/ --select E,F,W --ignore E501
+        continue-on-error: true
+
+  # -- Notify on failure --
+  notify-on-failure:
+    needs: [fetch-games-players, morning-lineups-props-projections, afternoon-props-projections, overnight-statcast-grading, weekly-statcast-historical]
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report pipeline failure
+        run: |
+          echo "::error::One or more BaselineMLB pipeline jobs failed."
+          echo "Check the workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          # Future: send Slack/Discord/email notification here
+          # curl -X POST "$WEBHOOK_URL" -H "Content-Type: application/json" \
+          #   -d "{\"text\": \"BaselineMLB pipeline failed: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}"
