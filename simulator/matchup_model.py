@@ -354,18 +354,20 @@ class MatchupModel:
         after_framing = odds._apply_catcher_framing(after_umpire.copy(), context)
         after_weather = odds._apply_weather(after_framing.copy(), context)
         base_norm    = _clip_and_normalise(base_arr.copy())
-        park_norm    = _clip_and_normalise(after_park.copy())
-        platoon_norm = _clip_and_normalise(after_platoon.copy())
-        umpire_norm  = _clip_and_normalise(after_umpire.copy())
-        framing_norm = _clip_and_normalise(after_framing.copy())
+        _park_norm    = _clip_and_normalise(after_park.copy())      # noqa: F841 — kept for future SHAP breakdown
+        _platoon_norm = _clip_and_normalise(after_platoon.copy())   # noqa: F841
+        _umpire_norm  = _clip_and_normalise(after_umpire.copy())    # noqa: F841
+        _framing_norm = _clip_and_normalise(after_framing.copy())   # noqa: F841
         final_norm   = _clip_and_normalise(after_weather.copy())
         outcomes_explanation: dict = {}
         batter_hand  = str(batter_stats.get("hand", "R")).upper()
         pitcher_hand = str(context.get("pitcher_hand", "R")).upper()
-        has_plat = bool(context.get("platoon_advantage", (batter_hand == "S") or (batter_hand != pitcher_hand)))
+        _has_plat = bool(context.get("platoon_advantage", (batter_hand == "S") or (batter_hand != pitcher_hand)))  # noqa: F841
         def _direction(delta: float) -> str:
-            if delta > 0.0005: return "up"
-            if delta < -0.0005: return "down"
+            if delta > 0.0005:
+                return "up"
+            if delta < -0.0005:
+                return "down"
             return "neutral"
         for i, outcome in enumerate(MODEL_OUTCOMES):
             base_p  = float(base_norm[i])

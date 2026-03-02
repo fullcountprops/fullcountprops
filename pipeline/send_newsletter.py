@@ -19,7 +19,6 @@ Usage:
 import argparse
 import logging
 import os
-import sys
 from datetime import date
 
 import requests
@@ -125,12 +124,12 @@ def build_html(projections: list, game_date: str) -> str:
     <html lang="en">
     <head>
         <meta charset="UTF-8">
-        <title>BaselineMLB \u2014 Projections for {date_str}</title>
+        <title>BaselineMLB — Projections for {date_str}</title>
     </head>
     <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background: #1a1a2e; color: white; padding: 20px; border-radius: 8px;
                     text-align: center; margin-bottom: 20px;">
-            <h1 style="margin: 0; font-size: 24px;">\u26be BaselineMLB</h1>
+            <h1 style="margin: 0; font-size: 24px;">⚾ BaselineMLB</h1>
             <p style="margin: 5px 0 0;">Daily Pitcher Strikeout Projections</p>
         </div>
 
@@ -193,12 +192,12 @@ def run_newsletter(game_date: str = None, dry_run: bool = False):
     log.info(f"=== Sending newsletter for {game_date} ===")
 
     if dry_run:
-        log.info("DRY RUN mode enabled \u2014 will preview newsletter without sending")
+        log.info("DRY RUN mode enabled — will preview newsletter without sending")
 
     # Fetch projections
     projections = fetch_projections(game_date)
     if not projections:
-        log.info("No projections found \u2014 skipping newsletter")
+        log.info("No projections found — skipping newsletter")
         if dry_run:
             log.info("DRY RUN: Would skip newsletter (no projections for today)")
         return
@@ -206,7 +205,7 @@ def run_newsletter(game_date: str = None, dry_run: bool = False):
     log.info(f"Found {len(projections)} projections")
 
     # Build email content
-    subject = f"\u26be BaselineMLB Projections \u2014 {game_date}"
+    subject = f"⚾ BaselineMLB Projections — {game_date}"
     html = build_html(projections, game_date)
 
     if dry_run:
@@ -221,11 +220,11 @@ def run_newsletter(game_date: str = None, dry_run: bool = False):
         if len(projections) > 10:
             print(f"  ... and {len(projections) - 10} more")
         print(f"--- HTML length: {len(html)} chars ---")
-        log.info("DRY RUN complete \u2014 no emails sent")
+        log.info("DRY RUN complete — no emails sent")
         return
 
     if not RESEND_API_KEY:
-        log.error("RESEND_API_KEY not set \u2014 aborting (use --dry-run to preview)")
+        log.error("RESEND_API_KEY not set — aborting (use --dry-run to preview)")
         return
 
     # Fetch and send to subscribers

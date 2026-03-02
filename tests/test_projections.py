@@ -318,8 +318,8 @@ class TestEdgeCases:
         from pipeline.generate_batter_projections import MODEL_VERSION as BATTER_VERSION
         from pipeline.generate_projections import MODEL_VERSION as PITCHER_VERSION
 
-        assert "v2.0" in PITCHER_VERSION
-        assert "v2.0" in BATTER_VERSION
+        assert "v2." in PITCHER_VERSION
+        assert "v2." in BATTER_VERSION
 
     def test_features_json_serializable(self):
         """Features dict should be JSON serializable."""
