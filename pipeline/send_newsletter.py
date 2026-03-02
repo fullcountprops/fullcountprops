@@ -5,10 +5,21 @@ Daily email newsletter system using Resend API.
 
 Sends formatted HTML emails to subscribers with today's
 pitcher strikeout projections and confidence scores.
+
+Requires:
+  - RESEND_API_KEY env var (for live sends)
+  - SUPABASE_URL, SUPABASE_SERVICE_KEY env vars
+  - Run after morning projections pipeline (10:30 AM ET)
+
+Usage:
+  python pipeline/send_newsletter.py             # Send live newsletter
+  python pipeline/send_newsletter.py --dry-run    # Preview without sending (default in CI)
 """
 
+import argparse
 import logging
 import os
+import sys
 from datetime import date
 
 import requests
@@ -44,32 +55,48 @@ def resend_headers():
 
 def fetch_projections(game_date: str) -> list:
     """Fetch today's projections from Supabase, ordered by confidence."""
-    r = requests.get(
-        f"{SUPABASE_URL}/rest/v1/projections",
-        headers=sb_headers(),
-        params={
-            "game_date": f"eq.{game_date}",
-            "stat_type": "eq.pitcher_strikeouts",
-            "select": "player_name,projection,confidence,features",
-            "order": "confidence.desc",
-        },
-    )
-    r.raise_for_status()
-    return r.json()
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        log.warning("Supabase credentials not configured. Returning empty projections.")
+        return []
+
+    try:
+        r = requests.get(
+            f"{SUPABASE_URL}/rest/v1/projections",
+            headers=sb_headers(),
+            params={
+                "game_date": f"eq.{game_date}",
+                "stat_type": "eq.pitcher_strikeouts",
+                "select": "player_name,projection,confidence,features",
+                "order": "confidence.desc",
+            },
+        )
+        r.raise_for_status()
+        return r.json()
+    except Exception as e:
+        log.warning(f"Failed to fetch projections: {e}")
+        return []
 
 
 def fetch_subscribers() -> list:
     """Fetch active subscribers from Supabase."""
-    r = requests.get(
-        f"{SUPABASE_URL}/rest/v1/subscribers",
-        headers=sb_headers(),
-        params={
-            "active": "eq.true",
-            "select": "email,first_name",
-        },
-    )
-    r.raise_for_status()
-    return r.json()
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        log.warning("Supabase credentials not configured. Returning empty subscribers.")
+        return []
+
+    try:
+        r = requests.get(
+            f"{SUPABASE_URL}/rest/v1/subscribers",
+            headers=sb_headers(),
+            params={
+                "active": "eq.true",
+                "select": "email,first_name",
+            },
+        )
+        r.raise_for_status()
+        return r.json()
+    except Exception as e:
+        log.warning(f"Failed to fetch subscribers: {e}")
+        return []
 
 
 def build_html(projections: list, game_date: str) -> str:
@@ -98,12 +125,12 @@ def build_html(projections: list, game_date: str) -> str:
     <html lang="en">
     <head>
         <meta charset="UTF-8">
-        <title>BaselineMLB — Projections for {date_str}</title>
+        <title>BaselineMLB \u2014 Projections for {date_str}</title>
     </head>
     <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background: #1a1a2e; color: white; padding: 20px; border-radius: 8px;
                     text-align: center; margin-bottom: 20px;">
-            <h1 style="margin: 0; font-size: 24px;">⚾ BaselineMLB</h1>
+            <h1 style="margin: 0; font-size: 24px;">\u26be BaselineMLB</h1>
             <p style="margin: 5px 0 0;">Daily Pitcher Strikeout Projections</p>
         </div>
 
@@ -152,34 +179,54 @@ def send_via_resend(to_email: str, subject: str, html: str, first_name: str = ""
         json=payload,
     )
     if r.ok:
-        log.info(f" Sent to {to_email}")
+        log.info(f"  Sent to {to_email}")
         return True
-    log.warning(f" Failed to send to {to_email}: {r.status_code} {r.text[:100]}")
+    log.warning(f"  Failed to send to {to_email}: {r.status_code} {r.text[:100]}")
     return False
 
 
-def run_newsletter(game_date: str = None):
+def run_newsletter(game_date: str = None, dry_run: bool = False):
     """Main newsletter runner."""
     if game_date is None:
         game_date = date.today().isoformat()
 
     log.info(f"=== Sending newsletter for {game_date} ===")
 
-    if not RESEND_API_KEY:
-        log.error("RESEND_API_KEY not set — aborting")
-        return
+    if dry_run:
+        log.info("DRY RUN mode enabled \u2014 will preview newsletter without sending")
 
     # Fetch projections
     projections = fetch_projections(game_date)
     if not projections:
-        log.info("No projections found — skipping newsletter")
+        log.info("No projections found \u2014 skipping newsletter")
+        if dry_run:
+            log.info("DRY RUN: Would skip newsletter (no projections for today)")
         return
 
     log.info(f"Found {len(projections)} projections")
 
     # Build email content
-    subject = f"⚾ BaselineMLB Projections — {game_date}"
+    subject = f"\u26be BaselineMLB Projections \u2014 {game_date}"
     html = build_html(projections, game_date)
+
+    if dry_run:
+        log.info("DRY RUN - Newsletter preview:")
+        print(f"\n--- Subject: {subject} ---")
+        print(f"--- Projections: {len(projections)} pitchers ---")
+        for proj in projections[:10]:
+            name = proj.get("player_name", "Unknown")
+            k_proj = proj.get("projection", 0)
+            conf = proj.get("confidence", 0)
+            print(f"  {name}: {k_proj:.1f} K (conf: {conf * 100:.0f}%)")
+        if len(projections) > 10:
+            print(f"  ... and {len(projections) - 10} more")
+        print(f"--- HTML length: {len(html)} chars ---")
+        log.info("DRY RUN complete \u2014 no emails sent")
+        return
+
+    if not RESEND_API_KEY:
+        log.error("RESEND_API_KEY not set \u2014 aborting (use --dry-run to preview)")
+        return
 
     # Fetch and send to subscribers
     subscribers = fetch_subscribers()
@@ -200,5 +247,18 @@ def run_newsletter(game_date: str = None):
 
 
 if __name__ == "__main__":
-    import sys
-    run_newsletter(sys.argv[1] if len(sys.argv) > 1 else None)
+    parser = argparse.ArgumentParser(description="Send BaselineMLB daily newsletter")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        default=False,
+        help="Preview newsletter without sending emails (default in CI until API keys are configured)",
+    )
+    parser.add_argument(
+        "--date",
+        type=str,
+        default=None,
+        help="Game date to send newsletter for (YYYY-MM-DD, defaults to today)",
+    )
+    args = parser.parse_args()
+    run_newsletter(game_date=args.date, dry_run=args.dry_run)
