@@ -1,5 +1,5 @@
 """
-run_simulation.py — BaselineMLB Monte Carlo Simulator CLI Entry Point
+run_simulation.py -- BaselineMLB Monte Carlo Simulator CLI Entry Point
 =======================================================================
 
 Orchestrates the full daily simulation pipeline:
@@ -132,7 +132,7 @@ def _progress_bar(current: int, total: int, width: int = 40, prefix: str = "") -
         return
     pct = current / total
     filled = int(width * pct)
-    bar = "█" * filled + "░" * (width - filled)
+    bar = "#" * filled + "." * (width - filled)
     label = f"{prefix}[{bar}] {current}/{total} ({pct:.0%})"
     print(f"\r{label}", end="", flush=True, file=sys.stderr)
     if current >= total:
@@ -437,7 +437,7 @@ class PropAnalyzer:
                 if venue:
                     ctx_parts.append(f"Venue: {venue}")
                 if temp is not None:
-                    ctx_parts.append(f"Temp: {temp:.0f}°F")
+                    ctx_parts.append(f"Temp: {temp:.0f}degF")
                 if wind is not None:
                     ctx_parts.append(f"Wind: {wind:.0f} mph")
                 if ump:
@@ -527,7 +527,7 @@ class OutputWriter:
             edges.sort(key=lambda a: a.edge, reverse=True)
 
             lines: List[str] = [
-                f"# BaselineMLB Simulation Report — {self.date_str}",
+                f"# BaselineMLB Simulation Report -- {self.date_str}",
                 f"*Generated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}*",
                 "",
                 "## Summary",
@@ -641,8 +641,8 @@ class OutputWriter:
         Upsert projections and prop analyses to Supabase.
 
         Tables targeted:
-          * ``projections``      — per-player-stat projection rows
-          * ``prop_analyses``    — edge analysis rows
+          * ``projections``      -- per-player-stat projection rows
+          * ``prop_analyses``    -- edge analysis rows
         """
         try:
             from supabase import Client, create_client  # type: ignore
@@ -651,12 +651,12 @@ class OutputWriter:
             key = os.environ.get("SUPABASE_KEY", "")
             if not url or not key:
                 logger.error(
-                    "SUPABASE_URL / SUPABASE_KEY not set — skipping upload."
+                    "SUPABASE_URL / SUPABASE_KEY not set -- skipping upload."
                 )
                 return
 
             client: Client = create_client(url, key)
-            logger.info("Uploading to Supabase…")
+            logger.info("Uploading to Supabase...")
 
             # Projections
             proj_rows: List[Dict[str, Any]] = []
@@ -689,7 +689,7 @@ class OutputWriter:
 
     def format_twitter(self, analyses: List[PropAnalysis]) -> str:
         """
-        Return a Twitter-ready text summary of top edges (≤ 280 chars each).
+        Return a Twitter-ready text summary of top edges (<= 280 chars each).
         """
         edges = sorted(
             [a for a in analyses if a.has_edge and a.recommendation != "PASS"],
@@ -697,14 +697,15 @@ class OutputWriter:
             reverse=True,
         )
         if not edges:
-            return f"⚾ BaselineMLB ({self.date_str}): No strong edges found today. #MLB #Props"
+            return f"[baseball] BaselineMLB ({self.date_str}): No strong edges found today. #MLB #Props"
 
-        tweet_lines = [f"⚾ BaselineMLB Top Edges — {self.date_str}"]
+        tweet_lines = [f"[baseball] BaselineMLB Top Edges -- {self.date_str}"]
         for a in edges[:5]:
             ev_val = a.ev_over if a.recommendation == "OVER" else a.ev_under
             game_label = f"{a.away_team}@{a.home_team}" if a.away_team else f"Game {a.game_pk}"
+            arrow = "\U0001f53c" if a.recommendation == "OVER" else "\U0001f53d"
             tweet_lines.append(
-                f"{'\U0001f53c' if a.recommendation == 'OVER' else '\U0001f53d'} "
+                f"{arrow} "
                 f"{a.player_name} {a.stat.upper()} {a.recommendation} {a.line} "
                 f"({game_label}) | Sim: {a.sim_p_over:.0%} | EV: {ev_val:+.2f}"
             )
@@ -744,7 +745,7 @@ def _supabase_upsert_batched(
             client.table(table).upsert(batch).execute()
         except Exception as exc:
             logger.error(
-                "_supabase_upsert_batched: batch %d–%d to '%s' failed: %s",
+                "_supabase_upsert_batched: batch %d-%d to '%s' failed: %s",
                 i, i + len(batch), table, exc,
             )
 
@@ -887,7 +888,7 @@ def run_daily_simulation(
             )
             if verbose:
                 traceback.print_exc()
-            exit_code = 1  # partial failure — continue
+            exit_code = 1  # partial failure -- continue
 
     if not game_data_list:
         logger.error("All game data preparation failed. Aborting.")
@@ -896,13 +897,13 @@ def run_daily_simulation(
     # Dry-run: print matchups and exit
     if dry_run:
         print(f"\n{'='*60}")
-        print(f"DRY RUN — {len(game_data_list)} game(s) for {sim_date}")
+        print(f"DRY RUN -- {len(game_data_list)} game(s) for {sim_date}")
         print(f"{'='*60}")
         for gd in game_data_list:
             away_p = getattr(gd.away_pitcher, "name", "TBD") if gd.away_pitcher else "TBD"
             home_p = getattr(gd.home_pitcher, "name", "TBD") if gd.home_pitcher else "TBD"
             print(f"  [{gd.game_pk}] {gd.away_team} ({away_p}) @ {gd.home_team} ({home_p})")
-            print(f"         Venue: {gd.venue}  |  Temp: {gd.temp_f:.0f}°F  |  Wind: {gd.wind_speed_mph:.0f} mph")
+            print(f"         Venue: {gd.venue}  |  Temp: {gd.temp_f:.0f}degF  |  Wind: {gd.wind_speed_mph:.0f} mph")
         print()
         return 0
 
@@ -992,7 +993,7 @@ def run_daily_simulation(
     analyzer = PropAnalyzer(config=cfg, matchup_model=matchup_model)
     all_analyses: List[PropAnalysis] = []
 
-    # Build a lookup: game_pk → GameData
+    # Build a lookup: game_pk -> GameData
     game_data_by_pk: Dict[int, Any] = {gd.game_pk: gd for gd in game_data_list}
 
     for result in sim_results:
@@ -1063,7 +1064,7 @@ def run_daily_simulation(
             )
         # Glass-box explanation for the #1 edge
         if top_edges:
-            print(f"\n[Glass-box explanation — #{1} edge]\n")
+            print(f"\n[Glass-box explanation -- #{1} edge]\n")
             print(top_edges[0].explanation)
     else:
         print("\nNo edges found today.")
@@ -1106,7 +1107,7 @@ def run_backtest(
         logger.error("Required modules unavailable for backtest.")
         return 2
 
-    # 1 & 2 — Simulate the date (identical pipeline to daily run but no upload)
+    # 1 & 2 -- Simulate the date (identical pipeline to daily run but no upload)
     exit_code = run_daily_simulation(
         sim_date=backtest_date,
         n_simulations=n_simulations,
@@ -1124,9 +1125,9 @@ def run_backtest(
     if exit_code == 2:
         return exit_code  # nothing to compare
 
-    # 3 — Fetch actual results from boxscores
-    logger.info("Fetching actual boxscore results for %s…", backtest_date)
-    actuals: Dict[int, Dict[str, Any]] = {}  # player_id → {stat: actual_value}
+    # 3 -- Fetch actual results from boxscores
+    logger.info("Fetching actual boxscore results for %s...", backtest_date)
+    actuals: Dict[int, Dict[str, Any]] = {}  # player_id -> {stat: actual_value}
 
     try:
         mlb_client = MLBApiClient()
@@ -1143,9 +1144,9 @@ def run_backtest(
     except Exception as exc:
         logger.error("Failed to fetch backtest schedule: %s", exc)
 
-    # 4 — Load projections from the JSON we just wrote
+    # 4 -- Load projections from the JSON we just wrote
     proj_path = Path(output_dir) / f"{backtest_date}_simulation.json"
-    projections: Dict[int, Dict[str, float]] = {}  # player_id → {stat: projected_mean}
+    projections: Dict[int, Dict[str, float]] = {}  # player_id -> {stat: projected_mean}
 
     if proj_path.exists():
         try:
@@ -1162,8 +1163,8 @@ def run_backtest(
         except Exception as exc:
             logger.error("Failed to load simulation JSON for comparison: %s", exc)
 
-    # 5 — Compute accuracy metrics
-    stat_errors: Dict[str, List[float]] = {}  # stat → [error, ...]
+    # 5 -- Compute accuracy metrics
+    stat_errors: Dict[str, List[float]] = {}  # stat -> [error, ...]
 
     for player_id, actual_stats in actuals.items():
         if player_id not in projections:
@@ -1276,7 +1277,7 @@ def build_parser() -> argparse.ArgumentParser:
     """Build and return the argument parser."""
     parser = argparse.ArgumentParser(
         prog="python -m simulation.run_simulation",
-        description="BaselineMLB Monte Carlo Simulator — CLI Entry Point",
+        description="BaselineMLB Monte Carlo Simulator -- CLI Entry Point",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
