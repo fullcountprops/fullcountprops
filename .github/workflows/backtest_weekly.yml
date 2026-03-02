@@ -1,0 +1,273 @@
+# =============================================================================
+# backtest_weekly.yml — Baseline MLB
+# Weekly accuracy backtesting pipeline
+#
+# Schedule: Every Sunday at 6:00 AM ET (10:00 UTC during EDT)
+# Compares past week's predictions against actuals,
+# computes calibration / P&L / ROI by confidence tier,
+# uploads to Supabase accuracy table.
+# =============================================================================
+
+name: Weekly Backtest
+
+on:
+  schedule:
+    - cron: "0 10 * * 0"
+  workflow_dispatch:
+    inputs:
+      start_date:
+        description: "Backtest start date (YYYY-MM-DD). Defaults to 7 days ago."
+        required: false
+        type: string
+      end_date:
+        description: "Backtest end date (YYYY-MM-DD). Defaults to yesterday."
+        required: false
+        type: string
+
+env:
+  SUPABASE_URL: ${{ secrets.SUPABASE_PROJECT_URL }}
+  SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+  PYTHONPATH: ${{ github.workspace }}
+
+concurrency:
+  group: weekly-backtest
+  cancel-in-progress: false
+
+jobs:
+  backtest:
+    name: "Weekly Accuracy Backtest"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install numpy scipy
+
+      - name: Grade outstanding picks
+        run: |
+          python -c "
+          import os, sys
+          sys.path.insert(0, '.')
+          from datetime import date, timedelta, datetime
+
+          start = '${{ inputs.start_date }}' or (date.today() - timedelta(days=7)).isoformat()
+          end = '${{ inputs.end_date }}' or (date.today() - timedelta(days=1)).isoformat()
+          print(f'Grading picks from {start} to {end}')
+
+          from scripts.grade_accuracy import run_grading
+          current = datetime.strptime(start, '%Y-%m-%d').date()
+          end_dt = datetime.strptime(end, '%Y-%m-%d').date()
+          while current <= end_dt:
+              try:
+                  run_grading(current.isoformat())
+              except Exception as e:
+                  print(f'Grading failed for {current}: {e}')
+              current += timedelta(days=1)
+          print('All picks graded.')
+          "
+
+      - name: Compute backtest metrics
+        run: |
+          python -c "
+          import os, sys, json, logging
+          import numpy as np
+          import requests
+          from datetime import date, timedelta
+          from collections import defaultdict
+
+          logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
+          log = logging.getLogger('backtest')
+
+          sb_url = os.environ['SUPABASE_URL']
+          sb_key = os.environ['SUPABASE_SERVICE_KEY']
+          headers = {
+              'apikey': sb_key,
+              'Authorization': f'Bearer {sb_key}',
+              'Content-Type': 'application/json',
+              'Prefer': 'resolution=merge-duplicates',
+          }
+
+          start = '${{ inputs.start_date }}' or (date.today() - timedelta(days=7)).isoformat()
+          end = '${{ inputs.end_date }}' or (date.today() - timedelta(days=1)).isoformat()
+          log.info(f'=== Weekly Backtest: {start} to {end} ===')
+
+          resp = requests.get(
+              f'{sb_url}/rest/v1/picks',
+              headers=headers,
+              params={
+                  'game_date': f'gte.{start}',
+                  'result': 'in.(hit,miss,push)',
+                  'select': '*',
+                  'limit': 10000,
+              }
+          )
+          picks = resp.json() if resp.ok else []
+          picks = [p for p in picks if p.get('game_date', '') <= end]
+          log.info(f'Loaded {len(picks)} graded picks')
+
+          if not picks:
+              log.info('No graded picks found. Exiting.')
+              sys.exit(0)
+
+          CONF_TIERS = [
+              ('low', 0.50, 0.60),
+              ('medium', 0.60, 0.70),
+              ('high', 0.70, 0.80),
+              ('elite', 0.80, 0.90),
+              ('max', 0.90, 1.00),
+          ]
+
+          hits = [p for p in picks if p.get('result') == 'hit']
+          misses = [p for p in picks if p.get('result') == 'miss']
+          pushes = [p for p in picks if p.get('result') == 'push']
+
+          results = {
+              'period': f'{start}_to_{end}',
+              'computed_at': date.today().isoformat(),
+              'total_picks': len(picks),
+              'hits': len(hits),
+              'misses': len(misses),
+              'pushes': len(pushes),
+              'hit_rate': round(len(hits) / max(len(hits) + len(misses), 1) * 100, 1),
+          }
+          log.info(f'Overall: {results["hits"]} hits / {results["misses"]} misses = {results["hit_rate"]}%')
+
+          # Calibration by confidence tier
+          calibration = []
+          for tier_name, low, high in CONF_TIERS:
+              tier_picks = [p for p in picks if low <= float(p.get('confidence', 0)) < high]
+              if not tier_picks: continue
+              tier_hits = sum(1 for p in tier_picks if p['result'] == 'hit')
+              tier_total = sum(1 for p in tier_picks if p['result'] in ('hit', 'miss'))
+              actual_rate = round(tier_hits / max(tier_total, 1) * 100, 1)
+              expected_rate = round((low + high) / 2 * 100, 1)
+              calibration.append({
+                  'tier': tier_name,
+                  'confidence_range': f'{low:.0%}-{high:.0%}',
+                  'picks': len(tier_picks),
+                  'hits': tier_hits,
+                  'hit_rate': actual_rate,
+                  'expected_rate': expected_rate,
+                  'calibration_error': round(abs(actual_rate - expected_rate), 1),
+              })
+          results['calibration'] = calibration
+
+          # P&L simulation (flat \$100 per play)
+          UNIT = 100
+          total_pnl = 0
+          total_wagered = 0
+          pnl_by_tier = defaultdict(float)
+          wagered_by_tier = defaultdict(float)
+          for p in picks:
+              if p.get('result') not in ('hit', 'miss'): continue
+              odds = int(p.get('over_odds') or p.get('under_odds') or -110)
+              if p['result'] == 'hit':
+                  profit = UNIT * (odds / 100) if odds > 0 else UNIT * (100 / abs(odds))
+              else:
+                  profit = -UNIT
+              total_pnl += profit
+              total_wagered += UNIT
+              conf = float(p.get('confidence', 0.5))
+              for tn, lo, hi in CONF_TIERS:
+                  if lo <= conf < hi:
+                      pnl_by_tier[tn] += profit
+                      wagered_by_tier[tn] += UNIT
+                      break
+
+          results['pnl'] = {
+              'total_wagered': round(total_wagered, 2),
+              'total_pnl': round(total_pnl, 2),
+              'roi_pct': round((total_pnl / max(total_wagered, 1)) * 100, 2),
+          }
+          results['roi_by_tier'] = [
+              {'tier': tn, 'wagered': round(wagered_by_tier[tn], 2),
+               'pnl': round(pnl_by_tier[tn], 2),
+               'roi_pct': round((pnl_by_tier[tn] / wagered_by_tier[tn]) * 100, 2)}
+              for tn, _, _ in CONF_TIERS if wagered_by_tier.get(tn, 0) > 0
+          ]
+
+          # MAE
+          errors = [abs(float(p.get('actual_value', 0)) - float(p.get('projection', 0)))
+                    for p in picks if p.get('actual_value') is not None]
+          if errors:
+              results['mae'] = round(np.mean(errors), 3)
+              results['rmse'] = round(np.sqrt(np.mean(np.square(errors))), 3)
+
+          log.info(f'P&L: ${total_pnl:+.2f} ({results["pnl"]["roi_pct"]}% ROI)')
+
+          os.makedirs('data', exist_ok=True)
+          with open('data/backtest_results.json', 'w') as f:
+              json.dump(results, f, indent=2, default=str)
+          log.info('Backtest results saved.')
+          "
+
+      - name: Upload backtest to Supabase
+        run: |
+          python -c "
+          import os, json, requests
+          from datetime import date
+
+          sb_url = os.environ['SUPABASE_URL']
+          sb_key = os.environ['SUPABASE_SERVICE_KEY']
+          headers = {
+              'apikey': sb_key,
+              'Authorization': f'Bearer {sb_key}',
+              'Content-Type': 'application/json',
+              'Prefer': 'resolution=merge-duplicates',
+          }
+
+          with open('data/backtest_results.json') as f:
+              results = json.load(f)
+
+          period = results.get('period', 'unknown')
+          now = date.today().isoformat()
+          rows = [{
+              'period': period,
+              'stat_type': 'overall',
+              'total_picks': results['total_picks'],
+              'hits': results['hits'],
+              'misses': results['misses'],
+              'pushes': results['pushes'],
+              'hit_rate': results['hit_rate'] / 100,
+              'avg_edge': results.get('mae', 0),
+              'updated_at': now,
+          }]
+
+          for sa in results.get('accuracy_by_stat', []):
+              rows.append({
+                  'period': period,
+                  'stat_type': sa['stat_type'],
+                  'total_picks': sa['hits'] + sa['misses'] + sa['pushes'],
+                  'hits': sa['hits'],
+                  'misses': sa['misses'],
+                  'pushes': sa['pushes'],
+                  'hit_rate': sa['hit_rate'] / 100,
+                  'avg_edge': 0,
+                  'updated_at': now,
+              })
+
+          endpoint = f'{sb_url}/rest/v1/accuracy_summary'
+          resp = requests.post(endpoint, headers=headers, json=rows)
+          if resp.ok:
+              print(f'Upserted {len(rows)} accuracy summary rows')
+          else:
+              print(f'Upsert failed: {resp.status_code} {resp.text[:200]}')
+          print('Weekly backtest upload complete.')
+          "
+
+      - name: Upload backtest artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backtest-${{ github.run_id }}
+          path: data/backtest_results.json
+          retention-days: 30

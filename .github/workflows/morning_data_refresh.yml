@@ -1,0 +1,199 @@
+# =============================================================================
+# morning_data_refresh.yml — Baseline MLB
+# Pre-market data refresh pipeline
+#
+# Schedule: Every day at 7:00 AM ET (11:00 UTC during EDT / 12:00 UTC during EST)
+# Fetches overnight Statcast data, updates rolling player stats,
+# refreshes park factors, and pulls current prop lines.
+# =============================================================================
+
+name: Morning Data Refresh
+
+on:
+  schedule:
+    # 7:00 AM ET = 11:00 UTC (EDT) / 12:00 UTC (EST)
+    - cron: "0 11 * * *"
+  workflow_dispatch:
+    inputs:
+      lookback_days:
+        description: "Days of Statcast data to fetch (default: 1 for yesterday)"
+        required: false
+        default: "1"
+        type: string
+
+env:
+  SUPABASE_URL: ${{ secrets.SUPABASE_PROJECT_URL }}
+  SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+  ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+  PYTHONPATH: ${{ github.workspace }}
+
+concurrency:
+  group: morning-refresh
+  cancel-in-progress: true
+
+jobs:
+  fetch-statcast:
+    name: "Fetch Statcast Data"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Fetch Statcast data
+        run: python scripts/fetch_statcast.py
+      - name: Compute umpire framing composites
+        run: python pipeline/fetch_umpire_framing.py
+
+  update-rolling-stats:
+    name: "Update Rolling Stats (14-day weighted)"
+    needs: fetch-statcast
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install numpy
+      - name: Compute 14-day weighted rolling stats
+        run: |
+          python -c "
+          import os, sys, json, logging
+          import numpy as np
+          import requests
+          from datetime import date, timedelta
+          from collections import defaultdict
+
+          logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
+          log = logging.getLogger('rolling_stats')
+
+          sb_url = os.environ['SUPABASE_URL']
+          sb_key = os.environ['SUPABASE_SERVICE_KEY']
+          headers = {
+              'apikey': sb_key,
+              'Authorization': f'Bearer {sb_key}',
+              'Content-Type': 'application/json',
+              'Prefer': 'resolution=merge-duplicates',
+          }
+
+          today = date.today()
+          cutoff = (today - timedelta(days=14)).isoformat()
+
+          log.info('Computing pitcher rolling K/9 (14-day weighted)...')
+          resp = requests.get(
+              f'{sb_url}/rest/v1/statcast_pitches',
+              headers=headers,
+              params={
+                  'game_date': f'gte.{cutoff}',
+                  'select': 'pitcher_id,game_date,description',
+                  'limit': 100000,
+              }
+          )
+          if not resp.ok:
+              log.error(f'Failed to fetch Statcast: {resp.status_code}')
+              sys.exit(1)
+
+          pitches = resp.json()
+          log.info(f'Loaded {len(pitches)} pitches from last 14 days')
+
+          pitcher_data = defaultdict(lambda: defaultdict(lambda: {'pitches': 0, 'ks': 0, 'outs': 0}))
+          for p in pitches:
+              pid = p.get('pitcher_id')
+              gdate = p.get('game_date')
+              desc = p.get('description', '')
+              if not pid or not gdate: continue
+              pitcher_data[pid][gdate]['pitches'] += 1
+              if 'strikeout' in desc.lower() or 'strike_three' in desc.lower():
+                  pitcher_data[pid][gdate]['ks'] += 1
+              if any(x in desc.lower() for x in ['out', 'strikeout', 'field', 'ground', 'fly', 'pop', 'line']):
+                  pitcher_data[pid][gdate]['outs'] += 1
+
+          rolling_rows = []
+          for pid, games in pitcher_data.items():
+              total_k = 0
+              total_ip = 0
+              for gdate, stats in sorted(games.items(), reverse=True):
+                  days_ago = (today - date.fromisoformat(gdate)).days
+                  weight = max(0.5, 1.0 - (days_ago / 28.0))
+                  total_k += stats['ks'] * weight
+                  total_ip += (stats['outs'] / 3.0) * weight
+              if total_ip >= 3.0:
+                  rolling_rows.append({
+                      'mlbam_id': pid,
+                      'stat_type': 'rolling_k9_14d',
+                      'value': round((total_k / total_ip) * 9, 2),
+                      'sample_games': len(games),
+                      'computed_date': today.isoformat(),
+                  })
+
+          log.info(f'Computed rolling K/9 for {len(rolling_rows)} pitchers')
+          os.makedirs('data', exist_ok=True)
+          with open('data/rolling_stats.json', 'w') as f:
+              json.dump(rolling_rows, f, indent=2, default=str)
+          log.info('Rolling stats saved.')
+          "
+
+  refresh-park-factors:
+    name: "Refresh Park Factors"
+    needs: fetch-statcast
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Check and refresh park factors
+        run: |
+          python -c "
+          from datetime import date
+          today = date.today()
+          if today.day not in (1, 15) and today.month != 4:
+              print(f'Skipping park factor refresh (day={today.day}). Only runs on 1st/15th or in April.')
+          else:
+              print('Park factor refresh triggered. Using model-embedded factors for now.')
+              print('Future: compute dynamic park factors from Statcast aggregates.')
+          "
+
+  fetch-props:
+    name: "Fetch Prop Lines"
+    needs: [update-rolling-stats]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Fetch prop lines from The Odds API
+        run: python pipeline/fetch_props.py

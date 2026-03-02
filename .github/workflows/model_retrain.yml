@@ -1,0 +1,298 @@
+# =============================================================================
+# model_retrain.yml — Baseline MLB
+# Monthly XGBoost matchup model retraining pipeline
+#
+# Schedule: 1st of each month at 4:00 AM ET (08:00 UTC during EDT)
+# Also supports manual trigger for ad-hoc retraining.
+# =============================================================================
+
+name: Model Retrain
+
+on:
+  schedule:
+    - cron: "0 8 1 * *"
+  workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: "Deploy model even if accuracy hasn't improved"
+        required: false
+        default: "false"
+        type: boolean
+      min_improvement:
+        description: "Minimum MAE improvement to auto-deploy (default: 0.02)"
+        required: false
+        default: "0.02"
+        type: string
+
+env:
+  SUPABASE_URL: ${{ secrets.SUPABASE_PROJECT_URL }}
+  SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+  PYTHONPATH: ${{ github.workspace }}
+
+concurrency:
+  group: model-retrain
+  cancel-in-progress: false
+
+jobs:
+  retrain:
+    name: "Retrain XGBoost Model"
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install xgboost scikit-learn numpy scipy pandas joblib
+
+      - name: Extract training data
+        run: |
+          python -c "
+          import os, json, logging, requests
+
+          logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
+          log = logging.getLogger('retrain')
+
+          sb_url = os.environ['SUPABASE_URL']
+          sb_key = os.environ['SUPABASE_SERVICE_KEY']
+          headers = {
+              'apikey': sb_key,
+              'Authorization': f'Bearer {sb_key}',
+              'Content-Type': 'application/json',
+          }
+
+          log.info('Fetching historical picks with actuals...')
+          all_picks = []
+          offset = 0
+          while True:
+              resp = requests.get(
+                  f'{sb_url}/rest/v1/picks',
+                  headers=headers,
+                  params={'actual_value': 'not.is.null', 'select': '*', 'limit': 1000, 'offset': offset, 'order': 'game_date.asc'}
+              )
+              if not resp.ok: break
+              batch = resp.json()
+              if not batch: break
+              all_picks.extend(batch)
+              offset += 1000
+              if len(batch) < 1000: break
+          log.info(f'Loaded {len(all_picks)} historical picks')
+
+          log.info('Fetching projection features...')
+          all_proj = []
+          offset = 0
+          while True:
+              resp = requests.get(
+                  f'{sb_url}/rest/v1/projections',
+                  headers=headers,
+                  params={'select': '*', 'limit': 1000, 'offset': offset, 'order': 'game_date.asc'}
+              )
+              if not resp.ok: break
+              batch = resp.json()
+              if not batch: break
+              all_proj.extend(batch)
+              offset += 1000
+              if len(batch) < 1000: break
+          log.info(f'Loaded {len(all_proj)} projections')
+
+          os.makedirs('data/training', exist_ok=True)
+          with open('data/training/picks.json', 'w') as f:
+              json.dump(all_picks, f, default=str)
+          with open('data/training/projections.json', 'w') as f:
+              json.dump(all_proj, f, default=str)
+          log.info('Training data extracted.')
+          "
+
+      - name: Train XGBoost model
+        id: train
+        run: |
+          python -c "
+          import os, json, logging, joblib
+          import numpy as np
+          import pandas as pd
+          from sklearn.model_selection import TimeSeriesSplit
+          from sklearn.metrics import mean_absolute_error, mean_squared_error
+          import xgboost as xgb
+
+          logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
+          log = logging.getLogger('retrain')
+
+          with open('data/training/picks.json') as f:
+              picks = json.load(f)
+          with open('data/training/projections.json') as f:
+              projections = json.load(f)
+
+          if len(picks) < 100:
+              log.warning(f'Only {len(picks)} picks. Need 100+ for training.')
+              with open(os.environ.get('GITHUB_OUTPUT', '/dev/null'), 'a') as f:
+                  f.write('should_deploy=false\n')
+                  f.write('reason=insufficient_data\n')
+              exit(0)
+
+          proj_index = {}
+          for p in projections:
+              key = (p.get('game_date'), p.get('mlbam_id'), p.get('stat_type'))
+              proj_index[key] = p
+
+          rows = []
+          for pick in picks:
+              actual = pick.get('actual_value')
+              if actual is None: continue
+              key = (pick.get('game_date'), pick.get('mlbam_id'), pick.get('stat_type'))
+              proj = proj_index.get(key, {})
+              features = proj.get('features', {})
+              if isinstance(features, str):
+                  try: features = json.loads(features)
+                  except: features = {}
+              rows.append({
+                  'actual': float(actual),
+                  'career_k9': float(features.get('career_k9', 8.5)),
+                  'recent_k9': float(features.get('recent_k9', 0) or 0),
+                  'has_recent': 1 if features.get('recent_k9') else 0,
+                  'park_factor': float(features.get('park_factor', 1.0)),
+                  'umpire_factor': float(features.get('umpire_factor', 1.0)),
+                  'catcher_factor': float(features.get('catcher_factor', 1.0)),
+                  'opp_k_factor': float(features.get('opp_k_factor', 1.0)),
+                  'expected_ip': float(features.get('expected_ip', 5.5)),
+                  'confidence': float(proj.get('confidence', 0.5)),
+                  'projection': float(proj.get('projection', 5.5)),
+                  'line': float(pick.get('line', 5.5) or 5.5),
+              })
+
+          df = pd.DataFrame(rows)
+          log.info(f'Feature matrix: {df.shape}')
+          if len(df) < 100:
+              with open(os.environ.get('GITHUB_OUTPUT', '/dev/null'), 'a') as f:
+                  f.write('should_deploy=false\n')
+              exit(0)
+
+          feature_cols = ['career_k9', 'recent_k9', 'has_recent', 'park_factor',
+                          'umpire_factor', 'catcher_factor', 'opp_k_factor',
+                          'expected_ip', 'confidence', 'line']
+          X = df[feature_cols].values
+          y = df['actual'].values
+
+          tscv = TimeSeriesSplit(n_splits=5)
+          fold_maes = []
+          for fold, (train_idx, val_idx) in enumerate(tscv.split(X)):
+              model = xgb.XGBRegressor(
+                  n_estimators=200, max_depth=5, learning_rate=0.05,
+                  subsample=0.8, colsample_bytree=0.8, reg_alpha=0.1,
+                  reg_lambda=1.0, min_child_weight=3, random_state=42, verbosity=0,
+              )
+              model.fit(X[train_idx], y[train_idx], eval_set=[(X[val_idx], y[val_idx])], verbose=False)
+              preds = model.predict(X[val_idx])
+              mae = mean_absolute_error(y[val_idx], preds)
+              fold_maes.append(mae)
+              log.info(f'Fold {fold+1}: MAE={mae:.3f}')
+
+          avg_mae = np.mean(fold_maes)
+          log.info(f'CV Average MAE: {avg_mae:.3f}')
+
+          final = xgb.XGBRegressor(
+              n_estimators=200, max_depth=5, learning_rate=0.05,
+              subsample=0.8, colsample_bytree=0.8, reg_alpha=0.1,
+              reg_lambda=1.0, min_child_weight=3, random_state=42, verbosity=0,
+          )
+          final.fit(X, y, verbose=False)
+
+          os.makedirs('models', exist_ok=True)
+          joblib.dump(final, 'models/xgb_matchup_latest.joblib')
+
+          importances = dict(zip(feature_cols, [round(float(x), 4) for x in final.feature_importances_]))
+          metrics = {
+              'cv_mae': round(avg_mae, 4),
+              'fold_maes': [round(m, 4) for m in fold_maes],
+              'n_samples': len(df),
+              'feature_importances': importances,
+          }
+          with open('data/training/metrics.json', 'w') as f:
+              json.dump(metrics, f, indent=2)
+
+          with open(os.environ.get('GITHUB_OUTPUT', '/dev/null'), 'a') as f:
+              f.write(f'cv_mae={avg_mae:.4f}\n')
+              f.write(f'n_samples={len(df)}\n')
+          "
+
+      - name: Validate and decide deployment
+        id: validate
+        run: |
+          python -c "
+          import os, json, logging
+          import numpy as np
+
+          logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
+          log = logging.getLogger('validate')
+
+          with open('data/training/metrics.json') as f:
+              metrics = json.load(f)
+
+          cv_mae = metrics['cv_mae']
+          MIN_IMPROVEMENT = float('${{ inputs.min_improvement || "0.02" }}')
+          FORCE_DEPLOY = '${{ inputs.force_deploy }}' == 'true'
+
+          baseline_mae = None
+          if os.path.exists('models/baseline_metrics.json'):
+              with open('models/baseline_metrics.json') as f:
+                  baseline_mae = json.load(f).get('cv_mae')
+
+          should_deploy = False
+          reason = ''
+          if FORCE_DEPLOY:
+              should_deploy = True
+              reason = 'force_deploy'
+          elif baseline_mae is None:
+              should_deploy = True
+              reason = 'no_baseline'
+          elif cv_mae < baseline_mae - MIN_IMPROVEMENT:
+              should_deploy = True
+              reason = f'improved_by_{baseline_mae - cv_mae:.4f}'
+          else:
+              reason = f'no_improvement (current={cv_mae:.4f}, baseline={baseline_mae:.4f})'
+
+          fold_maes = metrics.get('fold_maes', [])
+          if fold_maes and np.std(fold_maes) > 0.5 and not FORCE_DEPLOY:
+              should_deploy = False
+              reason = f'high_variance (std={np.std(fold_maes):.3f})'
+
+          with open(os.environ.get('GITHUB_OUTPUT', '/dev/null'), 'a') as f:
+              f.write(f'should_deploy={"true" if should_deploy else "false"}\n')
+              f.write(f'reason={reason}\n')
+          log.info(f'Decision: deploy={should_deploy}, reason={reason}')
+          "
+
+      - name: Deploy new model artifact
+        if: steps.validate.outputs.should_deploy == 'true'
+        run: |
+          cp data/training/metrics.json models/baseline_metrics.json
+          NEW_VERSION="2.1.$(date +%Y%m%d)"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add models/xgb_matchup_latest.joblib models/baseline_metrics.json
+          git commit -m "chore(model): retrain XGBoost v${NEW_VERSION} [skip ci]
+
+          CV MAE: ${{ steps.train.outputs.cv_mae }}
+          Samples: ${{ steps.train.outputs.n_samples }}
+          Reason: ${{ steps.validate.outputs.reason }}" || echo "No changes"
+          git push || echo "Push failed"
+
+      - name: Upload training artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: model-retrain-${{ github.run_id }}
+          path: |
+            data/training/
+            models/
+          retention-days: 90
