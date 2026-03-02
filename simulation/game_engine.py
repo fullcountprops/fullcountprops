@@ -4,24 +4,22 @@ game_engine.py — BaselineMLB Monte Carlo Game Simulation Engine
 Simulates complete MLB games plate-appearance by plate-appearance, tracking all
 game state and collecting full probability distributions for every player stat.
 
-Designed to run ~2,500 simulations per game with 60–80 PAs per simulated game.
+Designed to run ~2,500 simulations per game with 60-80 PAs per simulated game.
 
 Imports:
-    simulation.config   → SimulationConfig, GameData
-    simulation.matchup_model → MatchupModel
+    simulation.config   -> SimulationConfig, GameData
+    simulation.matchup_model -> MatchupModel
 """
 
 from __future__ import annotations
 
+import concurrent.futures
 import json
 import logging
 import math
-import statistics
-import concurrent.futures
 from collections import Counter, defaultdict
 from copy import deepcopy
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
@@ -30,7 +28,7 @@ import numpy as np
 # during standalone testing.
 # ---------------------------------------------------------------------------
 try:
-    from simulation.config import SimulationConfig, GameData
+    from simulation.config import GameData, SimulationConfig
 except ImportError:  # pragma: no cover
     SimulationConfig = None  # type: ignore[assignment,misc]
     GameData = None          # type: ignore[assignment,misc]
@@ -69,13 +67,13 @@ DEFAULT_PC_STD = 12.0
 DEFAULT_GDP_RATE = 0.12
 
 # Baserunner advancement probabilities
-# Single: runner on 1B → 2B (70%) or 3B (30%)
+# Single: runner on 1B -> 2B (70%) or 3B (30%)
 SINGLE_R1_TO_3B = 0.30
-# Single: runner on 2B → scores (65%) or 3B (35%)
+# Single: runner on 2B -> scores (65%) or 3B (35%)
 SINGLE_R2_SCORE = 0.65
-# Single: runner on 3B → scores (95%)
+# Single: runner on 3B -> scores (95%)
 SINGLE_R3_SCORE = 0.95
-# Double: runner on 1B → 3B (80%) or scores (20%)
+# Double: runner on 1B -> 3B (80%) or scores (20%)
 DOUBLE_R1_SCORE = 0.20
 
 # Maximum innings before the game is considered complete (safety cap)
@@ -110,11 +108,11 @@ class GameState:
         inning (int): Current inning number (1-indexed, can exceed 9 in extras).
         half (str): ``'top'`` (away batting) or ``'bottom'`` (home batting).
         outs (int): Number of outs in the current half-inning (0-2).
-        runners (dict): Mapping of base number → runner_id (int) or ``None``.
+        runners (dict): Mapping of base number -> runner_id (int) or ``None``.
             Keys are always 1, 2, 3.
         score (dict): ``{'away': int, 'home': int}``
         lineup_index (dict): ``{'away': int, 'home': int}`` — current position
-            in the batting order (0–8), wraps around on next_batter().
+            in the batting order (0-8), wraps around on next_batter().
         pitcher_pitch_count (dict): ``{'away': int, 'home': int}`` — running
             total of pitches thrown by the current pitcher for each team.
         current_pitcher (dict): ``{'away': dict, 'home': dict}`` — pitcher
@@ -255,7 +253,7 @@ class GameState:
             if self.runners[2] is not None:
                 runs += 1
 
-            # Runner on 1B: 80% → 3B, 20% → scores
+            # Runner on 1B: 80% -> 3B, 20% -> scores
             if self.runners[1] is not None:
                 if rng.random() < DOUBLE_R1_SCORE:
                     runs += 1
@@ -376,7 +374,7 @@ class GameState:
 
     def switch_sides(self) -> None:
         """
-        Flip the half-inning.  If transitioning from bottom → top, increment
+        Flip the half-inning.  If transitioning from bottom -> top, increment
         the inning counter.  Resets outs and clears bases.
         """
         self.outs = 0
@@ -421,11 +419,7 @@ class PlayerStats:
     Accumulates per-player statistics across all Monte Carlo simulation runs.
 
     Each statistic is stored as a :class:`collections.Counter` mapping observed
-    value → number of simulations in which that value occurred.
-
-    Example::
-
-        stats.stat_counts['strikeouts'] == Counter({0: 1200, 1: 800, 2: 400, ...})
+    value -> number of simulations in which that value occurred.
 
     Attributes:
         player_id (int): MLBAM player identifier.
@@ -548,7 +542,7 @@ class PlayerStats:
         per-simulation totals into the distribution counters.
 
         Args:
-            sim_stats: Mapping of stat_name → total for this one simulation.
+            sim_stats: Mapping of stat_name -> total for this one simulation.
         """
         for stat, total in sim_stats.items():
             self.stat_counts[stat][total] += 1
@@ -565,7 +559,7 @@ class PlayerStats:
             stat: Stat name (e.g. ``'strikeouts'``).
 
         Returns:
-            dict mapping value → number of simulations with that value.
+            dict mapping value -> number of simulations with that value.
             Returns an empty dict if the stat has not been recorded.
         """
         return dict(self.stat_counts.get(stat, Counter()))
@@ -643,7 +637,7 @@ class PlayerStats:
             line: The over/under line (e.g., ``4.5``).
 
         Returns:
-            Probability (0.0–1.0) that the stat strictly exceeds *line*.
+            Probability (0.0-1.0) that the stat strictly exceeds *line*.
         """
         counts = self.stat_counts.get(stat)
         if not counts:
@@ -669,7 +663,7 @@ class SimulationResult:
     Attributes:
         game_info (dict): Metadata: teams, date, venue, game_pk, etc.
         num_simulations (int): Number of iterations run.
-        player_results (dict[int, PlayerStats]): MLBAM id → :class:`PlayerStats`.
+        player_results (dict[int, PlayerStats]): MLBAM id -> :class:`PlayerStats`.
         team_results (dict): Run distributions and win probabilities keyed by
             ``'away'`` and ``'home'``.
     """
@@ -681,7 +675,7 @@ class SimulationResult:
     ) -> None:
         """
         Args:
-            game_info: Metadata dict (teams, date, venue, …).
+            game_info: Metadata dict (teams, date, venue, ...).
             num_simulations: Total simulations run.
         """
         self.game_info: Dict[str, Any] = game_info
@@ -742,14 +736,9 @@ class SimulationResult:
 
     def get_all_projections(self) -> List[Dict[str, Any]]:
         """
-        Return a flat list of projection dicts for every player × stat
+        Return a flat list of projection dicts for every player x stat
         combination, formatted for insertion into the Supabase
         ``projections`` table.
-
-        Each row has:
-            ``game_pk``, ``game_date``, ``player_id``, ``player_name``,
-            ``stat``, ``mean``, ``median``, ``std``, ``p_over_*`` columns
-            (one per standard line), ``distribution_json``.
 
         Returns:
             List of projection dicts.
@@ -789,9 +778,6 @@ class SimulationResult:
     def to_json(self) -> str:
         """
         Serialise the full :class:`SimulationResult` to a JSON string.
-
-        Distributions (Counter objects) are converted to plain dicts with
-        string keys for JSON compatibility.
 
         Returns:
             JSON-encoded string.
@@ -857,17 +843,6 @@ class GameSimulator:
     """
     The core Monte Carlo game simulation engine for BaselineMLB.
 
-    Replicates BallparkPal's plate-appearance–level simulation approach:
-
-    * For each of ``config.num_simulations`` iterations, a full 9-inning
-      (or extra-inning) game is played PA by PA.
-    * Each PA outcome is drawn from the probability distribution returned by
-      :class:`~simulation.matchup_model.MatchupModel`.
-    * Baserunner advancement, pitcher substitution, extra innings, walk-offs,
-      and double plays are all modelled.
-    * Full stat distributions are accumulated in :class:`PlayerStats` objects
-      and returned as a :class:`SimulationResult`.
-
     Args:
         matchup_model: A fitted :class:`~simulation.matchup_model.MatchupModel`
             instance with a ``predict_pa_probs(pitcher, batter, context)``
@@ -905,9 +880,6 @@ class GameSimulator:
         """
         Run the full Monte Carlo simulation for one game.
 
-        Iterates :attr:`_num_sims` times, each time playing out a complete
-        game PA by PA and accumulating stats.
-
         Args:
             game_data: A :class:`~simulation.config.GameData` object providing
                 lineups, starting pitchers, bullpen data, park factor, etc.
@@ -940,10 +912,6 @@ class GameSimulator:
             if pid not in player_stats:
                 player_stats[pid] = PlayerStats(pid, pitcher.get("name", str(pid)))
 
-        # Accumulate per-simulation totals before committing to Counters.
-        # Layout: sim_totals[player_id][stat] → value for this simulation.
-        # We use a list-of-dicts approach and batch-update at end of each sim.
-
         result = SimulationResult(game_info, self._num_sims)
 
         # Mark which player ids are pitchers so get_all_projections can route
@@ -961,7 +929,7 @@ class GameSimulator:
         )
 
         for sim_idx in range(self._num_sims):
-            sim_totals = self._run_single_game(
+            self._run_single_game(
                 rng=rng,
                 away_lineup=away_lineup,
                 home_lineup=home_lineup,
@@ -973,7 +941,6 @@ class GameSimulator:
                 player_stats=player_stats,
                 result=result,
             )
-            # sim_totals already committed inside _run_single_game
 
         result.player_results = player_stats
 
@@ -993,14 +960,9 @@ class GameSimulator:
         """
         Run :meth:`simulate_game` for each game in *games*.
 
-        Uses :class:`~concurrent.futures.ThreadPoolExecutor` for I/O-bound
-        parallelism.  CPU-bound parallelism (ProcessPoolExecutor) is not used
-        here because the GIL is typically released during NumPy operations.
-
         Args:
             games: List of :class:`~simulation.config.GameData` objects.
-            max_workers: Maximum number of worker threads.  Defaults to
-                ``min(len(games), os.cpu_count() * 2)``.
+            max_workers: Maximum number of worker threads.
 
         Returns:
             List of :class:`SimulationResult` objects, one per game, in the
@@ -1050,23 +1012,6 @@ class GameSimulator:
     ) -> Dict[int, Dict[str, int]]:
         """
         Simulate one complete game from first pitch to final out.
-
-        Args:
-            rng: NumPy random Generator (shared across simulations within a
-                game, but seeded once for the whole batch to keep speed up).
-            away_lineup: List of 9 batter dicts (ordered 1–9) for away team.
-            home_lineup: Same for home team.
-            away_starter: Pitcher data dict for the away starting pitcher.
-            home_starter: Pitcher data dict for the home starting pitcher.
-            away_bullpen: Composite bullpen stats dict for away team.
-            home_bullpen: Composite bullpen stats dict for home team.
-            game_data: Full :class:`~simulation.config.GameData` object.
-            player_stats: Shared :class:`PlayerStats` mapping (mutated in place).
-            result: :class:`SimulationResult` (team distributions updated here).
-
-        Returns:
-            Per-player per-stat totals dict for this simulation (already
-            committed to the shared player_stats by the time this returns).
         """
         gs = GameState()
 
@@ -1118,11 +1063,6 @@ class GameSimulator:
                     and gs.outs == 0
                     and gs.runners == {1: None, 2: None, 3: None}
                 ):
-                    # Home team already leads entering the bottom; skip
-                    # (This handles the "don't play bottom if away can't tie" case)
-                    # NOTE: We only skip the bottom inning if home leads AND the
-                    # half hasn't started yet (checked via runners + outs).
-                    # This is the standard rule: if home leads after top of 9th.
                     game_over = True
                     break
 
@@ -1176,7 +1116,6 @@ class GameSimulator:
                 # Resolve the PA outcome and update game state
                 # ----------------------------------------------------------
                 runs_on_play = 0
-                batter_scored = False
 
                 if outcome == "strikeout":
                     gs.record_out()
@@ -1209,7 +1148,6 @@ class GameSimulator:
                 elif outcome == "triple":
                     runs_on_play = gs.advance_runners(3)  # all runners advance 3+
                     gs.runners[3] = batter_id
-                    # Batter did not score (on 3B)
                     sim_totals[batter_id]["hits"] += 1
                     sim_totals[batter_id]["triples"] += 1
                     sim_totals[batter_id]["total_bases"] += 3
@@ -1221,7 +1159,7 @@ class GameSimulator:
                         1 for r in gs.runners.values() if r is not None and r != -1
                     )
                     # Manfred runner counts as a run but not credited to player
-                    manfred_scored = gs.runners.get(2) == -1
+                    gs.runners.get(2) == -1
                     runs_on_play = runners_scoring + 1  # +1 for batter
 
                     # Credit RBIs for actual runners (not Manfred ghost runner)
@@ -1235,7 +1173,6 @@ class GameSimulator:
                         if runner_id is not None and runner_id != -1:
                             sim_totals[runner_id]["runs_scored"] += 1
 
-                    batter_scored = True
                     gs.runners = {1: None, 2: None, 3: None}
                     batting_side = "away" if gs.half == "top" else "home"
                     gs.score[batting_side] += runs_on_play
@@ -1268,12 +1205,6 @@ class GameSimulator:
                     sim_totals[batter_id]["rbis"] += runs_on_play
                     batting_side_r = "away" if gs.half == "top" else "home"
                     gs.score[batting_side_r] += runs_on_play
-                    # Credit runs_scored to runners who scored
-                    # (We track this approximately — advance_runners_probabilistic
-                    #  doesn't return which specific runner IDs scored. We credit
-                    #  the runs_scored event to the batter who drove them in only.
-                    #  Actual runner tracking would require returning IDs from
-                    #  advance helpers, which is a future enhancement.)
 
                 # Pitcher stat updates
                 if outcome not in ("home_run",):  # HR already handled above
@@ -1316,9 +1247,6 @@ class GameSimulator:
                                 pc_limits[fielding_team],
                             )
 
-                # Advance batter to next lineup spot (only if not a double play
-                # where we already advanced in GDP resolution — but next_batter
-                # is always called once per PA regardless)
                 if not gdp or gs.outs < 3:
                     gs.next_batter(batting_team)
 
@@ -1326,7 +1254,7 @@ class GameSimulator:
             if game_over:
                 break
 
-            # Check if game ends after top of inning ≥ 9 with home team leading
+            # Check if game ends after top of inning >= 9 with home team leading
             if gs.half == "bottom" and gs.inning >= 9:
                 # We just finished the bottom half. Check standard game end.
                 if gs.score["away"] != gs.score["home"]:
@@ -1378,14 +1306,6 @@ class GameSimulator:
     ) -> Dict[str, Any]:
         """
         Build the context dict passed to :meth:`MatchupModel.predict_pa_probs`.
-
-        Args:
-            gs: Current game state snapshot.
-            game_data: Full game data object.
-            park_factor: Ballpark run-factor scalar.
-
-        Returns:
-            Context dict with inning, outs, base state, score, park factor, etc.
         """
         return {
             "inning": gs.inning,
@@ -1408,12 +1328,6 @@ class GameSimulator:
     def _extract_game_info(game_data: Any) -> Dict[str, Any]:
         """
         Extract a serialisable metadata dict from a :class:`GameData` object.
-
-        Args:
-            game_data: Full game data object.
-
-        Returns:
-            Dict with game_pk, game_date, away_team, home_team, venue, etc.
         """
         return {
             "game_pk": getattr(game_data, "game_pk", None),
