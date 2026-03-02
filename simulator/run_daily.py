@@ -733,14 +733,14 @@ def run_game_pipeline(
         t_step = time.perf_counter()
         weather = fetch_weather(game.game_pk, game.venue_id)
         logger.info(
-            "  Weather: %.0f°F, wind %s mph %s  (%.2fs)",
+            "  Weather: %.0f\u00b0F, wind %s mph %s  (%.2fs)",
             weather.get("temp_f", 72),
             weather.get("wind_mph", 0),
             weather.get("wind_dir", "calm"),
             time.perf_counter() - t_step,
         )
 
-        # Steps 5–6: Generate matchup probabilities with weather adjustments
+        # Steps 5-6: Generate matchup probabilities with weather adjustments
         t_step = time.perf_counter()
         home_pitcher_probs = build_pitcher_probs(home_pitcher_id, away_lineup, model, weather)
         away_pitcher_probs = build_pitcher_probs(away_pitcher_id, home_lineup, model, weather)
@@ -781,7 +781,7 @@ def run_game_pipeline(
             time.perf_counter() - t_step,
         )
 
-        # Steps 9–10: Upsert to Supabase
+        # Steps 9-10: Upsert to Supabase
         if not dry_run:
             t_step = time.perf_counter()
             sim_rows = _sim_result_rows(game.game_pk, game.game_date, summary, n_sims)
@@ -994,3 +994,128 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
+
+# ===========================================================================
+# RUN DAILY COMPATIBILITY LAYER
+# ===========================================================================
+# Functions expected by test_simulator.py
+# ===========================================================================
+
+
+def _normalize_stat_type(raw_stat: str) -> str:
+    """Normalise a stat type string to a short internal key.
+
+    Examples
+    --------
+    >>> _normalize_stat_type("pitcher_strikeouts")
+    'K'
+    >>> _normalize_stat_type("batter_total_bases")
+    'TB'
+    """
+    _MAP: dict[str, str] = {
+        "pitcher_strikeouts": "K",
+        "pitcher_strikeouts": "K",
+        "batter_strikeouts": "K",
+        "batter_total_bases": "TB",
+        "total_bases": "TB",
+        "batter_hits": "H",
+        "hits": "H",
+        "home_runs": "HR",
+        "batter_home_runs": "HR",
+        "batter_walks": "BB",
+        "pitcher_walks": "BB",
+        "walks": "BB",
+        "rbis": "RBI",
+        "batter_rbis": "RBI",
+        "batter_runs": "R",
+        "runs": "R",
+    }
+    return _MAP.get(raw_stat, raw_stat)
+
+
+def weather_to_modifier(weather: dict) -> float:
+    """Convert weather dict to a single HR-probability modifier.
+
+    Parameters
+    ----------
+    weather : dict
+        Keys: ``temperature_f`` (or ``temp_f``), ``wind_mph``.
+
+    Returns
+    -------
+    float
+        Modifier in approximately [0.85, 1.15].
+    """
+    temp_f = float(weather.get("temperature_f", weather.get("temp_f", 72)))
+    wind_mph = float(weather.get("wind_mph", 0))
+
+    # Temperature effect: neutral at 72°F, ±0.003 per degree
+    temp_mod = 1.0 + (temp_f - 72.0) * 0.003
+    # Wind effect: ±0.001 per mph (small effect)
+    wind_mod = 1.0 + wind_mph * 0.001
+
+    modifier = temp_mod * wind_mod
+    # Clamp to [0.85, 1.15]
+    return float(max(0.85, min(1.15, modifier)))
+
+
+def build_batter_profile(
+    mlbam_id: int,
+    name: str,
+    position: int,
+    stats: dict,
+    min_pa: int = 50,
+) -> "BatterProfile":
+    """Build a ``BatterProfile`` from raw season stats.
+
+    Falls back to MLB average probs if fewer than *min_pa* plate appearances.
+
+    Parameters
+    ----------
+    mlbam_id, name, position:
+        Passed through to ``BatterProfile``.
+    stats : dict
+        Keys (all optional): ``plateAppearances``, ``strikeOuts``,
+        ``baseOnBalls``, ``hitByPitch``, ``hits``, ``doubles``,
+        ``triples``, ``homeRuns``.
+    min_pa : int
+        Minimum PA for rate calculations.
+    """
+    from .monte_carlo_engine import (
+        BatterProfile, build_batter_probs, MLB_AVG_PROBS,
+    )
+
+    pa = int(stats.get("plateAppearances", 0))
+    if pa < min_pa:
+        return BatterProfile(
+            mlbam_id=mlbam_id,
+            name=name,
+            lineup_position=position,
+            probs=MLB_AVG_PROBS.copy(),
+        )
+
+    k   = int(stats.get("strikeOuts", 0))
+    bb  = int(stats.get("baseOnBalls", 0))
+    hbp = int(stats.get("hitByPitch", 0))
+    h   = int(stats.get("hits", 0))
+    d   = int(stats.get("doubles", 0))
+    t   = int(stats.get("triples", 0))
+    hr  = int(stats.get("homeRuns", 0))
+    singles = h - d - t - hr
+
+    probs = build_batter_probs(
+        k_rate=k / pa,
+        bb_rate=bb / pa,
+        hbp_rate=hbp / pa,
+        single_rate=max(0.0, singles / pa),
+        double_rate=d / pa,
+        triple_rate=t / pa,
+        hr_rate=hr / pa,
+    )
+    return BatterProfile(
+        mlbam_id=mlbam_id,
+        name=name,
+        lineup_position=position,
+        probs=probs,
+    )
