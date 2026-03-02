@@ -168,10 +168,12 @@ export async function authenticateRequest(
     .single()
 
   if (rateRecord && rateRecord.request_count > limits.requests_per_hour) {
-    await supabase.rpc('increment_rate_limit', {
-      p_key_hash: keyHash,
-      p_window_start: windowStart,
-    }).catch(() => {})
+    try {
+      await supabase.rpc('increment_rate_limit', {
+        p_key_hash: keyHash,
+        p_window_start: windowStart,
+      })
+    } catch (_) { /* ignore */ }
 
     const res = jsonError(
       `Rate limit exceeded (${limits.requests_per_hour}/hour for ${tier} tier). Upgrade for higher limits.`,

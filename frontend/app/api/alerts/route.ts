@@ -208,13 +208,14 @@ export async function POST(req: NextRequest) {
   }
 
   // 6. Record digest in newsletter_digests table
-  await supabase.from('newsletter_digests').insert({
+  const { error: insertErr } = await supabase.from('newsletter_digests').insert({
     game_date: today,
     subject,
     edges_json: edges,
     sent_at: new Date().toISOString(),
     recipient_count: sent,
-  }).catch(err => console.error('Failed to record digest:', err))
+  })
+  if (insertErr) console.error('Failed to record digest:', insertErr)
 
   return NextResponse.json({
     message: 'Digest sent',
