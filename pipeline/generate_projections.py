@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
 generate_projections.py -- Baseline MLB
-Glass-box pitcher strikeout projection engine v2.0.
+Glass-box pitcher strikeout & walk projection engine v2.1.
 
-Model factors (v2.0):
+Model factors (v2.1):
   1. Career K/9 (MLB Stats API)
   2. Recent form: 14-day K/9 weighted 30% vs career 70%
   3. Park K-factor adjustments (19 ballparks)
@@ -11,6 +11,14 @@ Model factors (v2.0):
   5. Catcher framing: trailing 30-game composite_score from umpire_framing table
   6. Opponent team K%: team strikeout rate as a multiplier
   7. Pitcher-specific expected IP: trailing season average (replaces hardcoded 5.5)
+
+v2.1 changes vs v2.0:
+  - Framing logic delegated to lib.framing (removes local fetch_umpire_factor /
+    fetch_catcher_factor and eliminates the double-counting bug that applied
+    umpire_k_adj from composite_score *after* already applying umpire_factor).
+  - Added pitcher_walks projection (career BB/9 * expected_ip * umpire_bb_factor
+    * catcher_bb_factor).
+  - Framing adjustment breakdown stored in features JSON for glass-box transparency.
 
 Reads games + players from Supabase, computes projections,
 upserts results to the projections table.
@@ -27,6 +35,15 @@ from datetime import date, timedelta
 
 import requests
 
+from lib.framing import (
+    fetch_umpire_framing_data,
+    fetch_catcher_framing_data,
+    compute_umpire_k_factor,
+    compute_catcher_k_factor,
+    compute_umpire_bb_factor,
+    compute_catcher_bb_factor,
+)
+
 # from dotenv import load_dotenv  # DISABLED - GitHub Actions provides env vars
 # load_dotenv()
 
@@ -39,7 +56,7 @@ log = logging.getLogger("generate_projections")
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").strip()
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "").strip()
-MODEL_VERSION = "v2.0-glass-box"
+MODEL_VERSION = "v2.1-glass-box"
 
 # Fail fast with a clear error instead of cryptic HTTP 400
 if not SUPABASE_URL.startswith("https://") or not SUPABASE_URL.endswith(".supabase.co"):
@@ -57,8 +74,9 @@ PARK_K_FACTORS = {
 
 # MLB average constants for fallbacks
 MLB_AVG_K9 = 8.5        # 2024 MLB average K/9
-MLB_AVG_K_PCT = 0.224    # 2024 MLB average K%
-MLB_AVG_IP = 5.5         # Fallback IP when no data
+MLB_AVG_BB9 = 3.2       # 2024 MLB average BB/9
+MLB_AVG_K_PCT = 0.224   # 2024 MLB average K%
+MLB_AVG_IP = 5.5        # Fallback IP when no data
 
 # Recent form blending weights
 RECENT_FORM_WEIGHT = 0.30
@@ -114,6 +132,30 @@ def fetch_pitcher_k9(mlbam_id):
     except Exception as e:
         log.debug(f"K/9 fetch failed for {mlbam_id}: {e}")
     return MLB_AVG_K9  # MLB average fallback
+
+
+# ---------------------------------------------------------------------------
+# Factor 1b: Career BB/9  (new in v2.1 — walk projection)
+# ---------------------------------------------------------------------------
+
+def fetch_pitcher_bb9(mlbam_id):
+    """Fetch career BB/9 from MLB Stats API."""
+    try:
+        url = f"https://statsapi.mlb.com/api/v1/people/{mlbam_id}/stats"
+        r = requests.get(url, params={"stats": "career", "group": "pitching", "sportId": 1}, timeout=10)
+        r.raise_for_status()
+        splits = r.json().get("stats", [{}])[0].get("splits", [])
+        if splits:
+            stat = splits[0].get("stat", {})
+            bb = float(stat.get("baseOnBalls", 0))
+            ip_str = str(stat.get("inningsPitched", "0.0"))
+            parts = ip_str.split(".")
+            ip = int(parts[0]) + (int(parts[1]) / 3 if len(parts) > 1 and parts[1] else 0)
+            if ip > 0:
+                return round((bb / ip) * 9, 2)
+    except Exception as e:
+        log.debug(f"BB/9 fetch failed for {mlbam_id}: {e}")
+    return MLB_AVG_BB9  # MLB average fallback
 
 
 # ---------------------------------------------------------------------------
@@ -246,66 +288,6 @@ def fetch_pitcher_avg_ip(mlbam_id, season=None):
 
 
 # ---------------------------------------------------------------------------
-# Factor 5: Umpire tendencies — NEW in v2.0
-# ---------------------------------------------------------------------------
-
-def fetch_umpire_factor(umpire_name):
-    """
-    Query umpire_framing table for trailing 30-game average strike_rate.
-    Returns adjustment factor: >1.0 = generous ump, <1.0 = tight ump.
-    """
-    if not umpire_name:
-        return 1.0, None
-    try:
-        rows = sb_get("umpire_framing", {
-            "umpire_name": f"eq.{umpire_name}",
-            "select": "strike_rate",
-            "order": "game_date.desc",
-            "limit": "30",
-        })
-        if rows and len(rows) >= 5:
-            avg_sr = sum(r["strike_rate"] for r in rows) / len(rows)
-            # Normalize: MLB avg called strike rate is ~0.32
-            # Factor: ump_rate / 0.32 => e.g. 0.35/0.32 = 1.09 (generous)
-            factor = avg_sr / 0.32 if avg_sr > 0 else 1.0
-            return round(factor, 3), round(avg_sr, 4)
-    except Exception as e:
-        log.debug(f"Umpire factor fetch failed for {umpire_name}: {e}")
-    return 1.0, None
-
-
-# ---------------------------------------------------------------------------
-# Factor 6: Catcher framing — NEW in v2.0
-# ---------------------------------------------------------------------------
-
-def fetch_catcher_factor(catcher_id):
-    """
-    Query umpire_framing table for catcher's trailing 30-game composite_score.
-    Returns adjustment factor: >1.0 = good framer, <1.0 = poor framer.
-    """
-    if not catcher_id:
-        return 1.0, None
-    try:
-        rows = sb_get("umpire_framing", {
-            "catcher_id": f"eq.{catcher_id}",
-            "select": "composite_score",
-            "order": "game_date.desc",
-            "limit": "30",
-        })
-        if rows and len(rows) >= 5:
-            avg_cs = sum(r["composite_score"] for r in rows) / len(rows)
-            # Normalize: MLB avg composite ~0.20
-            # Factor: catcher_score / 0.20 => e.g. 0.25/0.20 = 1.25 (elite framer)
-            # Dampen the effect: max ±5% adjustment
-            raw_factor = avg_cs / 0.20 if avg_cs > 0 else 1.0
-            factor = max(0.95, min(1.05, raw_factor))
-            return round(factor, 3), round(avg_cs, 4)
-    except Exception as e:
-        log.debug(f"Catcher factor fetch failed for {catcher_id}: {e}")
-    return 1.0, None
-
-
-# ---------------------------------------------------------------------------
 # Fetch game umpire & catcher from MLB API
 # ---------------------------------------------------------------------------
 
@@ -353,23 +335,31 @@ def fetch_game_officials(game_pk):
 
 
 # ---------------------------------------------------------------------------
-# Core projection function — ENHANCED v2.0
+# Core projection function — ENHANCED v2.1
 # ---------------------------------------------------------------------------
 
-def project_pitcher(mlbam_id, player_name, opponent, venue, game_pk=None, umpire_map=None):
+def project_pitcher(mlbam_id, player_name, opponent, venue, game_pk=None):
     """
-    Project pitcher strikeouts using the v2.0 multi-factor model.
+    Project pitcher strikeouts AND walks using the v2.1 multi-factor model.
 
     Factors:
       1. Blended K/9 (career 70% + recent 14-day 30%)
       2. Park K-factor
-      3. Umpire strike tendency
-      4. Catcher framing quality
+      3. Umpire strike tendency   (via lib.framing — applied ONCE)
+      4. Catcher framing quality  (via lib.framing — applied ONCE)
       5. Opponent team K%
       6. Pitcher-specific expected IP
+      7. Walk projection: career BB/9 × expected_ip × umpire_bb_factor × catcher_bb_factor
+
+    Returns a list of two projection dicts: pitcher_strikeouts and pitcher_walks.
+
+    Note: the ``umpire_map`` parameter used in v2.0 has been removed.
+    The composite_score-based umpire_k_adj that created double-counting is
+    gone — umpire effect is now applied exactly once via lib.framing.
     """
-    # Factor 1: Career K/9
+    # Factor 1: Career K/9 and BB/9
     career_k9 = fetch_pitcher_k9(mlbam_id)
+    career_bb9 = fetch_pitcher_bb9(mlbam_id)
 
     # Factor 2: Recent form (14-day K/9)
     recent_k9, recent_starts = fetch_recent_k9(mlbam_id)
@@ -390,41 +380,50 @@ def project_pitcher(mlbam_id, player_name, opponent, venue, game_pk=None, umpire
     opp_k_pct = fetch_team_k_pct(opponent)
     opp_k_factor = opp_k_pct / MLB_AVG_K_PCT  # >1 = high-K team, <1 = low-K team
 
-    # Factors 6 & 7: Umpire + Catcher (need game_pk)
-    umpire_factor = 1.0
-    catcher_factor = 1.0
+    # Factors 6 & 7: Umpire + Catcher framing (via lib.framing, applied ONCE)
+    umpire_k_factor = 1.0
+    umpire_bb_factor = 1.0
+    catcher_k_factor = 1.0
+    catcher_bb_factor = 1.0
     umpire_name = None
-    umpire_sr = None
-    catcher_cs = None
+    umpire_data = {}
+    catcher_data = {}
+    catcher_id_used = None
 
     if game_pk:
         ump_name, home_catcher_id, away_catcher_id = fetch_game_officials(game_pk)
+
         if ump_name:
             umpire_name = ump_name
-            umpire_factor, umpire_sr = fetch_umpire_factor(ump_name)
-        # Use the opposing catcher for the pitcher (they're catching vs this pitcher)
-        # For simplicity, try both catchers — the one we have data for
+            umpire_data = fetch_umpire_framing_data(ump_name)
+            umpire_k_factor = compute_umpire_k_factor(umpire_data.get("strike_rate_avg"))
+            umpire_bb_factor = compute_umpire_bb_factor(umpire_data.get("strike_rate_avg"))
+
+        # Use the catcher we have the most data for
         for cid in [home_catcher_id, away_catcher_id]:
             if cid:
-                cf, cs = fetch_catcher_factor(cid)
-                if cs is not None:
-                    catcher_factor = cf
-                    catcher_cs = cs
+                cdata = fetch_catcher_framing_data(cid)
+                if cdata.get("composite_score_avg") is not None:
+                    catcher_id_used = cid
+                    catcher_data = cdata
+                    catcher_k_factor = compute_catcher_k_factor(cdata.get("composite_score_avg"))
+                    catcher_bb_factor = compute_catcher_bb_factor(cdata.get("composite_score_avg"))
                     break
 
-    # Compute final projection
-    adjusted_k9 = blended_k9 * park_factor * umpire_factor * catcher_factor * opp_k_factor
+    # ------------------------------------------------------------------
+    # Strikeout projection (umpire & catcher applied exactly once)
+    # ------------------------------------------------------------------
+    adjusted_k9 = blended_k9 * park_factor * umpire_k_factor * catcher_k_factor * opp_k_factor
     projected_k = (adjusted_k9 / 9) * expected_ip
 
-    # Apply umpire/catcher adjustment if available
-    umpire_info = (umpire_map or {}).get(game_pk, {})
-    composite_score = umpire_info.get("composite_score", 0.0) or 0.0
-    # composite_score ranges from roughly -1.0 to +1.0
-    # Positive = more called strikes = higher K rate
-    umpire_k_adj = 1.0 + (composite_score * 0.03)  # ±3% K adjustment per unit
-    projected_k = projected_k * umpire_k_adj
+    # ------------------------------------------------------------------
+    # Walk projection (inverse framing factors)
+    # ------------------------------------------------------------------
+    projected_bb = (career_bb9 / 9) * expected_ip * umpire_bb_factor * catcher_bb_factor
 
-    # Confidence scoring
+    # ------------------------------------------------------------------
+    # Confidence scoring (shared between both projections)
+    # ------------------------------------------------------------------
     conf = 0.50
     if expected_ip >= 5.0:
         conf += 0.10
@@ -434,15 +433,19 @@ def project_pitcher(mlbam_id, player_name, opponent, venue, game_pk=None, umpire
         conf += 0.05
     if recent_k9 is not None:
         conf += 0.05  # More confident with recent data
-    if umpire_sr is not None:
+    if umpire_data.get("strike_rate_avg") is not None:
         conf += 0.03  # More confident with umpire data
-    if catcher_cs is not None:
+    if catcher_data.get("composite_score_avg") is not None:
         conf += 0.02  # More confident with catcher data
     if opp_k_pct != MLB_AVG_K_PCT:
         conf += 0.03  # Have actual team data
     conf = round(min(conf, 0.95), 3)
 
+    # ------------------------------------------------------------------
+    # Glass-box features (full breakdown for transparency)
+    # ------------------------------------------------------------------
     features = {
+        # K projection breakdown
         "baseline_k9": round(career_k9, 2),
         "recent_k9": recent_k9,
         "recent_starts": recent_starts,
@@ -454,16 +457,23 @@ def project_pitcher(mlbam_id, player_name, opponent, venue, game_pk=None, umpire
         "opp_k_pct": round(opp_k_pct, 3),
         "opp_k_factor": round(opp_k_factor, 3),
         "venue": venue,
+        # Framing factors — applied ONCE (v2.1 fix)
         "umpire_name": umpire_name,
-        "umpire_factor": umpire_factor,
-        "umpire_strike_rate": umpire_sr,
-        "catcher_factor": catcher_factor,
-        "catcher_composite": catcher_cs,
-        "umpire_composite": composite_score,
-        "umpire_k_adj": umpire_k_adj,
+        "umpire_k_factor": round(umpire_k_factor, 4),
+        "umpire_bb_factor": round(umpire_bb_factor, 4),
+        "umpire_strike_rate": umpire_data.get("strike_rate_avg"),
+        "umpire_sample_size": umpire_data.get("sample_size", 0),
+        "catcher_id": catcher_id_used,
+        "catcher_k_factor": round(catcher_k_factor, 4),
+        "catcher_bb_factor": round(catcher_bb_factor, 4),
+        "catcher_composite": catcher_data.get("composite_score_avg"),
+        "catcher_sample_size": catcher_data.get("sample_size", 0),
+        # Walk projection breakdown
+        "career_bb9": round(career_bb9, 2),
+        "projected_bb": round(projected_bb, 2),
     }
 
-    return {
+    k_proj = {
         "mlbam_id": mlbam_id,
         "player_name": player_name,
         "stat_type": "pitcher_strikeouts",
@@ -472,6 +482,26 @@ def project_pitcher(mlbam_id, player_name, opponent, venue, game_pk=None, umpire
         "model_version": MODEL_VERSION,
         "features": json.dumps(features),
     }
+
+    bb_proj = {
+        "mlbam_id": mlbam_id,
+        "player_name": player_name,
+        "stat_type": "pitcher_walks",
+        "projection": round(projected_bb, 2),
+        "confidence": round(conf * 0.9, 3),  # Slightly lower confidence for BB projection
+        "model_version": MODEL_VERSION,
+        "features": json.dumps({
+            "career_bb9": round(career_bb9, 2),
+            "expected_innings": expected_ip,
+            "umpire_bb_factor": round(umpire_bb_factor, 4),
+            "catcher_bb_factor": round(catcher_bb_factor, 4),
+            "umpire_name": umpire_name,
+            "catcher_id": catcher_id_used,
+            "projected_bb": round(projected_bb, 2),
+        }),
+    }
+
+    return [k_proj, bb_proj]
 
 
 # ---------------------------------------------------------------------------
@@ -537,7 +567,7 @@ def run_projections(game_date=None):
     if game_date is None:
         game_date = date.today().isoformat()
 
-    log.info(f"=== Generating v2.0 projections for {game_date} ===")
+    log.info(f"=== Generating v2.1 projections for {game_date} ===")
 
     games = sb_get("games", {
         "game_date": f"eq.{game_date}",
@@ -556,14 +586,6 @@ def run_projections(game_date=None):
     overrides = fetch_pitcher_overrides(game_date)
     if overrides:
         games = apply_overrides(games, overrides)
-
-    # Fetch umpire/catcher composites for today's games
-    umpire_data = sb_get("umpire_framing", {
-        "select": "*",
-        "game_date": f"eq.{game_date}"
-    })
-    umpire_map = {row.get("game_pk"): row for row in (umpire_data or []) if row.get("game_pk")}
-    log.info(f"Loaded {len(umpire_map)} umpire/catcher composite entries for {game_date}")
 
     has_pitchers = any(
         g.get("home_probable_pitcher_id") or g.get("away_probable_pitcher_id")
@@ -595,10 +617,11 @@ def run_projections(game_date=None):
             log.info(f" Projecting {pname} ({pid}) vs {opp} @ {venue}")
 
             try:
-                proj = project_pitcher(pid, pname, opp, venue, game_pk=game_pk, umpire_map=umpire_map)
-                proj["game_pk"] = game_pk
-                proj["game_date"] = game_date
-                projection_rows.append(proj)
+                projs = project_pitcher(pid, pname, opp, venue, game_pk=game_pk)
+                for proj in projs:
+                    proj["game_pk"] = game_pk
+                    proj["game_date"] = game_date
+                    projection_rows.append(proj)
             except Exception as e:
                 log.warning(f" Failed to project {pname}: {e}")
 
