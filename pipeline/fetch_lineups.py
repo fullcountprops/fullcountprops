@@ -22,20 +22,18 @@ Output:
     Also prints JSON summary to stdout.
 """
 
-import os
 import sys
 import json
 import argparse
 import logging
-from datetime import date, timedelta
+from datetime import date
 from pathlib import Path
-from typing import Optional
 
 import requests
 
-# ── Project imports ───────────────────────────────────────────────────────────
+# ── Project imports ────────────────────────────────────────────────────────────────────────────
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from lib.supabase import sb_upsert, sb_get
+from lib.supabase import sb_upsert
 
 logging.basicConfig(
     level=logging.INFO,
@@ -44,7 +42,7 @@ logging.basicConfig(
 )
 log = logging.getLogger("fetch_lineups")
 
-# ── Constants ─────────────────────────────────────────────────────────────────
+# ── Constants ────────────────────────────────────────────────────────────────────────────
 MLB_API_BASE = "https://statsapi.mlb.com/api/v1"
 
 
@@ -231,7 +229,7 @@ def process_games(target_date: str, upload: bool = True) -> list[dict]:
                 away_lineup = extract_lineup_from_boxscore(boxscore, "away")
 
         if not home_lineup and not away_lineup:
-            log.info(f"    No lineup available yet (lineups typically posted ~2hrs before game)")
+            log.info("    No lineup available yet (lineups typically posted ~2hrs before game)")
             continue
 
         games_with_lineups += 1
@@ -270,7 +268,7 @@ def process_games(target_date: str, upload: bool = True) -> list[dict]:
     return all_lineup_rows
 
 
-# ── CLI ───────────────────────────────────────────────────────────────────────
+# ── CLI ─────────────────────────────────────────────────────────────────────────────────────
 
 def parse_args():
     parser = argparse.ArgumentParser(
