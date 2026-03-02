@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 import os
 import sys
 from datetime import date, datetime, timezone
@@ -28,14 +27,14 @@ from pathlib import Path
 from typing import Any
 
 try:
-    from supabase import create_client, Client
+    from supabase import Client, create_client
 except ImportError:
     sys.exit(
         "supabase-py is required.  Install with:\n"
         "  pip install supabase python-dateutil"
     )
 
-# ── Constants ────────────────────────────────────────────────────────────────
+# ── Constants ────────────────────────────────────────────
 
 # SECURITY: Credentials must come from environment variables — never hardcode
 DEFAULT_SUPABASE_URL = ""  # Set via SUPABASE_URL env var
@@ -47,7 +46,7 @@ JUICE_DEFAULT = -110  # Standard American odds when odds missing
 MAX_KELLY_CAP = 0.05  # Never risk > 5% of bankroll on one play
 
 
-# ── Supabase helpers ─────────────────────────────────────────────────────────
+# ── Supabase helpers ───────────────────────────────────────────
 
 def get_supabase_client() -> Client:
     """Create a Supabase client from environment variables."""
@@ -95,7 +94,7 @@ def fetch_historical_picks(sb: Client) -> list[dict]:
     return resp.data or []
 
 
-# ── Math helpers ─────────────────────────────────────────────────────────────
+# ── Math helpers ────────────────────────────────────────────
 
 def american_to_decimal(odds: int | float | None) -> float:
     """Convert American odds to decimal odds.  Defaults to -110."""
@@ -168,7 +167,7 @@ def calculate_edge_pct(projection: float, line: float) -> float:
     return (projection - line) / line
 
 
-# ── Core matching ────────────────────────────────────────────────────────────
+# ── Core matching ────────────────────────────────────────────
 
 def match_projections_to_props(
     projections: list[dict],
@@ -260,7 +259,7 @@ def match_projections_to_props(
     return edges
 
 
-# ── Historical analysis ──────────────────────────────────────────────────────
+# ── Historical analysis ──────────────────────────────────────────
 
 def analyze_historical_edges(picks: list[dict]) -> dict:
     """
@@ -335,7 +334,7 @@ def analyze_historical_edges(picks: list[dict]) -> dict:
     return results
 
 
-# ── Ranking & sizing ─────────────────────────────────────────────────────────
+# ── Ranking & sizing ───────────────────────────────────────────
 
 def rank_and_size(
     edges: list[dict],
@@ -402,7 +401,7 @@ def rank_and_size(
     }
 
 
-# ── Output formatters ────────────────────────────────────────────────────────
+# ── Output formatters ──────────────────────────────────────────
 
 def format_odds_display(odds: int | float | None) -> str:
     """Format American odds for display."""
@@ -701,7 +700,7 @@ def output_plain_text(
     return path
 
 
-# ── CLI ──────────────────────────────────────────────────────────────────────
+# ── CLI ────────────────────────────────────────────────────────
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -773,7 +772,7 @@ def main() -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     output_formats = [f.strip().lower() for f in args.output.split(",")]
 
-    print(f"BaselineMLB Edge Finder")
+    print("BaselineMLB Edge Finder")
     print(f"{'=' * 40}")
     print(f"Date:           {game_date}")
     print(f"Bankroll:       ${args.bankroll:,.0f}")
@@ -854,7 +853,7 @@ def main() -> None:
 
     # Summary
     print(f"\n{'=' * 40}")
-    print(f"SUMMARY")
+    print("SUMMARY")
     print(f"{'=' * 40}")
     print(f"Total edges:    {ranked['total_edges_found']}")
     print(f"OVER plays:     {ranked['total_overs']}")
