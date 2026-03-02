@@ -206,7 +206,130 @@ CREATE TABLE IF NOT EXISTS pitcher_overrides (
 
 CREATE INDEX IF NOT EXISTS overrides_date_idx ON pitcher_overrides(game_date);
 
--- 12. ROW LEVEL SECURITY
+-- ============================================================
+-- 12. SIMULATION RESULTS (Monte Carlo)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS simulation_results (
+  id                BIGSERIAL PRIMARY KEY,
+  game_id           INT NOT NULL,
+  simulation_date   DATE NOT NULL,
+  player_id         INT NOT NULL,
+  player_name       TEXT NOT NULL,
+  team              TEXT,
+  prop_type         TEXT NOT NULL
+                      CHECK (prop_type IN ('K','H','TB','HR','R','RBI','BB')),
+  sportsbook_line   NUMERIC(5,1) NOT NULL,
+  simulated_mean    NUMERIC(8,4) NOT NULL,
+  simulated_median  NUMERIC(8,4) NOT NULL,
+  p_over            NUMERIC(6,5) NOT NULL,
+  p_under           NUMERIC(6,5) NOT NULL,
+  edge_pct          NUMERIC(7,4),
+  kelly_stake       NUMERIC(6,4),
+  confidence_tier   TEXT CHECK (confidence_tier IN ('A','B','C','D')),
+  distribution_json JSONB,
+  created_at        TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (simulation_date, game_id, player_id, prop_type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_sim_results_date        ON simulation_results(simulation_date);
+CREATE INDEX IF NOT EXISTS idx_sim_results_player      ON simulation_results(player_id);
+CREATE INDEX IF NOT EXISTS idx_sim_results_game        ON simulation_results(game_id);
+CREATE INDEX IF NOT EXISTS idx_sim_results_date_player ON simulation_results(simulation_date, player_id);
+CREATE INDEX IF NOT EXISTS idx_sim_results_date_tier   ON simulation_results(simulation_date, confidence_tier);
+CREATE INDEX IF NOT EXISTS idx_sim_results_prop_type   ON simulation_results(prop_type);
+
+-- ============================================================
+-- 13. SIMULATION EXPLANATIONS (SHAP values)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS simulation_explanations (
+  id                  BIGSERIAL PRIMARY KEY,
+  result_id           BIGINT NOT NULL
+                        REFERENCES simulation_results(id)
+                        ON DELETE CASCADE,
+  feature_name        TEXT NOT NULL,
+  shap_value          NUMERIC(10,6) NOT NULL,
+  direction           TEXT NOT NULL
+                        CHECK (direction IN ('positive','negative')),
+  human_readable_text TEXT,
+  UNIQUE (result_id, feature_name)
+);
+
+CREATE INDEX IF NOT EXISTS idx_sim_explanations_result ON simulation_explanations(result_id);
+
+-- ============================================================
+-- 14. BACKTEST RESULTS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS backtest_results (
+  id                  BIGSERIAL PRIMARY KEY,
+  date                DATE NOT NULL,
+  prop_type           TEXT NOT NULL
+                        CHECK (prop_type IN ('K','H','TB','HR','R','RBI','BB','ALL')),
+  total_predictions   INT NOT NULL DEFAULT 0,
+  correct_predictions INT NOT NULL DEFAULT 0,
+  accuracy_pct        NUMERIC(6,3),
+  profit_loss         NUMERIC(10,2),
+  roi_pct             NUMERIC(7,3),
+  avg_edge            NUMERIC(7,4),
+  tier_a_roi          NUMERIC(7,3),
+  tier_b_roi          NUMERIC(7,3),
+  tier_c_roi          NUMERIC(7,3),
+  created_at          TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (date, prop_type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_backtest_date      ON backtest_results(date);
+CREATE INDEX IF NOT EXISTS idx_backtest_prop_type ON backtest_results(prop_type);
+
+-- ============================================================
+-- 15. MODEL ARTIFACTS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS model_artifacts (
+  id                      BIGSERIAL PRIMARY KEY,
+  model_version           TEXT NOT NULL UNIQUE,
+  trained_date            DATE NOT NULL,
+  training_samples        INT,
+  log_loss                NUMERIC(8,6),
+  accuracy_vs_baseline    NUMERIC(7,4),
+  feature_importance_json JSONB,
+  model_path              TEXT,
+  is_active               BOOLEAN DEFAULT FALSE,
+  created_at              TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_model_active ON model_artifacts(is_active) WHERE is_active = TRUE;
+
+-- ============================================================
+-- 16. PLAYER ROLLING STATS (14-day windows)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS player_rolling_stats (
+  id              BIGSERIAL PRIMARY KEY,
+  player_id       INT NOT NULL,
+  stat_date       DATE NOT NULL,
+  k_rate_14d      NUMERIC(6,4),
+  bb_rate_14d     NUMERIC(6,4),
+  xba_14d         NUMERIC(6,4),
+  xslg_14d        NUMERIC(6,4),
+  barrel_rate_14d NUMERIC(6,4),
+  chase_rate_14d  NUMERIC(6,4),
+  whiff_rate_14d  NUMERIC(6,4),
+  exit_velo_14d   NUMERIC(6,2),
+  hard_hit_14d    NUMERIC(6,4),
+  swstr_14d       NUMERIC(6,4),
+  csw_14d         NUMERIC(6,4),
+  zone_14d        NUMERIC(6,4),
+  created_at      TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (player_id, stat_date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_rolling_stats_player      ON player_rolling_stats(player_id);
+CREATE INDEX IF NOT EXISTS idx_rolling_stats_date        ON player_rolling_stats(stat_date);
+CREATE INDEX IF NOT EXISTS idx_rolling_stats_player_date ON player_rolling_stats(player_id, stat_date);
+
+-- ============================================================
+-- ROW LEVEL SECURITY
+-- ============================================================
+
+-- Existing tables
 ALTER TABLE players          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE games            ENABLE ROW LEVEL SECURITY;
 ALTER TABLE props            ENABLE ROW LEVEL SECURITY;
@@ -219,7 +342,14 @@ ALTER TABLE clv_tracking     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE email_subscribers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pitcher_overrides ENABLE ROW LEVEL SECURITY;
 
--- Public read policies
+-- New tables
+ALTER TABLE simulation_results      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE simulation_explanations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE backtest_results        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE model_artifacts         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE player_rolling_stats    ENABLE ROW LEVEL SECURITY;
+
+-- Public read policies (existing)
 CREATE POLICY public_read_picks ON picks
   FOR SELECT USING (published = TRUE);
 CREATE POLICY public_read_accuracy ON accuracy_summary
@@ -234,3 +364,27 @@ CREATE POLICY public_read_props ON props
   FOR SELECT USING (TRUE);
 CREATE POLICY public_read_clv ON clv_tracking
   FOR SELECT USING (TRUE);
+
+-- Public read policies (new simulation tables)
+CREATE POLICY public_read_simulation_results ON simulation_results
+  FOR SELECT USING (TRUE);
+CREATE POLICY public_read_simulation_explanations ON simulation_explanations
+  FOR SELECT USING (TRUE);
+CREATE POLICY public_read_backtest_results ON backtest_results
+  FOR SELECT USING (TRUE);
+CREATE POLICY public_read_model_artifacts ON model_artifacts
+  FOR SELECT USING (TRUE);
+CREATE POLICY public_read_player_rolling_stats ON player_rolling_stats
+  FOR SELECT USING (TRUE);
+
+-- Service-role write policies (new tables)
+CREATE POLICY service_write_simulation_results ON simulation_results
+  FOR ALL TO service_role USING (TRUE) WITH CHECK (TRUE);
+CREATE POLICY service_write_simulation_explanations ON simulation_explanations
+  FOR ALL TO service_role USING (TRUE) WITH CHECK (TRUE);
+CREATE POLICY service_write_backtest_results ON backtest_results
+  FOR ALL TO service_role USING (TRUE) WITH CHECK (TRUE);
+CREATE POLICY service_write_model_artifacts ON model_artifacts
+  FOR ALL TO service_role USING (TRUE) WITH CHECK (TRUE);
+CREATE POLICY service_write_player_rolling_stats ON player_rolling_stats
+  FOR ALL TO service_role USING (TRUE) WITH CHECK (TRUE);
