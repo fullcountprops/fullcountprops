@@ -345,3 +345,48 @@
 2. **Simulation package consolidation** — migrate `test_simulation.py` to test against `simulator/` and archive `simulation/`. Most complex tech debt item remaining.
 3. **Live accuracy dashboard** — wire frontend `accuracy/page.tsx` to Supabase `accuracy_summary` table.
 4. **Integration testing** — add end-to-end test for `make simulate` with mocked external APIs.
+
+---
+
+## Cycle #5 — March 2, 2026 (Afternoon Sprint)
+
+### What We Audited
+Full codebase after merging PR #4 (Statcast pipeline) and PR #5 (REST API + monetization). 244 tests, all workflows, schema integrity, outcome class consistency, package architecture.
+
+### What We Fixed
+1. **Merged PR #4** — Statcast historical pipeline (fetch_statcast_historical.py, build_training_dataset.py, fetch_lineups.py, fetch_weather.py, Supabase migration for 3 new tables). Resolved merge conflicts with PR #5 manually.
+2. **Merged PR #5** — REST API v1 endpoints, Stripe subscription tiers (Free/Pro/Premium), email alert system, newsletter archive, rate limiting middleware, API key auth. 18 new files.
+3. **Fixed outcome class mismatch** — feature_config.py had 11 classes (with flyout/groundout/lineout/popup), rest of codebase used 8 (collapsed into "out"). Standardized everything to 8-class system.
+4. **Consolidated simulation/ and simulator/** — simulation/ is now a thin deprecation wrapper that re-exports from simulator/. All 168 legacy tests still pass. Migration path documented in ARCHITECTURE.md.
+5. **Built production-ready LightGBM training pipeline** — Complete train_model.py with 5-fold CV, early stopping, feature importance, per-class metrics. Artifacts directory bootstrapped with training_metadata.json.
+6. **Wired accuracy dashboard to live Supabase** — accuracy page now fetches from accuracy_summary and picks tables. Shows live hit rate, MAE, recent graded picks. Falls back to 2025 backtest baseline (1.91K MAE, 4,804 projections).
+7. **CRITICAL: Fixed weather table mismatch** — simulator/run_daily.py was querying /weather (legacy) instead of /game_weather (from PR #4 migration). Column names also mismatched. Now queries game_weather first with normalization, falls back to weather, then defaults.
+8. **Expanded CI lint scope** — Added models/ and simulator/ to ruff check in ci.yml. Fixed cache-dependency-path.
+9. **Auto-fixed 13 lint errors** — Unused imports and bare f-strings across pipeline/ and models/.
+10. **Updated stale docs** — Table count 11 → 20 in README.md and ARCHITECTURE.md.
+11. **Added DATA_PIPELINE.md** — Comprehensive guide for the full Statcast → training data → model pipeline.
+12. **Added Makefile targets** — backfill-statcast, build-training-data, train-model, full-pipeline, quick-test-pipeline.
+
+### Grade: A- → A
+- Tests: 244/244 passing (0 regressions)
+- Lint: 0 errors (down from 13)
+- Workflows: 5 clean, all references verified
+- PRs: 0 open (down from 2)
+- Outcome classes: fully standardized to 8-class system
+- Model pipeline: complete end-to-end (awaiting Statcast data backfill)
+- Revenue layer: deployed (awaiting Stripe webhook handler for fulfillment)
+
+### What's Still Pending
+1. Run `make full-pipeline` to backfill Statcast data and train the model (3-6 hours)
+2. Add Stripe webhook handler for subscription fulfillment
+3. Add `email_subscribers` table to monetization migration
+4. Add daily reset cron for API key rate limits
+5. Migrate tests/test_simulation.py to import from simulator/ directly
+6. Generate and commit frontend/package-lock.json
+7. WBC pitcher overrides for March 5-22 tournament
+
+### Next Cycle Focus
+1. Execute Statcast backfill + model training before Opening Day (March 27)
+2. Build Stripe webhook handler to complete subscription flow
+3. Wire content automation (generate_daily_content.py) into pipelines
+4. Set up WBC pitcher overrides for tournament coverage
