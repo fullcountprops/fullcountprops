@@ -328,7 +328,6 @@ def _try_real_import() -> tuple[Any, Any, Any]:
     try:
         from simulator.monte_carlo_engine import (  # type: ignore
             GameSimulator,
-            SimulationConfig,
         )
         sim_cls = GameSimulator
         logger.info("Imported real GameSimulator")
