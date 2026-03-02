@@ -1,1 +1,327 @@
-"""\ngrade_accuracy.py \u2014 Baseline MLB\nNightly grading script: compares projections to actual results,\npopulates `picks` and `accuracy_summary` tables in Supabase.\n\nRun via GitHub Actions at 2 AM ET (after all games complete).\nCan also be run manually: python scripts/grade_accuracy.py [--date 2026-03-15]\n\nFlow:\n  1. Fetch completed games for the target date from MLB Stats API\n  2. Extract actual pitcher strikeout totals from box scores\n  3. Load ungraded projections from Supabase `projections` table\n  4. Compare projected Ks vs actual Ks vs prop line\n  5. Calculate hit/miss, CLV, and confidence calibration\n  6. Upsert graded picks to `picks` table\n  7. Roll up accuracy stats to `accuracy_summary` table\n"""\n\nimport os\nimport sys\nimport json\nimport logging\nimport argparse\nimport requests\nfrom datetime import datetime, timedelta\nfrom typing import Optional\n\n# ---------------------------------------------------------------------------\n# Config & logging\n# ---------------------------------------------------------------------------\n\nlogging.basicConfig(\n    level=logging.INFO,\n    format=\"%(asctime)s [%(levelname)s] %(message)s\",\n    datefmt=\"%Y-%m-%d %H:%M:%S\",\n)\nlog = logging.getLogger(\"grade_accuracy\")\n\nSUPABASE_URL = os.environ.get(\"SUPABASE_URL\")\nSUPABASE_SERVICE_KEY = os.environ.get(\"SUPABASE_SERVICE_KEY\")\nMLB_STATS_BASE = \"https://statsapi.mlb.com/api/v1\"\n\nREQUIRED_ENV = [\"SUPABASE_URL\", \"SUPABASE_SERVICE_KEY\"]\n\ndef validate_env():\n    \"\"\"Raise immediately if any required env var is missing.\"\"\"\n    missing = [v for v in REQUIRED_ENV if not os.environ.get(v)]\n    if missing:\n        raise EnvironmentError(f\"Missing env vars: {', '.join(missing)}\")\n\n# ---------------------------------------------------------------------------\n# Supabase helpers\n# ---------------------------------------------------------------------------\n\ndef supabase_headers():\n    return {\n        \"apikey\": SUPABASE_SERVICE_KEY,\n        \"Authorization\": f\"Bearer {SUPABASE_SERVICE_KEY}\",\n        \"Content-Type\": \"application/json\",\n        \"Prefer\": \"resolution=merge-duplicates\",\n    }\n\ndef supabase_get(table: str, params: dict) -> list:\n    \"\"\"GET rows from a Supabase table with query params.\"\"\"\n    url = f\"{SUPABASE_URL}/rest/v1/{table}\"\n    resp = requests.get(url, headers=supabase_headers(), params=params)\n    resp.raise_for_status()\n    return resp.json()\n\ndef supabase_upsert(table: str, rows: list, batch_size: int = 500):\n    \"\"\"Upsert rows into a Supabase table in batches.\"\"\"\n    if not rows:\n        log.info(f\"  No rows to upsert into {table}\")\n        return\n    url = f\"{SUPABASE_URL}/rest/v1/{table}\"\n    for i in range(0, len(rows), batch_size):\n        batch = rows[i : i + batch_size]\n        resp = requests.post(url, headers=supabase_headers(), json=batch)\n        resp.raise_for_status()\n        log.info(f\"  Upserted {len(batch)} rows into {table}\")\n\n# ---------------------------------------------------------------------------\n# MLB Stats API \u2014 fetch actual results\n# ---------------------------------------------------------------------------\n\ndef fetch_completed_games(date_str: str) -> list:\n    game_pks = []\n    for sport_id in [1, 51]:\n        url = f\"{MLB_STATS_BASE}/schedule\"\n        params = {\"sportId\": sport_id, \"date\": date_str, \"hydrate\": \"linescore\"}\n        resp = requests.get(url, params=params)\n        resp.raise_for_status()\n        data = resp.json()\n        for date_entry in data.get(\"dates\", []):\n            for game in date_entry.get(\"games\", []):\n                status = game.get(\"status\", {}).get(\"abstractGameState\", \"\")\n                if status == \"Final\":\n                    game_pks.append(game[\"gamePk\"])\n    log.info(f\"Found {len(game_pks)} completed games on {date_str}\")\n    return game_pks\n\ndef fetch_pitcher_actuals(game_pk: int) -> list:\n    url = f\"{MLB_STATS_BASE}/game/{game_pk}/boxscore\"\n    resp = requests.get(url)\n    resp.raise_for_status()\n    box = resp.json()\n    results = []\n    for side in [\"away\", \"home\"]:\n        team_data = box.get(\"teams\", {}).get(side, {})\n        team_name = team_data.get(\"team\", {}).get(\"name\", \"Unknown\")\n        players = team_data.get(\"players\", {})\n        for player_key, player_data in players.items():\n            stats = player_data.get(\"stats\", {}).get(\"pitching\", {})\n            if not stats or stats.get(\"inningsPitched\", \"0.0\") == \"0.0\":\n                continue\n            pitcher_id = player_data.get(\"person\", {}).get(\"id\")\n            pitcher_name = player_data.get(\"person\", {}).get(\"fullName\", \"Unknown\")\n            ip_str = stats.get(\"inningsPitched\", \"0.0\")\n            try:\n                parts = ip_str.split(\".\")\n                ip_float = int(parts[0]) + (int(parts[1]) / 3 if len(parts) > 1 else 0)\n            except (ValueError, IndexError):\n                ip_float = 0.0\n            results.append({\n                \"game_pk\": game_pk,\n                \"pitcher_id\": pitcher_id,\n                \"pitcher_name\": pitcher_name,\n                \"team\": team_name,\n                \"actual_ks\": int(stats.get(\"strikeOuts\", 0)),\n                \"innings_pitched\": round(ip_float, 2),\n                \"hits_allowed\": int(stats.get(\"hits\", 0)),\n                \"walks\": int(stats.get(\"baseOnBalls\", 0)),\n                \"earned_runs\": int(stats.get(\"earnedRuns\", 0)),\n                \"pitches_thrown\": int(stats.get(\"numberOfPitches\", 0)),\n            })\n    return results\n\ndef load_ungraded_projections(date_str: str) -> list:\n    params = {\"game_date\": f\"eq.{date_str}\", \"select\": \"*\"}\n    rows = supabase_get(\"projections\", params)\n    log.info(f\"Loaded {len(rows)} projections for {date_str}\")\n    return rows\n\ndef load_prop_lines(date_str: str) -> dict:\n    \"\"\"\n    Fetch prop lines for the date from `props` table.\n    Returns dict keyed by (mlbam_id, stat_type) -> {line, odds, book}.\n    FIXED: Uses actual column names from the props table schema.\n    \"\"\"\n    params = {\"game_date\": f\"eq.{date_str}\", \"select\": \"*\", \"order\": \"fetched_at.desc\"}\n    rows = supabase_get(\"props\", params)\n    props = {}\n    for row in rows:\n        mlbam_id = row.get(\"mlbam_id\")\n        stat_type = row.get(\"stat_type\", \"\")\n        if not mlbam_id or not stat_type:\n            continue\n        key = (int(mlbam_id), stat_type)\n        if key not in props:\n            props[key] = {\n                \"line\": row.get(\"line\"),\n                \"over_odds\": row.get(\"over_odds\"),\n                \"under_odds\": row.get(\"under_odds\"),\n                \"book\": row.get(\"source\", \"unknown\"),\n            }\n    log.info(f\"Loaded prop lines for {len(props)} player-market combos\")\n    return props\n\ndef grade_projection(projection: dict, actual: dict, prop: Optional[dict]) -> dict:\n    \"\"\"Grade a single projection against actuals and the prop line.\"\"\"\n    projected_ks = projection.get(\"projection\", 0)\n    actual_ks = actual.get(\"actual_ks\", 0)\n    confidence = projection.get(\"confidence\", 50)\n    features = projection.get(\"features\", {})\n    pick = {\n        \"game_pk\": projection.get(\"game_pk\"),\n        \"game_date\": projection.get(\"game_date\"),\n        \"mlbam_id\": projection.get(\"mlbam_id\"),\n        \"player_name\": actual.get(\"pitcher_name\", projection.get(\"player_name\", \"\")),\n        \"stat_type\": projection.get(\"stat_type\", \"pitcher_strikeouts\"),\n        \"projection\": round(float(projected_ks), 2),\n        \"actual_value\": actual_ks,\n        \"confidence\": confidence,\n        \"published\": True,\n        \"graded_at\": datetime.utcnow().isoformat(),\n    }\n    if prop and prop.get(\"line\") is not None:\n        line = float(prop[\"line\"])\n        pick[\"line\"] = line\n        pick[\"prop_book\"] = prop.get(\"book\", \"unknown\")\n        if projected_ks > line + 0.5:\n            pick[\"direction\"] = \"over\"\n        elif projected_ks < line - 0.5:\n            pick[\"direction\"] = \"under\"\n        else:\n            pick[\"direction\"] = \"push_zone\"\n        if pick[\"direction\"] == \"over\":\n            pick[\"result\"] = \"hit\" if actual_ks > line else (\"push\" if actual_ks == line else \"miss\")\n        elif pick[\"direction\"] == \"under\":\n            pick[\"result\"] = \"hit\" if actual_ks < line else (\"push\" if actual_ks == line else \"miss\")\n        else:\n            pick[\"result\"] = \"no_play\"\n        line_error = abs(actual_ks - line)\n        proj_error = abs(actual_ks - projected_ks)\n        pick[\"edge\"] = round(line_error - proj_error, 2)\n        pick[\"proj_error\"] = round(proj_error, 2)\n    else:\n        pick[\"line\"] = None\n        pick[\"direction\"] = \"no_line\"\n        pick[\"result\"] = \"ungraded\"\n        pick[\"edge\"] = None\n        pick[\"proj_error\"] = round(abs(actual_ks - projected_ks), 2)\n    return pick\n\ndef compute_accuracy_summary(all_picks: list) -> list:\n    from collections import defaultdict\n    buckets = defaultdict(list)\n    for pick in all_picks:\n        if pick.get(\"result\") in (\"hit\", \"miss\", \"push\"):\n            buckets[\"overall\"].append(pick)\n            stat_type = pick.get(\"stat_type\", \"unknown\")\n            buckets[stat_type].append(pick)\n    summaries = []\n    now = datetime.utcnow().isoformat()\n    for bucket_name, picks in buckets.items():\n        hits = sum(1 for p in picks if p[\"result\"] == \"hit\")\n        misses = sum(1 for p in picks if p[\"result\"] == \"miss\")\n        pushes = sum(1 for p in picks if p[\"result\"] == \"push\")\n        total = hits + misses\n        edge_values = [p[\"edge\"] for p in picks if p.get(\"edge\") is not None]\n        proj_errors = [p[\"proj_error\"] for p in picks if p.get(\"proj_error\") is not None]\n        summary = {\n            \"stat_type\": bucket_name,\n            \"period\": \"all_time\",\n            \"total_picks\": len(picks),\n            \"hits\": hits,\n            \"misses\": misses,\n            \"pushes\": pushes,\n            \"hit_rate\": round(hits / total * 100, 1) if total > 0 else 0,\n            \"avg_edge\": round(sum(edge_values) / len(edge_values), 3) if edge_values else 0,\n            \"updated_at\": now,\n        }\n        summaries.append(summary)\n    return summaries\n\ndef export_dashboard_json(picks: list, summaries: list, date_str: str):\n    dashboard_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), \"dashboard\", \"data\")\n    os.makedirs(dashboard_dir, exist_ok=True)\n    daily_file = os.path.join(dashboard_dir, f\"picks_{date_str}.json\")\n    with open(daily_file, \"w\") as f:\n        json.dump(picks, f, indent=2, default=str)\n    log.info(f\"Exported {len(picks)} picks to {daily_file}\")\n    summary_file = os.path.join(dashboard_dir, \"accuracy_summary.json\")\n    with open(summary_file, \"w\") as f:\n        json.dump(summaries, f, indent=2, default=str)\n    log.info(f\"Exported {len(summaries)} summary rows to {summary_file}\")\n    meta_file = os.path.join(dashboard_dir, \"meta.json\")\n    with open(meta_file, \"w\") as f:\n        json.dump({\"last_graded_date\": date_str, \"last_updated\": datetime.utcnow().isoformat(), \"total_picks_graded\": len(picks)}, f, indent=2)\n\ndef run_grading(date_str: str):\n    log.info(f\"=== Grading projections for {date_str} ===\")\n    game_pks = fetch_completed_games(date_str)\n    if not game_pks:\n        log.info(\"No completed games found. Exiting.\")\n        return\n    all_actuals = []\n    for gpk in game_pks:\n        try:\n            actuals = fetch_pitcher_actuals(gpk)\n            all_actuals.extend(actuals)\n        except Exception as e:\n            log.warning(f\"Failed to fetch box score for game {gpk}: {e}\")\n    log.info(f\"Fetched actuals for {len(all_actuals)} pitcher appearances\")\n    actuals_index = {}\n    for a in all_actuals:\n        key = (a[\"game_pk\"], a[\"pitcher_id\"])\n        actuals_index[key] = a\n    projections = load_ungraded_projections(date_str)\n    if not projections:\n        log.info(\"No projections found for this date. Exiting.\")\n        return\n    props = load_prop_lines(date_str)\n    graded_picks = []\n    for proj in projections:\n        game_pk = proj.get(\"game_pk\")\n        mlbam_id = proj.get(\"mlbam_id\")\n        if not game_pk or not mlbam_id:\n            log.warning(f\"Projection missing game_pk or mlbam_id: {proj.get('player_name', 'unknown')}\")\n            continue\n        actual = actuals_index.get((game_pk, mlbam_id))\n        if not actual:\n            log.warning(f\"No actual found for pitcher {mlbam_id} ({proj.get('player_name', '')}) in game {game_pk}\")\n            continue\n        stat_type = proj.get(\"stat_type\", \"pitcher_strikeouts\")\n        prop = props.get((mlbam_id, stat_type))\n        pick = grade_projection(proj, actual, prop)\n        graded_picks.append(pick)\n    log.info(f\"Graded {len(graded_picks)} picks\")\n    if not graded_picks:\n        log.info(\"No picks to write. Exiting.\")\n        return\n    hits = sum(1 for p in graded_picks if p.get(\"result\") == \"hit\")\n    misses = sum(1 for p in graded_picks if p.get(\"result\") == \"miss\")\n    no_play = sum(1 for p in graded_picks if p.get(\"result\") in (\"no_play\", \"ungraded\"))\n    log.info(f\"Results: {hits} hits, {misses} misses, {no_play} no-play/ungraded\")\n    supabase_upsert(\"picks\", graded_picks)\n    all_historical = supabase_get(\"picks\", {\"result\": \"in.(hit,miss,push)\", \"select\": \"stat_type,result,edge,proj_error\"})\n    summaries = compute_accuracy_summary(all_historical)\n    supabase_upsert(\"accuracy_summary\", summaries)\n    export_dashboard_json(graded_picks, summaries, date_str)\n    log.info(f\"=== Grading complete for {date_str} ===\")\n\nif __name__ == \"__main__\":\n    parser = argparse.ArgumentParser(description=\"Grade Baseline MLB projections\")\n    parser.add_argument(\"--date\", type=str, default=None, help=\"Date to grade (YYYY-MM-DD). Defaults to yesterday.\")\n    parser.add_argument(\"--backfill\", type=int, default=None, help=\"Grade the last N days\")\n    args = parser.parse_args()\n    validate_env()\n    if args.backfill:\n        for i in range(args.backfill, 0, -1):\n            date = (datetime.utcnow() - timedelta(days=i)).strftime(\"%Y-%m-%d\")\n            try:\n                run_grading(date)\n            except Exception as e:\n                log.error(f\"Failed to grade {date}: {e}\")\n    else:\n        date_str = args.date or (datetime.utcnow() - timedelta(days=1)).strftime(\"%Y-%m-%d\")\n        run_grading(date_str)\n
+"""
+grade_accuracy.py — Baseline MLB
+Nightly grading script: compares projections to actual results,
+populates `picks` and `accuracy_summary` tables in Supabase.
+
+Run via GitHub Actions at 2 AM ET (after all games complete).
+Can also be run manually: python scripts/grade_accuracy.py [--date 2026-03-15]
+
+Flow:
+  1. Fetch completed games for the target date from MLB Stats API
+  2. Extract actual pitcher strikeout totals from box scores
+  3. Load ungraded projections from Supabase `projections` table
+  4. Compare projected Ks vs actual Ks vs prop line
+  5. Calculate hit/miss, CLV, and confidence calibration
+  6. Upsert graded picks to `picks` table
+  7. Roll up accuracy stats to `accuracy_summary` table
+"""
+
+import argparse
+import json
+import logging
+import os
+from datetime import datetime, timedelta
+from typing import Optional
+
+import requests
+
+# ---------------------------------------------------------------------------
+# Config & logging
+# ---------------------------------------------------------------------------
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+log = logging.getLogger("grade_accuracy")
+
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")
+MLB_STATS_BASE = "https://statsapi.mlb.com/api/v1"
+
+REQUIRED_ENV = ["SUPABASE_URL", "SUPABASE_SERVICE_KEY"]
+
+def validate_env():
+    """Raise immediately if any required env var is missing."""
+    missing = [v for v in REQUIRED_ENV if not os.environ.get(v)]
+    if missing:
+        raise EnvironmentError(f"Missing env vars: {', '.join(missing)}")
+
+# ---------------------------------------------------------------------------
+# Supabase helpers
+# ---------------------------------------------------------------------------
+
+def supabase_headers():
+    return {
+        "apikey": SUPABASE_SERVICE_KEY,
+        "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "resolution=merge-duplicates",
+    }
+
+def supabase_get(table: str, params: dict) -> list:
+    """GET rows from a Supabase table with query params."""
+    url = f"{SUPABASE_URL}/rest/v1/{table}"
+    resp = requests.get(url, headers=supabase_headers(), params=params)
+    resp.raise_for_status()
+    return resp.json()
+
+def supabase_upsert(table: str, rows: list, batch_size: int = 500):
+    """Upsert rows into a Supabase table in batches."""
+    if not rows:
+        log.info(f"  No rows to upsert into {table}")
+        return
+    url = f"{SUPABASE_URL}/rest/v1/{table}"
+    for i in range(0, len(rows), batch_size):
+        batch = rows[i : i + batch_size]
+        resp = requests.post(url, headers=supabase_headers(), json=batch)
+        resp.raise_for_status()
+        log.info(f"  Upserted {len(batch)} rows into {table}")
+
+# ---------------------------------------------------------------------------
+# MLB Stats API — fetch actual results
+# ---------------------------------------------------------------------------
+
+def fetch_completed_games(date_str: str) -> list:
+    game_pks = []
+    for sport_id in [1, 51]:
+        url = f"{MLB_STATS_BASE}/schedule"
+        params = {"sportId": sport_id, "date": date_str, "hydrate": "linescore"}
+        resp = requests.get(url, params=params)
+        resp.raise_for_status()
+        data = resp.json()
+        for date_entry in data.get("dates", []):
+            for game in date_entry.get("games", []):
+                status = game.get("status", {}).get("abstractGameState", "")
+                if status == "Final":
+                    game_pks.append(game["gamePk"])
+    log.info(f"Found {len(game_pks)} completed games on {date_str}")
+    return game_pks
+
+def fetch_pitcher_actuals(game_pk: int) -> list:
+    url = f"{MLB_STATS_BASE}/game/{game_pk}/boxscore"
+    resp = requests.get(url)
+    resp.raise_for_status()
+    box = resp.json()
+    results = []
+    for side in ["away", "home"]:
+        team_data = box.get("teams", {}).get(side, {})
+        team_name = team_data.get("team", {}).get("name", "Unknown")
+        players = team_data.get("players", {})
+        for player_key, player_data in players.items():
+            stats = player_data.get("stats", {}).get("pitching", {})
+            if not stats or stats.get("inningsPitched", "0.0") == "0.0":
+                continue
+            pitcher_id = player_data.get("person", {}).get("id")
+            pitcher_name = player_data.get("person", {}).get("fullName", "Unknown")
+            ip_str = stats.get("inningsPitched", "0.0")
+            try:
+                parts = ip_str.split(".")
+                ip_float = int(parts[0]) + (int(parts[1]) / 3 if len(parts) > 1 else 0)
+            except (ValueError, IndexError):
+                ip_float = 0.0
+            results.append({
+                "game_pk": game_pk,
+                "pitcher_id": pitcher_id,
+                "pitcher_name": pitcher_name,
+                "team": team_name,
+                "actual_ks": int(stats.get("strikeOuts", 0)),
+                "innings_pitched": round(ip_float, 2),
+                "hits_allowed": int(stats.get("hits", 0)),
+                "walks": int(stats.get("baseOnBalls", 0)),
+                "earned_runs": int(stats.get("earnedRuns", 0)),
+                "pitches_thrown": int(stats.get("numberOfPitches", 0)),
+            })
+    return results
+
+def load_ungraded_projections(date_str: str) -> list:
+    params = {"game_date": f"eq.{date_str}", "select": "*"}
+    rows = supabase_get("projections", params)
+    log.info(f"Loaded {len(rows)} projections for {date_str}")
+    return rows
+
+def load_prop_lines(date_str: str) -> dict:
+    """
+    Fetch prop lines for the date from `props` table.
+    Returns dict keyed by (mlbam_id, stat_type) -> {line, odds, book}.
+    FIXED: Uses actual column names from the props table schema.
+    """
+    params = {"game_date": f"eq.{date_str}", "select": "*", "order": "fetched_at.desc"}
+    rows = supabase_get("props", params)
+    props = {}
+    for row in rows:
+        mlbam_id = row.get("mlbam_id")
+        stat_type = row.get("stat_type", "")
+        if not mlbam_id or not stat_type:
+            continue
+        key = (int(mlbam_id), stat_type)
+        if key not in props:
+            props[key] = {
+                "line": row.get("line"),
+                "over_odds": row.get("over_odds"),
+                "under_odds": row.get("under_odds"),
+                "book": row.get("source", "unknown"),
+            }
+    log.info(f"Loaded prop lines for {len(props)} player-market combos")
+    return props
+
+def grade_projection(projection: dict, actual: dict, prop: Optional[dict]) -> dict:
+    """Grade a single projection against actuals and the prop line."""
+    projected_ks = projection.get("projection", 0)
+    actual_ks = actual.get("actual_ks", 0)
+    confidence = projection.get("confidence", 50)
+    pick = {
+        "game_pk": projection.get("game_pk"),
+        "game_date": projection.get("game_date"),
+        "mlbam_id": projection.get("mlbam_id"),
+        "player_name": actual.get("pitcher_name", projection.get("player_name", "")),
+        "stat_type": projection.get("stat_type", "pitcher_strikeouts"),
+        "projection": round(float(projected_ks), 2),
+        "actual_value": actual_ks,
+        "confidence": confidence,
+        "published": True,
+        "graded_at": datetime.utcnow().isoformat(),
+    }
+    if prop and prop.get("line") is not None:
+        line = float(prop["line"])
+        pick["line"] = line
+        pick["prop_book"] = prop.get("book", "unknown")
+        if projected_ks > line + 0.5:
+            pick["direction"] = "over"
+        elif projected_ks < line - 0.5:
+            pick["direction"] = "under"
+        else:
+            pick["direction"] = "push_zone"
+        if pick["direction"] == "over":
+            pick["result"] = "hit" if actual_ks > line else ("push" if actual_ks == line else "miss")
+        elif pick["direction"] == "under":
+            pick["result"] = "hit" if actual_ks < line else ("push" if actual_ks == line else "miss")
+        else:
+            pick["result"] = "no_play"
+        line_error = abs(actual_ks - line)
+        proj_error = abs(actual_ks - projected_ks)
+        pick["edge"] = round(line_error - proj_error, 2)
+        pick["proj_error"] = round(proj_error, 2)
+    else:
+        pick["line"] = None
+        pick["direction"] = "no_line"
+        pick["result"] = "ungraded"
+        pick["edge"] = None
+        pick["proj_error"] = round(abs(actual_ks - projected_ks), 2)
+    return pick
+
+def compute_accuracy_summary(all_picks: list) -> list:
+    from collections import defaultdict
+    buckets = defaultdict(list)
+    for pick in all_picks:
+        if pick.get("result") in ("hit", "miss", "push"):
+            buckets["overall"].append(pick)
+            stat_type = pick.get("stat_type", "unknown")
+            buckets[stat_type].append(pick)
+    summaries = []
+    now = datetime.utcnow().isoformat()
+    for bucket_name, picks in buckets.items():
+        hits = sum(1 for p in picks if p["result"] == "hit")
+        misses = sum(1 for p in picks if p["result"] == "miss")
+        pushes = sum(1 for p in picks if p["result"] == "push")
+        total = hits + misses
+        edge_values = [p["edge"] for p in picks if p.get("edge") is not None]
+        summary = {
+            "stat_type": bucket_name,
+            "period": "all_time",
+            "total_picks": len(picks),
+            "hits": hits,
+            "misses": misses,
+            "pushes": pushes,
+            "hit_rate": round(hits / total * 100, 1) if total > 0 else 0,
+            "avg_edge": round(sum(edge_values) / len(edge_values), 3) if edge_values else 0,
+            "updated_at": now,
+        }
+        summaries.append(summary)
+    return summaries
+
+def export_dashboard_json(picks: list, summaries: list, date_str: str):
+    dashboard_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "dashboard", "data")
+    os.makedirs(dashboard_dir, exist_ok=True)
+    daily_file = os.path.join(dashboard_dir, f"picks_{date_str}.json")
+    with open(daily_file, "w") as f:
+        json.dump(picks, f, indent=2, default=str)
+    log.info(f"Exported {len(picks)} picks to {daily_file}")
+    summary_file = os.path.join(dashboard_dir, "accuracy_summary.json")
+    with open(summary_file, "w") as f:
+        json.dump(summaries, f, indent=2, default=str)
+    log.info(f"Exported {len(summaries)} summary rows to {summary_file}")
+    meta_file = os.path.join(dashboard_dir, "meta.json")
+    with open(meta_file, "w") as f:
+        json.dump({"last_graded_date": date_str, "last_updated": datetime.utcnow().isoformat(), "total_picks_graded": len(picks)}, f, indent=2)
+
+def run_grading(date_str: str):
+    log.info(f"=== Grading projections for {date_str} ===")
+    game_pks = fetch_completed_games(date_str)
+    if not game_pks:
+        log.info("No completed games found. Exiting.")
+        return
+    all_actuals = []
+    for gpk in game_pks:
+        try:
+            actuals = fetch_pitcher_actuals(gpk)
+            all_actuals.extend(actuals)
+        except Exception as e:
+            log.warning(f"Failed to fetch box score for game {gpk}: {e}")
+    log.info(f"Fetched actuals for {len(all_actuals)} pitcher appearances")
+    actuals_index = {}
+    for a in all_actuals:
+        key = (a["game_pk"], a["pitcher_id"])
+        actuals_index[key] = a
+    projections = load_ungraded_projections(date_str)
+    if not projections:
+        log.info("No projections found for this date. Exiting.")
+        return
+    props = load_prop_lines(date_str)
+    graded_picks = []
+    for proj in projections:
+        game_pk = proj.get("game_pk")
+        mlbam_id = proj.get("mlbam_id")
+        if not game_pk or not mlbam_id:
+            log.warning(f"Projection missing game_pk or mlbam_id: {proj.get('player_name', 'unknown')}")
+            continue
+        actual = actuals_index.get((game_pk, mlbam_id))
+        if not actual:
+            log.warning(f"No actual found for pitcher {mlbam_id} ({proj.get('player_name', '')}) in game {game_pk}")
+            continue
+        stat_type = proj.get("stat_type", "pitcher_strikeouts")
+        prop = props.get((mlbam_id, stat_type))
+        pick = grade_projection(proj, actual, prop)
+        graded_picks.append(pick)
+    log.info(f"Graded {len(graded_picks)} picks")
+    if not graded_picks:
+        log.info("No picks to write. Exiting.")
+        return
+    hits = sum(1 for p in graded_picks if p.get("result") == "hit")
+    misses = sum(1 for p in graded_picks if p.get("result") == "miss")
+    no_play = sum(1 for p in graded_picks if p.get("result") in ("no_play", "ungraded"))
+    log.info(f"Results: {hits} hits, {misses} misses, {no_play} no-play/ungraded")
+    supabase_upsert("picks", graded_picks)
+    all_historical = supabase_get("picks", {"result": "in.(hit,miss,push)", "select": "stat_type,result,edge,proj_error"})
+    summaries = compute_accuracy_summary(all_historical)
+    supabase_upsert("accuracy_summary", summaries)
+    export_dashboard_json(graded_picks, summaries, date_str)
+    log.info(f"=== Grading complete for {date_str} ===")
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Grade Baseline MLB projections")
+    parser.add_argument("--date", type=str, default=None, help="Date to grade (YYYY-MM-DD). Defaults to yesterday.")
+    parser.add_argument("--backfill", type=int, default=None, help="Grade the last N days")
+    args = parser.parse_args()
+    validate_env()
+    if args.backfill:
+        for i in range(args.backfill, 0, -1):
+            date = (datetime.utcnow() - timedelta(days=i)).strftime("%Y-%m-%d")
+            try:
+                run_grading(date)
+            except Exception as e:
+                log.error(f"Failed to grade {date}: {e}")
+    else:
+        date_str = args.date or (datetime.utcnow() - timedelta(days=1)).strftime("%Y-%m-%d")
+        run_grading(date_str)
