@@ -711,8 +711,6 @@ def main() -> int:
 
     # Run per-game backtest
     per_game_rows: list[dict] = []
-    all_over_probs: list[float] = []
-    all_over_outcomes: list[int] = []
 
     for i, game_info in enumerate(sample, start=1):
         logger.info("[%d/%d] game_pk=%d", i, len(sample), game_info["game_pk"])
@@ -736,8 +734,6 @@ def main() -> int:
 
     # Build combined calibration data
     logger.info("Computing aggregate calibration …")
-    # Re-collect probabilities for aggregate calibration chart
-    # (these were computed inside backtest_single_game; we rebuild here from rows)
     calibration_data = {
         "per_game_calibration_scores": [
             {"game_pk": r["game_pk"], "game_date": r["game_date"],
