@@ -1,0 +1,14 @@
+{
+  "recent_form_weight": 0.0,
+  "career_weight": 1.0,
+  "umpire_enabled": false,
+  "weather_enabled": false,
+  "opponent_k_enabled": false,
+  "dynamic_ip": false,
+  "default_ip": 5.5,
+  "use_umpire": false,
+  "use_weather": false,
+  "use_opponent_k": false,
+  "umpire_factor_default": 1.0,
+  "description": "Career stats + park factors only (v1.0 equivalent)"
+}

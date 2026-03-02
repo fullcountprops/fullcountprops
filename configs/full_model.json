@@ -1,0 +1,12 @@
+{
+  "recent_form_weight": 0.30,
+  "career_weight": 0.70,
+  "umpire_enabled": true,
+  "weather_enabled": false,
+  "opponent_k_enabled": true,
+  "dynamic_ip": true,
+  "use_umpire": true,
+  "use_weather": false,
+  "use_opponent_k": true,
+  "description": "Full model with all available factors"
+}
