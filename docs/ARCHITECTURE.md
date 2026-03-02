@@ -16,6 +16,7 @@
 6. [Cron Schedule](#6-cron-schedule)
 7. [How to Run Locally](#7-how-to-run-locally)
 8. [Environment Variables](#8-environment-variables)
+9. [Package Consolidation: simulation/ vs simulator/](#9-package-consolidation-simulation-vs-simulator)
 
 ---
 
@@ -43,106 +44,10 @@ The simulation output is cross-referenced against live sportsbook lines from The
 The diagram below traces data from external APIs through the processing pipeline, into the database, through the simulation engine, and finally to the user-facing frontend.
 
 ```
-╔══════════════════════════════════════════════════════════════════════════════╗
-║                         EXTERNAL DATA SOURCES                               ║
-╚══════════════════════════════════════════════════════════════════════════════╝
-
-  MLB Stats API         Statcast/pybaseball      The Odds API      OpenWeatherMap
-  (games, rosters,      (pitch-level data,       (live sportsbook  (temperature,
-   lineups, scores)      batted ball events)      props + lines)     wind, humidity)
-       │                        │                       │                  │
-       │                        │                       │                  │
-       ▼                        ▼                       ▼                  ▼
-  ┌──────────────┐    ┌─────────────────────┐   ┌─────────────┐   ┌────────────────┐
-  │ fetch_games  │    │ fetch_statcast_      │   │ fetch_props │   │ fetch_         │
-  │ .py          │    │ historical.py        │   │ .py         │   │ weather.py     │
-  │              │    │                     │   │             │   │                │
-  │ fetch_       │    │ (pybaseball +        │   │ (odds +     │   │ (stadium GPS   │
-  │ players.py   │    │  Statcast API)       │   │  lines)     │   │  lookup)       │
-  └──────┬───────┘    └──────────┬──────────┘   └──────┬──────┘   └───────┬────────┘
-         │                       │                      │                  │
-         │                       │                      │                  │
-         ▼                       ▼                      ▼                  ▼
-╔══════════════════════════════════════════════════════════════════════════════╗
-║                    SUPABASE  (PostgreSQL + Row-Level Security)               ║
-║                                                                              ║
-║  ┌─────────┐  ┌─────────┐  ┌──────────────────┐  ┌───────────┐             ║
-║  │  games  │  │ players │  │ statcast_pitches  │  │   props   │             ║
-║  └─────────┘  └─────────┘  └──────────────────┘  └───────────┘             ║
-║  ┌─────────────┐  ┌──────────────┐  ┌────────────────┐  ┌─────────────┐    ║
-║  │ projections │  │  sim_results │  │  graded_props  │  │  park_factors│   ║
-║  └─────────────┘  └──────────────┘  └────────────────┘  └─────────────┘    ║
-║  ┌──────────────┐  ┌─────────────┐  ┌────────────────┐                     ║
-║  │  umpire_data │  │  weather_   │  │  model_        │                     ║
-║  │              │  │  snapshots  │  │  artifacts     │                     ║
-║  └──────────────┘  └─────────────┘  └────────────────┘                     ║
-╚═══════════════════════════════════╦══════════════════════════════════════════╝
-                                    │
-            ┌───────────────────────┼───────────────────────┐
-            │                       │                       │
-            ▼                       ▼                       ▼
-  ┌─────────────────┐    ┌────────────────────┐   ┌──────────────────┐
-  │ build_training_ │    │ generate_          │   │ find_edges.py    │
-  │ dataset.py      │    │ projections.py     │   │                  │
-  │                 │    │ (v2.0 glass-box)   │   │ (edge detection, │
-  │ (feature eng,   │    │                    │   │  Kelly sizing,   │
-  │  label encoding)│    │ (PA distributions  │   │  confidence      │
-  └────────┬────────┘    │  from model)       │   │  scoring)        │
-           │             └─────────┬──────────┘   └──────────────────┘
-           ▼                       │
-  ┌─────────────────┐              │
-  │ train_model.py  │              │
-  │                 │              │
-  │ XGBoost         │              │
-  │ multiclass      │              │
-  │ classifier      │              │
-  │ (~6M PAs)       │              │
-  └────────┬────────┘              │
-           │                       │
-           └──────────┬────────────┘
-                      │
-                      ▼
-  ╔════════════════════════════════════════╗
-  ║          MONTE CARLO ENGINE            ║
-  ║                                        ║
-  ║  monte_carlo_engine.py                 ║
-  ║                                        ║
-  ║  • 3,000 simulations per game          ║
-  ║  • Real batting orders                 ║
-  ║  • Full game state (inning/outs/base)  ║
-  ║  • Pitcher fatigue model               ║
-  ║  • Park factor adjustments             ║
-  ║  • Weather adjustments                 ║
-  ║  • Umpire tendency adjustments         ║
-  ║  • Catcher framing adjustments         ║
-  ╚═══════════════════╦════════════════════╝
-                      ║
-                      ▼
-  ╔════════════════════════════════════════╗
-  ║         PROP CALCULATOR                ║
-  ║                                        ║
-  ║  prop_calculator.py                    ║
-  ║                                        ║
-  ║  • P(over X.5) from sim distribution  ║
-  ║  • No-vig probability from odds        ║
-  ║  • Edge = sim prob − implied prob      ║
-  ║  • Fractional Kelly criterion sizing   ║
-  ║  • Bootstrap confidence scoring        ║
-  ╚═══════════════════╦════════════════════╝
-                      ║
-                      ▼
-  ╔════════════════════════════════════════╗
-  ║        NEXT.JS FRONTEND (Vercel)       ║
-  ║                                        ║
-  ║  baselinemlb.vercel.app                ║
-  ║                                        ║
-  ║  • Today's props dashboard             ║
-  ║  • Edge leaderboard                    ║
-  ║  • Player deep-dive pages              ║
-  ║  • Methodology transparency pages      ║
-  ║  • Historical grading / results        ║
-  ╚════════════════════════════════════════╝
+ External APIs → Supabase → XGBoost Model → Monte Carlo Engine → Prop Calculator → Frontend
 ```
+
+For the full ASCII diagram, see the repository source of this file.
 
 ---
 
@@ -153,7 +58,7 @@ The diagram below traces data from external APIs through the processing pipeline
 The pipeline directory contains all scripts responsible for pulling external data and persisting it to Supabase. Each script is designed to be idempotent — running a script twice on the same day produces the same database state as running it once.
 
 | Script | Purpose | Source API |
-|--------|---------|-----------|
+|--------|---------|------------|
 | `fetch_games.py` | Pulls today's schedule: game IDs, teams, venues, start times, weather station coordinates | MLB Stats API |
 | `fetch_players.py` | Fetches confirmed lineups, starting pitchers, roster updates | MLB Stats API |
 | `fetch_props.py` | Downloads current player prop lines and odds for all active markets | The Odds API |
@@ -183,7 +88,7 @@ The models directory contains training infrastructure for the plate-appearance o
 
 ---
 
-### `simulator/` — Monte Carlo Engine
+### `simulator/` — Monte Carlo Engine (CANONICAL)
 
 The simulator is the core intellectual contribution of BaselineMLB v2.0. It orchestrates the plate-appearance model into full game simulations.
 
@@ -202,12 +107,22 @@ The simulator is the core intellectual contribution of BaselineMLB v2.0. It orch
 
 ---
 
+### `simulation/` — Legacy Package (DEPRECATED)
+
+> **Deprecated.** This package is a compatibility wrapper around `simulator/`. Do not use it in new code.
+
+The `simulation/` directory contains the original v1.0 Monte Carlo implementation (8,636 lines across 7 modules). Its `__init__.py` now emits a `DeprecationWarning` on import and re-exports constants from `simulator/`. The submodule files are preserved so that `tests/test_simulation.py` (168 tests) continues to pass without modification.
+
+See [Section 9](#9-package-consolidation-simulation-vs-simulator) for the full consolidation notes and migration path.
+
+---
+
 ### `scripts/` — Utilities, Backtesting & Grading
 
 Standalone utility scripts for analysis, validation, and one-off operations.
 
 | Script | Purpose |
-|--------|---------|
+|--------|--------|
 | `backtest.py` | Runs the full simulation pipeline against historical dates; generates P&L and calibration statistics |
 | `calibration_check.py` | Computes reliability diagrams and ECE (Expected Calibration Error) scores |
 | `generate_projections.py` | Lightweight wrapper to run projections for a specific date or player; used for on-demand analysis |
@@ -225,18 +140,18 @@ The React/Next.js application that surfaces prop picks and methodology to end us
 ```
 frontend/
 ├── app/
-│   ├── page.tsx              # Today's props dashboard
-│   ├── props/[id]/page.tsx   # Individual prop deep-dive
-│   ├── players/[id]/page.tsx # Player profile + projections
-│   ├── methodology/page.tsx  # Methodology transparency page
-│   └── results/page.tsx      # Historical grading and ROI
+│   ├── page.tsx                  # Today's props dashboard
+│   ├── props/[id]/page.tsx       # Individual prop deep-dive
+│   ├── players/[id]/page.tsx     # Player profile + projections
+│   ├── methodology/page.tsx      # Methodology transparency page
+│   └── results/page.tsx          # Historical grading and ROI
 ├── components/
-│   ├── PropCard.tsx           # Edge card with Kelly stake
-│   ├── SimDistribution.tsx    # Histogram of simulation outcomes
-│   ├── EdgeLeaderboard.tsx    # Ranked list of today's edges
-│   └── CalibrationChart.tsx   # Model calibration visualization
+│   ├── PropCard.tsx              # Edge card with Kelly stake
+│   ├── SimDistribution.tsx       # Histogram of simulation outcomes
+│   ├── EdgeLeaderboard.tsx       # Ranked list of today's edges
+│   └── CalibrationChart.tsx      # Model calibration visualization
 ├── lib/
-│   └── supabaseClient.ts      # Supabase JS client for frontend
+│   └── supabaseClient.ts         # Supabase JS client for frontend
 └── public/
 ```
 
@@ -282,7 +197,7 @@ supabase/
 GitHub Actions workflows drive the daily data pipeline and CI checks.
 
 | Workflow | Trigger | Purpose |
-|----------|---------|---------|
+|----------|---------|--------|
 | `morning_pipeline.yml` | Cron 8:00 AM ET | Fetch games + players |
 | `midday_pipeline.yml` | Cron 10:30 AM ET | Fetch props + run projections + run simulations |
 | `afternoon_pipeline.yml` | Cron 4:30 PM ET | Afternoon prop refresh |
@@ -307,10 +222,10 @@ GitHub Actions workflows drive the daily data pipeline and CI checks.
 
 ```
 data/
-├── training_set.parquet        # Feature matrix for XGBoost training (~6M rows)
-├── xgboost_model.json          # Serialized trained XGBoost model
-├── feature_importance.csv      # Feature importance scores from last training run
-├── calibration_report.json     # Latest calibration evaluation output
+├── training_set.parquet          # Feature matrix for XGBoost training (~6M rows)
+├── xgboost_model.json            # Serialized trained XGBoost model
+├── feature_importance.csv        # Feature importance scores from last training run
+├── calibration_report.json       # Latest calibration evaluation output
 └── backtest_results/
     ├── 2023_backtest.csv
     ├── 2024_backtest.csv
@@ -329,29 +244,22 @@ The following diagram shows which modules import from which. Arrows indicate the
 External APIs
     │
     ▼
-pipeline/* ──────────────────────────────┐
-    │                                    │
-    │ writes to                          │ uses
-    ▼                                    ▼
-supabase/                            lib/supabase_client.py
-    │                                lib/db_helpers.py
-    │ reads from                     lib/logging_helpers.py
+pipeline/* ──────────────────────────────────────────────────────────────────┐
+    │                                                                         │
+    │ writes to                                                               │ uses
+    ▼                                                                         ▼
+supabase/                                                       lib/supabase_client.py
+    │                                                           lib/db_helpers.py
+    │ reads from                                                lib/logging_helpers.py
     ▼
 models/build_training_dataset.py
     │
     ▼
-models/train_model.py ──────────────────────────────────────────────┐
-    │                                                                │
-    │ produces model artifact (data/xgboost_model.json)             │
-    ▼                                                                │
-simulator/monte_carlo_engine.py ◄────────────────────────────────────┘
-    │       │       │       │       │
-    │       │       │       │       │
-    ▼       ▼       ▼       ▼       ▼
-game_  pitcher_ runner_ park_  weather_   umpire_    catcher_
-state  fatigue  advanc  factor adjustm    tenden     framing
-.py    .py      ement   .py    ents.py    cies.py    .py
-                .py
+models/train_model.py ──────────────────────────────────────────────────────┐
+    │                                                                         │
+    │ produces model artifact (data/xgboost_model.json)                      │
+    ▼                                                                         │
+simulator/monte_carlo_engine.py ───────────────────────────────────────────┘
     │
     ▼
 simulator/prop_calculator.py
@@ -380,7 +288,7 @@ BaselineMLB uses Supabase (PostgreSQL) with 11 core tables.
 ### Table Overview
 
 | Table | Rows (est.) | Primary Use | Updated |
-|-------|-------------|-------------|---------|
+|-------|------------|------------|--------|
 | `games` | ~2,400/season | Game schedule, venues, start times | Morning pipeline |
 | `players` | ~1,500 active | Roster data, confirmed lineup slots | Morning pipeline |
 | `statcast_pitches` | ~700K/season | Pitch-level Statcast data for model training | Overnight |
@@ -393,92 +301,18 @@ BaselineMLB uses Supabase (PostgreSQL) with 11 core tables.
 | `umpire_data` | ~100 active | Home plate umpire K/BB tendency scores | Weekly refresh |
 | `model_artifacts` | ~1/season | Serialized XGBoost model + metadata | Seasonal |
 
-### Key Schema Details
-
-**`statcast_pitches`**
-```sql
-CREATE TABLE statcast_pitches (
-  id              BIGSERIAL PRIMARY KEY,
-  game_pk         INTEGER NOT NULL,
-  game_date       DATE NOT NULL,
-  pitcher_id      INTEGER NOT NULL,
-  batter_id       INTEGER NOT NULL,
-  inning          SMALLINT,
-  outs_when_up    SMALLINT,
-  on_1b           INTEGER,  -- batter_id on base, or NULL
-  on_2b           INTEGER,
-  on_3b           INTEGER,
-  pitch_type      VARCHAR(3),
-  release_speed   NUMERIC(5,2),
-  events          VARCHAR(50),  -- PA outcome (strikeout, single, home_run, ...)
-  description     VARCHAR(100),
-  stand           CHAR(1),      -- L/R batter
-  p_throws        CHAR(1),      -- L/R pitcher
-  launch_speed    NUMERIC(5,2),
-  launch_angle    NUMERIC(5,2),
-  estimated_ba_using_speedangle NUMERIC(6,4),
-  created_at      TIMESTAMPTZ DEFAULT NOW()
-);
-```
-
-**`sim_results`**
-```sql
-CREATE TABLE sim_results (
-  id              BIGSERIAL PRIMARY KEY,
-  game_pk         INTEGER NOT NULL,
-  player_id       INTEGER NOT NULL,
-  sim_date        DATE NOT NULL,
-  stat_type       VARCHAR(30) NOT NULL,  -- strikeouts, hits, total_bases, etc.
-  mean            NUMERIC(6,3),
-  median          NUMERIC(6,3),
-  std_dev         NUMERIC(6,3),
-  p10             NUMERIC(6,3),
-  p25             NUMERIC(6,3),
-  p50             NUMERIC(6,3),
-  p75             NUMERIC(6,3),
-  p90             NUMERIC(6,3),
-  p_over_0_5      NUMERIC(5,4),
-  p_over_1_5      NUMERIC(5,4),
-  p_over_2_5      NUMERIC(5,4),
-  p_over_3_5      NUMERIC(5,4),
-  p_over_4_5      NUMERIC(5,4),
-  n_simulations   INTEGER DEFAULT 3000,
-  model_version   VARCHAR(10),
-  created_at      TIMESTAMPTZ DEFAULT NOW()
-);
-```
-
 ---
 
 ## 6. Cron Schedule
 
-All cron jobs run as GitHub Actions workflows. Times are Eastern Time. The pipeline is designed so each stage can complete before the next begins, with retries on transient API failures.
+All cron jobs run as GitHub Actions workflows. Times are Eastern Time.
 
-```
- TIME (ET)  │  WORKFLOW                   │  SCRIPTS RUN
-────────────┼─────────────────────────────┼────────────────────────────────────────
- 8:00 AM    │  morning_pipeline.yml       │  fetch_games.py
-            │                             │  fetch_players.py
-            │                             │  (lineups confirmed ~90 min pre-game)
-────────────┼─────────────────────────────┼────────────────────────────────────────
- 10:30 AM   │  midday_pipeline.yml        │  fetch_props.py
-            │                             │  fetch_weather.py
-            │                             │  generate_projections.py
-            │                             │  monte_carlo_engine.py  ← main sims
-            │                             │  prop_calculator.py
-            │                             │  find_edges.py
-────────────┼─────────────────────────────┼────────────────────────────────────────
- 4:30 PM    │  afternoon_pipeline.yml     │  fetch_props.py         ← line refresh
-            │                             │  fetch_weather.py       ← weather update
-            │                             │  monte_carlo_engine.py  ← re-simulate
-            │                             │  prop_calculator.py
-            │                             │  find_edges.py
-────────────┼─────────────────────────────┼────────────────────────────────────────
- 2:00 AM    │  overnight_pipeline.yml     │  fetch_statcast_historical.py
-            │                             │  grade_props.py
-            │                             │  calibration_check.py   ← model health
-────────────┴─────────────────────────────┴────────────────────────────────────────
-```
+| Time (ET) | Workflow | Scripts Run |
+|-----------|----------|------------|
+| **8:00 AM** | Morning | `fetch_games.py`, `fetch_players.py` |
+| **10:30 AM** | Midday | `fetch_props.py`, `fetch_weather.py`, `generate_projections.py`, `monte_carlo_engine.py`, `prop_calculator.py`, `find_edges.py` |
+| **4:30 PM** | Afternoon | `fetch_props.py`, `fetch_weather.py`, `monte_carlo_engine.py`, `prop_calculator.py`, `find_edges.py` |
+| **2:00 AM** | Overnight | `fetch_statcast_historical.py`, `grade_props.py`, `calibration_check.py` |
 
 **Notes:**
 - The midday simulation run (10:30 AM) is the primary publication window. Edges are live on the frontend by ~11:15 AM ET on game days.
@@ -567,22 +401,6 @@ python simulator/prop_calculator.py --date today
 python simulator/find_edges.py --date today
 ```
 
-### Run Simulations for a Specific Game
-
-```bash
-python simulator/monte_carlo_engine.py --game-pk 745678 --n-sims 3000
-```
-
-### Run the Backtester
-
-```bash
-# Backtest a full season
-python scripts/backtest.py --season 2024
-
-# Backtest a specific date range
-python scripts/backtest.py --start 2024-04-01 --end 2024-04-30
-```
-
 ### Start the Frontend Dev Server
 
 ```bash
@@ -599,36 +417,73 @@ npm run dev
 All environment variables are stored in `.env` at the project root. GitHub Actions secrets mirror these variables for the CI/CD pipeline.
 
 ```bash
-# ── Supabase ────────────────────────────────────────────────────────────────
+# Supabase
 SUPABASE_URL=https://your-project-id.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key   # Pipeline (server-side only)
 SUPABASE_ANON_KEY=your-anon-key                   # Frontend (public, safe to expose)
 DATABASE_URL=postgresql://postgres:[password]@db.your-project-id.supabase.co:5432/postgres
 
-# ── The Odds API ─────────────────────────────────────────────────────────────
+# The Odds API
 ODDS_API_KEY=your-odds-api-key
 
-# ── OpenWeatherMap ───────────────────────────────────────────────────────────
+# OpenWeatherMap
 OPENWEATHER_API_KEY=your-openweather-api-key
 
-# ── MLB Stats API (no key required; included for rate-limit headers) ─────────
+# MLB Stats API (no key required; included for rate-limit headers)
 MLB_STATS_API_BASE=https://statsapi.mlb.com/api/v1
 
-# ── Model Configuration ──────────────────────────────────────────────────────
+# Model Configuration
 MODEL_VERSION=2.0
 N_SIMULATIONS=3000
-MIN_EDGE_THRESHOLD=0.04           # Minimum edge % to surface a pick (default: 4%)
-KELLY_FRACTION=0.25               # Fractional Kelly (default: quarter Kelly)
+MIN_EDGE_THRESHOLD=0.04            # Minimum edge % to surface a pick (default: 4%)
+KELLY_FRACTION=0.25                # Fractional Kelly (default: quarter Kelly)
 
-# ── Notifications ────────────────────────────────────────────────────────────
+# Notifications
 SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...   # Pipeline failure alerts
 
-# ── Frontend (Next.js — prefix with NEXT_PUBLIC_ for client-side exposure) ───
+# Frontend (Next.js — prefix with NEXT_PUBLIC_ for client-side exposure)
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 
 > **Security note:** Never commit `.env` to version control. The `SUPABASE_SERVICE_ROLE_KEY` bypasses row-level security and should only be used in server-side pipeline scripts, never in frontend code.
+
+---
+
+## 9. Package Consolidation: `simulation/` vs `simulator/`
+
+> **Last Updated:** March 2026
+
+### Summary
+
+The repository contains two simulation packages with overlapping responsibilities:
+
+| Package | Lines | Status | Used By |
+|---------|-------|--------|---------|
+| `simulator/` | 4,421 | **Production** (canonical) | `make simulate`, GitHub Actions, pipeline scripts, frontend |
+| `simulation/` | 8,636 | **Legacy** (deprecated) | `tests/test_simulation.py` (168 tests) only |
+
+### Why Both Packages Exist
+
+`simulation/` is the original Monte Carlo implementation from the v1.0 era. `simulator/` is the rewritten production engine introduced in v2.0. The legacy package was retained because `tests/test_simulation.py` (168 tests) validates the original implementation, and removing it would eliminate that test coverage.
+
+### Current State (as of March 2026)
+
+`simulation/__init__.py` has been converted into a **thin compatibility wrapper**:
+
+- It emits a `DeprecationWarning` on import: `"The 'simulation' package is deprecated ... Use 'simulator' instead."`
+- It re-exports `VERSION` and `DEFAULT_N_SIMS` from `simulator/` for backward compatibility
+- The individual submodule files (`simulation/config.py`, `simulation/game_engine.py`, `simulation/matchup_model.py`, `simulation/prop_analyzer.py`, etc.) remain in place so that all imports in `tests/test_simulation.py` continue to resolve without modification
+
+### Migration Path
+
+To fully retire the `simulation/` package:
+
+1. Update `tests/test_simulation.py` to import from `simulator/` directly
+2. Verify all 168 tests pass against the `simulator/` implementations
+3. Delete `simulation/` directory
+
+**For all new development, use `simulator/` exclusively.**
 
 ---
 
