@@ -30,7 +30,6 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
-from scipy import stats as scipy_stats
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -169,27 +168,27 @@ class SimulationResult:
     away_scores:
         Away team run total for each simulation.
     batter_hits:
-        Dict keyed by batter_id → array of hit counts.
+        Dict keyed by batter_id -> array of hit counts.
     batter_total_bases:
-        Dict keyed by batter_id → array of total-bases counts.
+        Dict keyed by batter_id -> array of total-bases counts.
     batter_walks:
-        Dict keyed by batter_id → array of walk counts.
+        Dict keyed by batter_id -> array of walk counts.
     batter_strikeouts:
-        Dict keyed by batter_id → array of strikeout counts.
+        Dict keyed by batter_id -> array of strikeout counts.
     batter_rbis:
-        Dict keyed by batter_id → array of RBI counts.
+        Dict keyed by batter_id -> array of RBI counts.
     batter_runs:
-        Dict keyed by batter_id → array of run counts.
+        Dict keyed by batter_id -> array of run counts.
     pitcher_strikeouts:
-        Dict keyed by pitcher_id → array of strikeout counts.
+        Dict keyed by pitcher_id -> array of strikeout counts.
     pitcher_walks:
-        Dict keyed by pitcher_id → array of walk (BB+HBP) counts.
+        Dict keyed by pitcher_id -> array of walk (BB+HBP) counts.
     pitcher_hits_allowed:
-        Dict keyed by pitcher_id → array of hits-allowed counts.
+        Dict keyed by pitcher_id -> array of hits-allowed counts.
     pitcher_innings:
-        Dict keyed by pitcher_id → array of innings-pitched (float).
+        Dict keyed by pitcher_id -> array of innings-pitched (float).
     pitcher_pitches:
-        Dict keyed by pitcher_id → array of estimated pitch counts.
+        Dict keyed by pitcher_id -> array of estimated pitch counts.
     """
 
     home_scores: np.ndarray = field(default_factory=lambda: np.array([]))
@@ -256,9 +255,9 @@ class SimulationSummary:
     away_score:
         Score distribution summary for the away team.
     batter_stats:
-        Nested dict: ``batter_id → stat_name → StatSummary``.
+        Nested dict: ``batter_id -> stat_name -> StatSummary``.
     pitcher_stats:
-        Nested dict: ``pitcher_id → stat_name → StatSummary``.
+        Nested dict: ``pitcher_id -> stat_name -> StatSummary``.
     raw:
         Reference to the underlying ``SimulationResult`` for ad-hoc queries.
     """
@@ -431,7 +430,7 @@ class PlateAppearance:
         batter_id:
             Batter identifier (reserved for logging / SHAP).
         matchup_probs:
-            Dict of outcome → probability (need not sum to exactly 1.0).
+            Dict of outcome -> probability (need not sum to exactly 1.0).
         fatigue_factor:
             Multiplier applied to the K probability before re-normalising;
             < 1.0 reduces K rate to model pitcher fatigue.
@@ -510,7 +509,7 @@ def _advance_runners(
         if new_runners[FIRST]:
             if new_runners[SECOND]:
                 if new_runners[THIRD]:
-                    # Bases loaded → run scores
+                    # Bases loaded -> run scores
                     score[score_side] += 1
                     rbis += 1
                 new_runners[THIRD] = new_runners[SECOND]
@@ -592,10 +591,10 @@ class GameSimulator:
         away_lineup:
             Ordered list of batter IDs for the away team (length 9).
         home_pitcher_probs:
-            ``{batter_id: {outcome: prob}}`` — home pitcher vs. each
+            ``{batter_id: {outcome: prob}}`` -- home pitcher vs. each
             away batter.  Keys must cover every batter in *away_lineup*.
         away_pitcher_probs:
-            ``{batter_id: {outcome: prob}}`` — away pitcher vs. each
+            ``{batter_id: {outcome: prob}}`` -- away pitcher vs. each
             home batter.
         config:
             Override default simulation parameters.
@@ -743,7 +742,6 @@ class GameSimulator:
         home_order_idx = 0
 
         # Runners on base at end of each PA (for run-scored credit)
-        batter_on_base: list[str | None] = [None, None, None]
 
         max_innings = cfg.innings + cfg.max_extras
 
@@ -816,7 +814,7 @@ class GameSimulator:
                             runners, pa_result.outcome, score_side, score
                         )
                         b_rbi[batter_id][sim_idx] += rbis
-                        runs_scored_this_pa = score[score_side] - prev_score
+                        score[score_side] - prev_score
 
                         # Credit runs to the batters who were on base
                         if pa_result.outcome == "HR":
@@ -838,7 +836,7 @@ class GameSimulator:
                             on_base_ids[SECOND] = on_base_ids[FIRST]
                             on_base_ids[FIRST] = batter_id
 
-                # End of half-inning — record IP
+                # End of half-inning -- record IP
                 if half == "top":
                     home_pitcher_outs += outs
                     home_pitcher_bf = pitcher_bf_ref
@@ -977,7 +975,7 @@ if __name__ == "__main__":
 
 
 # ===========================================================================
-# COMPATIBILITY LAYER — 11-Outcome Model
+# COMPATIBILITY LAYER -- 11-Outcome Model
 # ===========================================================================
 # The existing engine above uses 8 outcomes (with "OUT" as a catch-all).
 # This section adds the 11-outcome vocabulary expected by tests and new code:
@@ -1023,7 +1021,7 @@ _TB_11: np.ndarray = np.array([0, 0, 0, 1, 2, 3, 4, 0, 0, 0, 0], dtype=np.int32)
 
 
 # ---------------------------------------------------------------------------
-# Runner advancement — new interface for 11-outcome model
+# Runner advancement -- new interface for 11-outcome model
 #
 # Signature expected by tests:
 #   _advance_runners(bases: np.ndarray[bool], outcome_idx: int,
@@ -1037,14 +1035,14 @@ _TB_11: np.ndarray = np.array([0, 0, 0, 1, 2, 3, 4, 0, 0, 0, 0], dtype=np.int32)
 def _advance_runners(  # type: ignore[override]
     bases: np.ndarray,
     outcome_idx: int,
-    rng: "np.random.Generator",  # noqa: F821 – rng is accepted but not used in deterministic rules
+    rng: "np.random.Generator",  # noqa: F821 - rng is accepted but not used in deterministic rules
 ) -> tuple[np.ndarray, int, int]:
     """Advance base runners given an 11-outcome index and return (bases, runs, rbis).
 
     Parameters
     ----------
     bases:
-        Boolean array of shape (3,) — [first, second, third].
+        Boolean array of shape (3,) -- [first, second, third].
     outcome_idx:
         Index into OUTCOMES_11.
     rng:
@@ -1061,14 +1059,14 @@ def _advance_runners(  # type: ignore[override]
     rbis = 0
 
     if outcome_idx == K_IDX or outcome_idx in (FLYOUT_IDX, GROUNDOUT_IDX, 9, 10):
-        # Out — no runner movement
+        # Out -- no runner movement
         pass
 
     elif outcome_idx in (BB_IDX, HBP_IDX):
-        # Walk / HBP — force-advance
+        # Walk / HBP -- force-advance
         if new_bases[0]:  # runner on first
             if new_bases[1]:  # and second
-                if new_bases[2]:  # and third — bases loaded walk scores a run
+                if new_bases[2]:  # and third -- bases loaded walk scores a run
                     runs += 1
                     rbis += 1
                 new_bases[2] = new_bases[1]
@@ -1076,7 +1074,7 @@ def _advance_runners(  # type: ignore[override]
         new_bases[0] = True
 
     elif outcome_idx == SINGLE_IDX:
-        # Third scores, second → third, first → second, batter → first
+        # Third scores, second -> third, first -> second, batter -> first
         if new_bases[2]:
             runs += 1
             rbis += 1
@@ -1134,7 +1132,7 @@ def build_batter_probs(
     Parameters
     ----------
     k_rate, bb_rate, ... :
-        Raw rate for each outcome.  Need not sum to 1.0 — the result is
+        Raw rate for each outcome.  Need not sum to 1.0 -- the result is
         always normalised.
 
     Returns
@@ -1187,7 +1185,7 @@ class BatterProfile:
     name:
         Player display name.
     lineup_position:
-        Batting-order position (1–9).
+        Batting-order position (1-9).
     probs:
         11-element probability vector.  If ``None``, falls back to
         ``MLB_AVG_PROBS``.  If all-zeros, falls back to ``MLB_AVG_PROBS``.
@@ -1546,7 +1544,7 @@ def build_pitcher_profile_from_stats(
         If 3+ entries, overrides pitch-count distribution.
     """
     k_rate_modifier = float(np.clip(career_k9 / 8.5, 0.5, 1.6))
-    # Higher K9 → higher contact quality (harder to square up)
+    # Higher K9 -> higher contact quality (harder to square up)
     contact_quality_modifier = float(np.clip(0.8 + (career_k9 - 8.5) * 0.02, 0.7, 1.3))
     return PitcherProfile(
         mlbam_id=mlbam_id,
@@ -1568,9 +1566,9 @@ def build_bullpen_profile(era: float = 4.0, k9: float = 8.5) -> BullpenProfile:
     k9:
         Strikeouts per 9 innings.
     """
-    # k_rate_modifier: higher K/9 → boost K rate
+    # k_rate_modifier: higher K/9 -> boost K rate
     k_rate_modifier = float(np.clip(k9 / 8.5, 0.5, 1.6))
-    # contact_quality_modifier: lower ERA → better suppression of quality contact
+    # contact_quality_modifier: lower ERA -> better suppression of quality contact
     contact_quality_modifier = float(np.clip(4.0 / max(era, 0.5), 0.6, 1.5))
     return BullpenProfile(
         k_rate_modifier=k_rate_modifier,
@@ -1666,7 +1664,7 @@ def _simulate_game_single(
     """Simulate one game and return per-batter stat counts, team runs,
     pitcher pitch count, and pitcher K total.
 
-    This is the inner loop — called n_sims times.
+    This is the inner loop -- called n_sims times.
     """
     # Per-batter stat accumulators (single game)
     n_batters = 9
@@ -1777,7 +1775,7 @@ def _simulate_game_single(
                 if outcome_idx == SINGLE_IDX:
                     runner_slots[1] = runner_slots[0]
                     runner_slots[0] = slot
-                    runner_slots[2] = None  # simplified (was on 2nd → scored)
+                    runner_slots[2] = None  # simplified (was on 2nd -> scored)
                 elif outcome_idx == DOUBLE_IDX:
                     runner_slots = [None, slot, None]
                 elif outcome_idx == TRIPLE_IDX:
