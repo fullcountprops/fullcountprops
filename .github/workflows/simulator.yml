@@ -1,8 +1,19 @@
+# =============================================================================
+# simulator.yml — Baseline MLB
+# Monte Carlo game simulation pipeline (CANONICAL — replaces daily_simulation.yml)
+#
+# Schedule: Daily at 11:00 AM ET (15:00 UTC during EDT)
+# After morning data pipeline fetches games/props/projections.
+# Fetches lineups, weather, runs Monte Carlo sims via simulator package,
+# and triggers a Vercel frontend redeployment.
+# =============================================================================
+
 name: Monte Carlo Simulator
 
 on:
   schedule:
-    # Run daily at 11:00 AM ET (15:00 UTC during EDT) - after morning data pipeline
+    # 11:00 AM ET = 15:00 UTC (EDT, Mar-Nov) / 16:00 UTC (EST, Nov-Mar)
+    # Using 15:00 UTC to cover the MLB season (April-October = EDT)
     - cron: "0 15 * * *"
   workflow_dispatch:
     inputs:
@@ -21,7 +32,12 @@ env:
   SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
   ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
   OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
+  VERCEL_DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
   PYTHONPATH: ${{ github.workspace }}
+
+concurrency:
+  group: daily-simulation
+  cancel-in-progress: true
 
 jobs:
   # Skip during off-season (Nov 16 – Feb 14)
@@ -44,6 +60,7 @@ jobs:
     needs: season-check
     if: needs.season-check.outputs.in_season == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -55,7 +72,10 @@ jobs:
           cache: "pip"
 
       - name: Install dependencies
-        run: pip install -r requirements-simulator.txt
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-simulator.txt
 
       - name: Fetch lineups
         run: |
@@ -73,7 +93,7 @@ jobs:
             python pipeline/fetch_weather.py
           fi
 
-      - name: Run daily simulation
+      - name: Run Monte Carlo simulation
         run: |
           ARGS="--n-sims ${{ inputs.n_sims || '3000' }}"
           if [ -n "${{ inputs.date }}" ]; then
@@ -81,9 +101,27 @@ jobs:
           fi
           python -m simulator.run_daily $ARGS
 
+      - name: Trigger Vercel redeploy
+        if: env.VERCEL_DEPLOY_HOOK != ''
+        run: |
+          curl -s -X POST "$VERCEL_DEPLOY_HOOK" \
+            -H "Content-Type: application/json" \
+            -d '{}' \
+            && echo "Vercel redeploy triggered" \
+            || echo "Vercel redeploy failed (non-critical)"
+
+      - name: Upload simulation artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simulation-data-${{ github.run_id }}
+          path: data/
+          retention-days: 7
+
   backtest:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -95,7 +133,10 @@ jobs:
           cache: "pip"
 
       - name: Install dependencies
-        run: pip install -r requirements-simulator.txt
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-simulator.txt
 
       - name: Run backtest
         run: python scripts/backtest_simulator.py --sample-size 10
