@@ -26,19 +26,19 @@ Output:
     data/statcast_pa_features_<start>_<end>.parquet
 """
 
-import sys
-import time
 import argparse
 import logging
+import sys
+import time
 from datetime import date, timedelta
 from io import StringIO
 from pathlib import Path
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 import requests
 
-# ── Project imports ───────────────────────────────────────────────────────────
+# ── Project imports ─────────────────────────────────────────────
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from lib.supabase import sb_upsert
 
@@ -49,7 +49,7 @@ logging.basicConfig(
 )
 log = logging.getLogger("fetch_statcast_historical")
 
-# ── Constants ─────────────────────────────────────────────────────────────────
+# ── Constants ───────────────────────────────────────────────
 SAVANT_URL = "https://baseballsavant.mlb.com/statcast_search/csv"
 RATE_LIMIT_SECONDS = 3
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
@@ -111,7 +111,7 @@ BB_TYPE_MAP = {
 }
 
 
-# ── Download helpers ──────────────────────────────────────────────────────────
+# ── Download helpers ─────────────────────────────────────────────
 
 def _build_savant_params(start_dt: str, end_dt: str) -> dict:
     """Build query params for Baseball Savant CSV endpoint."""
@@ -237,7 +237,7 @@ def download_date_range(start: date, end: date) -> pd.DataFrame:
     return combined
 
 
-# ── Feature engineering ───────────────────────────────────────────────────────
+# ── Feature engineering ─────────────────────────────────────────────
 
 def _safe_div(num, denom, default=0.0):
     """Safe division, returning default when denominator is 0."""
@@ -448,7 +448,7 @@ def build_pa_features(raw_df: pd.DataFrame) -> pd.DataFrame:
         if col not in df.columns:
             df[col] = np.nan
 
-    # ── Identify plate appearances ───────────────────────────────────────
+    # ── Identify plate appearances ─────────────────────────────────────
     # A PA ends when 'events' is not null
     pa_mask = df["events"].notna() & (df["events"] != "")
     pa_pitches = df[pa_mask].copy()
@@ -459,7 +459,7 @@ def build_pa_features(raw_df: pd.DataFrame) -> pd.DataFrame:
 
     log.info(f"Found {len(pa_pitches):,} completed plate appearances")
 
-    # ── Map PA outcomes ──────────────────────────────────────────────────
+    # ── Map PA outcomes ──────────────────────────────────────────
     pa_pitches["pa_outcome"] = pa_pitches["events"].map(PA_OUTCOME_MAP).fillna("other")
 
     # Drop outcomes we can't model
@@ -472,14 +472,14 @@ def build_pa_features(raw_df: pd.DataFrame) -> pd.DataFrame:
     for (pid, year), grp in pitcher_season_groups:
         pitcher_cache[(pid, year)] = compute_pitcher_features(grp)
 
-    # ── Build rolling batter features ────────────────────────────────────
+    # ── Build rolling batter features ────────────────────────────────
     log.info("Computing batter rolling stats ...")
     batter_season_groups = df.groupby(["batter", "game_year"])
     batter_cache = {}
     for (bid, year), grp in batter_season_groups:
         batter_cache[(bid, year)] = compute_batter_features(grp)
 
-    # ── Assemble PA feature rows ─────────────────────────────────────────
+    # ── Assemble PA feature rows ───────────────────────────────────
     log.info("Assembling feature rows ...")
     rows = []
     for _, pa in pa_pitches.iterrows():
@@ -611,7 +611,7 @@ def aggregate_player_season_stats(pa_df: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(all_stats)
 
 
-# ── CLI ───────────────────────────────────────────────────────────────────────
+# ── CLI ───────────────────────────────────────────────
 
 def parse_args():
     parser = argparse.ArgumentParser(
