@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import ProjectionFilters from './ProjectionFilters'
 
 export const dynamic = 'force-dynamic'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
@@ -22,18 +23,19 @@ async function getProjections(gameDate?: string) {
     console.error('Error fetching projections:', error)
     return []
   }
-      if (!data || data.length === 0) { return [] }
-    // Fetch team names from players table via mlbam_id
-    const mlbamIds = data.map((p: any) => p.mlbam_id).filter(Boolean)
-    if (mlbamIds.length > 0) {
-      const { data: players } = await supabase
-        .from('players')
-        .select('mlbam_id, team')
-        .in('mlbam_id', mlbamIds)
-      const teamMap: Record<string, string> = {}
-      players?.forEach((p: any) => { teamMap[p.mlbam_id] = p.team })
-      data.forEach((proj: any) => { proj.team = teamMap[proj.mlbam_id] || null })
-    }
+  if (!data || data.length === 0) { return [] }
+
+  // Fetch team names from players table via mlbam_id
+  const mlbamIds = data.map((p: any) => p.mlbam_id).filter(Boolean)
+  if (mlbamIds.length > 0) {
+    const { data: players } = await supabase
+      .from('players')
+      .select('mlbam_id, team')
+      .in('mlbam_id', mlbamIds)
+    const teamMap: Record<string, string> = {}
+    players?.forEach((p: any) => { teamMap[p.mlbam_id] = p.team })
+    data.forEach((proj: any) => { proj.team = teamMap[proj.mlbam_id] || null })
+  }
   return data || []
 }
 
@@ -43,6 +45,7 @@ const STAT_LABELS: Record<string, string> = {
   batter_home_runs: 'Home Runs',
   batter_rbis: 'RBIs',
   batter_walks: 'Walks',
+  batter_total_bases: 'Total Bases',
   pitcher_earned_runs: 'Earned Runs',
   pitcher_outs: 'Outs Recorded',
   pitcher_hits_allowed: 'Hits Allowed',
@@ -64,11 +67,9 @@ function ConfidenceBadge({ score }: { score: number }) {
 
 function ProjectionCard({ proj }: { proj: any }) {
   const statLabel = STAT_LABELS[proj.stat_type] || proj.stat_type
-  // Schema uses 'projection' column name
   const projValue = proj.projection
   const conf = proj.confidence
 
-  // Parse features JSON for key factors
   let features: any = {}
   try {
     features = typeof proj.features === 'string' ? JSON.parse(proj.features) : (proj.features || {})
@@ -80,7 +81,7 @@ function ProjectionCard({ proj }: { proj: any }) {
         <div className="flex-1 min-w-0">
           <div className="font-semibold text-white truncate">{proj.player_name}</div>
           <div className="text-xs text-slate-500 mt-0.5">
-                      {proj.team && <span className="mr-1">{proj.team} •</span>}{statLabel}
+            {proj.team && <span className="mr-1">{proj.team} &bull;</span>}{statLabel}
             {features.venue && <span className="ml-1">&bull; {features.venue}</span>}
           </div>
         </div>
@@ -120,6 +121,31 @@ function ProjectionCard({ proj }: { proj: any }) {
           )}
         </div>
       )}
+
+      {features.career_tb_per_pa && (
+        <div className="mt-3 pt-3 border-t border-gray-700 grid grid-cols-2 gap-2 text-xs">
+          <div>
+            <span className="text-slate-500">TB/PA:</span>
+            <span className="text-slate-300 ml-1">{features.career_tb_per_pa}</span>
+          </div>
+          <div>
+            <span className="text-slate-500">Park adj:</span>
+            <span className="text-slate-300 ml-1">{features.park_adjustment || '--'}</span>
+          </div>
+          {features.opponent_pitcher && (
+            <div>
+              <span className="text-slate-500">vs:</span>
+              <span className="text-slate-300 ml-1">{features.opponent_pitcher}</span>
+            </div>
+          )}
+          {features.rampup_weight != null && features.rampup_weight < 1 && (
+            <div>
+              <span className="text-slate-500">Ramp-up:</span>
+              <span className="text-slate-300 ml-1">{Math.round(features.rampup_weight * 100)}%</span>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -134,67 +160,50 @@ export default async function ProjectionsPage() {
     timeZone: 'America/New_York',
   })
 
-  const highConf = projections.filter((p: any) => p.confidence != null && p.confidence >= 0.7)
-  const other = projections.filter((p: any) => !p.confidence || p.confidence < 0.7)
-
   return (
     <div>
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-white mb-2">Model Projections</h1>
         <p className="text-slate-400">
-          {today} &bull; Glass-box K/9 model &bull; {projections.length} projections
+          {today} &bull; Glass-box models &bull; {projections.length} projections
         </p>
       </div>
 
       {projections.length === 0 ? (
         <div className="text-center py-16">
-          <div className="text-4xl mb-4">🤖</div>
+          <div className="text-4xl mb-4">&#x1F916;</div>
           <h2 className="text-xl font-semibold text-slate-300 mb-2">No projections yet</h2>
           <p className="text-slate-500 max-w-md mx-auto">
             {!supabaseUrl
               ? 'Configure Supabase environment variables to load projections.'
-              : 'Projections generate automatically starting Opening Day 2026 using our glass-box K/9 pitcher model.'}
+              : 'Projections generate automatically starting Opening Day 2026 using our glass-box models.'}
           </p>
           <div className="mt-8 p-4 bg-gray-900 rounded-lg border border-gray-700 max-w-md mx-auto text-sm text-slate-400 text-left">
             <p className="font-medium text-slate-300 mb-2">Model factors:</p>
             <ul className="space-y-1">
-              <li>• Career K/9 rate (MLB Stats API)</li>
-              <li>• Park K-factor adjustments (15 ballparks)</li>
-              <li>• Expected innings pitched</li>
-              <li>• Opponent lineup</li>
+              <li>&#x2022; Career K/9 rate (MLB Stats API)</li>
+              <li>&#x2022; Park K-factor adjustments (all 30 ballparks)</li>
+              <li>&#x2022; Expected innings pitched</li>
+              <li>&#x2022; Batter TB/PA with early-season ramp-up</li>
+              <li>&#x2022; Opponent lineup</li>
             </ul>
           </div>
         </div>
       ) : (
-        <div className="space-y-10">
-          {highConf.length > 0 && (
-            <section>
-              <h2 className="text-xl font-semibold text-white mb-4 pb-2 border-b border-green-800">
-                High Confidence
-                <span className="ml-2 text-sm font-normal text-green-500">≥ 70% ({highConf.length})</span>
-              </h2>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {highConf.map((proj: any, i: number) => (
-                  <ProjectionCard key={`${proj.player_name}-${proj.stat_type}-${i}`} proj={proj} />
-                ))}
-              </div>
-            </section>
+        <ProjectionFilters projections={projections}>
+          {(filtered) => (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {filtered.map((proj: any, i: number) => (
+                <ProjectionCard key={`${proj.player_name}-${proj.stat_type}-${i}`} proj={proj} />
+              ))}
+              {filtered.length === 0 && (
+                <div className="col-span-full text-center py-8">
+                  <p className="text-slate-500">No projections match your filters.</p>
+                </div>
+              )}
+            </div>
           )}
-
-          {other.length > 0 && (
-            <section>
-              <h2 className="text-xl font-semibold text-white mb-4 pb-2 border-b border-gray-700">
-                All Projections
-                <span className="ml-2 text-sm font-normal text-slate-400">({other.length})</span>
-              </h2>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {other.map((proj: any, i: number) => (
-                  <ProjectionCard key={`${proj.player_name}-${proj.stat_type}-${i}`} proj={proj} />
-                ))}
-              </div>
-            </section>
-          )}
-        </div>
+        </ProjectionFilters>
       )}
     </div>
   )
