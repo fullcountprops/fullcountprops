@@ -1,65 +1,64 @@
 # BaselineMLB — Improvement Backlog
 
-> Generated: 2026-03-02 (Continuous Improvement Cycle #1)
+> Generated: 2026-03-02 (Continuous Improvement Cycle #2)
 
-## Component Grades (Phase 1 Audit)
+## Component Grades (Phase 1 Audit — Cycle #2)
 
-| Component | Grade | Notes |
-|-----------|-------|-------|
-| **Pipeline (pipeline/)** | B | Core scripts work with proper env vars. `generate_projections.py` and `generate_batter_projections.py` have solid math. Missing `PYTHONPATH` in pipelines.yml may cause import issues. |
-| **Scripts (scripts/)** | D | `grade_accuracy.py` is **BROKEN** — file has no line terminators (single escaped-string blob, 14,950 bytes, 0 newlines). 4 duplicate scripts overlap with pipeline/. |
-| **Simulator (simulator/)** | B- | Engine works. `test_simulator.py` fails to collect — imports `N_OUTCOMES`, `K_IDX`, `BB_IDX`, etc. that don't exist in `monte_carlo_engine.py`. 90 tests blocked. |
-| **Simulation (simulation/)** | B+ | 130 tests pass. Comprehensive game engine, matchup model, prop analyzer. Separate from simulator/ with unclear relationship. |
-| **Models (models/)** | B | Well-structured LightGBM pipeline. Untrained (no training data parquet yet). Correct architecture. |
-| **Frontend (frontend/)** | B | Next.js 14 + Supabase. Dark theme, responsive. Accuracy page uses hardcoded backtest data. |
-| **GitHub Actions** | C+ | 8 workflow files. `pipelines.yml` missing `PYTHONPATH` env var. CI runs tests but test_simulator.py breaks collection. Overnight job calls broken `grade_accuracy.py`. |
-| **Supabase Schema** | A- | Comprehensive 16-table schema with RLS, indexes, proper constraints. Well-organized. |
-| **Documentation** | B+ | 6 methodology docs, README, architecture spec. No improvement log or changelog. |
-| **Tests** | C | 27 projection tests pass, 130 simulation tests pass. But 90 simulator tests blocked by import error. Total: 157/247 passing. |
-| **Code Quality (Ruff)** | C- | 163 lint errors: 44 unused imports, 29 unsorted imports, 24 whitespace issues, 21 syntax issues, 15 f-string issues. |
-
-**Overall Grade: C+** — Strong foundation with critical breakages preventing end-to-end operation.
+| Component | Cycle #1 Grade | Cycle #2 Grade | Δ | Notes |
+|-----------|---------------|---------------|---|-------|
+| **Pipeline (pipeline/)** | B | B+ | ↑ | v2.0 model with 7 factors, umpire/catcher integration. Nested `pipeline/pipeline/` leftover needs cleanup. |
+| **Scripts (scripts/)** | D | C- | ↑ | `grade_accuracy.py` fixed but 4 duplicate fetch scripts still present. `backtest_simulator.py` uses stub fallbacks. `analysis/projection_model.py` has TODO placeholders returning 0.0. |
+| **Simulator (simulator/)** | B- | B | ↑ | Compatibility layer added. `run_daily.py` has undefined `BatterProfile` type annotation (F821). 2 test failures from signature mismatch. |
+| **Simulation (simulation/)** | B+ | B+ | = | 130 tests pass. Still a separate package from `simulator/` — consolidation pending from Cycle #1. |
+| **Models (models/)** | B | B | = | Well-structured but still untrained (no Statcast parquet data). LightGBM training blocked until data pipeline runs. |
+| **Frontend (frontend/)** | B | B+ | ↑ | Many new pages (best-bets, calibration, players, simulator). Accuracy page wired to Supabase with hardcoded fallback. |
+| **GitHub Actions** | C+ | **D** | ↓ | **CI is failing** — all recent runs fail on Ruff lint (F841, E722, E701 errors). `model_retrain.yml` triggers on every push to main. |
+| **Supabase Schema** | A- | A- | = | 16 tables in main schema. Multiple migration files with some overlapping table names (sim_results vs simulation_results). |
+| **Documentation** | B+ | A- | ↑ | IMPROVEMENT_LOG, BACKLOG, ARCHITECTURE, METHODOLOGY docs all present. |
+| **Tests** | C | **B-** | ↑ | 242/244 passing (2 failures from `build_batter_profile` signature mismatch). Down from 247 — some tests may have been removed. |
+| **Code Quality (Ruff)** | C- | C | ↑ | 105 errors remaining (down from 163). 57 auto-fixable. F821 undefined name in run_daily.py. |
+| **Overall** | **C+** | **C+** | = | Foundation improved but CI regression is a blocker. |
 
 ---
 
 ## Ranked Improvements (Top 5)
 
-### 1. 🔴 FIX: `scripts/grade_accuracy.py` is a broken single-line blob
-- **Impact**: CRITICAL — overnight pipeline job fails silently, no accuracy grading happens
+### 1. 🔴 FIX: CI is broken — Ruff lint errors failing every push
+- **Impact**: CRITICAL — no code can be validated through CI. Every push triggers a failing run.
 - **Category**: Fixing broken code
-- **Details**: File is 14,950 bytes with zero line terminators. All `\n` are escaped as `\\n`. The `backtest_weekly.yml` workflow imports `run_grading` from this file — it will crash.
-- **Fix**: Rewrite the file with proper newlines from the escaped content
+- **Details**: CI `lint-python` job fails on: 20× F841 (unused variables), 9× E701 (multiple statements on one line), 1× E722 (bare except), 1× F821 (undefined name). The `model_retrain.yml` also fires on every push to main (misconfigured trigger).
+- **Fix**: Auto-fix 57 fixable errors with `ruff --fix`, manually fix remaining F841/E701/E722/F821 errors. Fix model_retrain.yml trigger to only fire on schedule/workflow_dispatch.
 
-### 2. 🔴 FIX: `tests/test_simulator.py` import error blocks 90 tests
-- **Impact**: HIGH — CI test suite broken, can't validate simulator changes
+### 2. 🔴 FIX: 2 test failures — `build_batter_profile()` signature mismatch
+- **Impact**: HIGH — Tests pass `lineup_position=` and rate kwargs but function expects `position=` and `stats=` dict.
 - **Category**: Fixing broken code
-- **Details**: Test imports `N_OUTCOMES`, `K_IDX`, `BB_IDX`, `SINGLE_IDX`, `DOUBLE_IDX`, `TRIPLE_IDX`, `HR_IDX`, `FLYOUT_IDX`, `GROUNDOUT_IDX`, `HIT_INDICES`, `OUT_INDICES`, `MLB_AVG_PROBS` plus several functions that don't exist in `simulator/monte_carlo_engine.py`
-- **Fix**: Add the missing constants/exports to `monte_carlo_engine.py`
+- **Details**: `tests/test_simulator.py` lines 821-843 call `build_batter_profile(lineup_position=3, k_rate=0.22, ...)` but the actual function in `simulator/run_daily.py` expects `position=3, stats={...}`.
+- **Fix**: Update the test to match the actual function signature, OR add backward-compatible kwargs to the function.
 
-### 3. 🟡 FIX: `pipelines.yml` missing PYTHONPATH causes import resolution issues
-- **Impact**: MEDIUM — pipeline jobs may fail when scripts import from `lib/` or cross-package
-- **Category**: Fixing broken code
-- **Details**: The `ci.yml` correctly sets `PYTHONPATH: ${{ github.workspace }}` but `pipelines.yml` does not. Scripts like `grade_accuracy.py` that import from `lib/` will fail.
-- **Fix**: Add `PYTHONPATH: ${{ github.workspace }}` to pipelines.yml env block
-
-### 4. 🟡 IMPROVE: Fix 163 Ruff lint errors across codebase
-- **Impact**: MEDIUM — code quality, maintainability, potential hidden bugs from unused imports
-- **Category**: Code quality
-- **Details**: 111 auto-fixable errors (unused imports, unsorted imports, whitespace). 52 need manual review.
-- **Fix**: Run `ruff check --fix` for auto-fixable, manually address remaining
-
-### 5. 🟢 IMPROVE: Clean up duplicate scripts/ vs pipeline/ files
-- **Impact**: LOW-MEDIUM — confusion about which version is authoritative
+### 3. 🟡 CLEANUP: Remove stale duplicates and nested directories
+- **Impact**: MEDIUM — confusing repo structure, potential for running wrong version of scripts.
 - **Category**: Code organization
-- **Details**: `fetch_games.py`, `fetch_players.py`, `fetch_props.py`, `fetch_statcast.py` exist in both `scripts/` and `pipeline/`. Workflows use `pipeline/` versions. `scripts/` copies are stale.
-- **Fix**: Remove or clearly deprecate the scripts/ duplicates
+- **Details**: (a) 4 duplicate fetch scripts in `scripts/` vs `pipeline/` (pipeline/ is authoritative). (b) Nested `pipeline/pipeline/` directory with stale .env.example, requirements.txt, schema.sql. (c) `simulation/` and `simulator/` are separate packages doing similar things.
+- **Fix**: Remove `scripts/fetch_games.py`, `scripts/fetch_players.py`, `scripts/fetch_props.py`, `scripts/fetch_statcast.py`. Remove `pipeline/pipeline/` nested dir. Add deprecation notice to `simulation/`.
+
+### 4. 🟡 COMPLETE: `analysis/projection_model.py` has placeholder stubs returning 0.0
+- **Impact**: MEDIUM — the glass-box projection model's `opponent_k_rate()` and `park_factor_adjustment()` are incomplete.
+- **Category**: Completing stub/placeholder code
+- **Details**: `opponent_k_rate()` returns 0.0 with a TODO comment. `park_factor_adjustment()` only covers 4 parks (not all 30). `expected_ip` is hardcoded at 5.5. Note: `pipeline/generate_projections.py` (the production version) already has these fixed in v2.0 — `analysis/projection_model.py` is the original prototype.
+- **Fix**: Either remove `analysis/projection_model.py` (superseded by pipeline v2.0) or update it to match v2.0 logic.
+
+### 5. 🟢 IMPROVE: Fix `model_retrain.yml` misconfigured trigger
+- **Impact**: LOW-MEDIUM — fires on every push to main (should only fire monthly/on-demand).
+- **Category**: Fixing broken code
+- **Details**: The workflow fires on `push: branches: [main]` in addition to its monthly cron. This wastes CI minutes and creates noise.
+- **Fix**: Remove the `push` trigger, keep only `schedule` and `workflow_dispatch`.
 
 ---
 
-## Additional Improvements (Queued)
+## Additional Improvements (Queued from Cycle #1 + New)
 
-6. Consolidate `simulation/` and `simulator/` directories into one canonical package
-7. Wire accuracy page to live Supabase data instead of hardcoded backtest values
-8. Add PYTHONPATH to all GitHub Actions workflows consistently
-9. Train LightGBM model on available Statcast data before Opening Day
-10. Add integration test that validates full `make simulate` pipeline with mocked APIs
+6. Consolidate `simulation/` and `simulator/` into one canonical package
+7. Train LightGBM model on Statcast data before Opening Day (March 27)
+8. Clean up overlapping Supabase migration files (sim_results vs simulation_results naming)
+9. Add integration test for full `make simulate` pipeline with mocked APIs
+10. Remaining Ruff lint errors after auto-fix (manual review needed)
