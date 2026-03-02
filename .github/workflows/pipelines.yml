@@ -106,7 +106,7 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
       - name: Fetch Statcast data
-        run: python scripts/fetch_statcast.py
+        run: python pipeline/fetch_statcast.py
       - name: Grade accuracy
         run: python scripts/grade_accuracy.py
       - name: Track CLV

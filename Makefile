@@ -36,6 +36,9 @@ simulate: ## Run Monte Carlo simulation for today's games
 	$(PYTHON) pipeline/fetch_props.py
 	$(PYTHON) pipeline/generate_projections.py
 	$(PYTHON) pipeline/generate_batter_projections.py
+	@echo "$(GREEN)Point-estimate projections complete.$(RESET)"
+	@echo "$(CYAN)Running Monte Carlo engine ($(NUM_SIMS) sims)...$(RESET)"
+	$(PYTHON) -m simulator.run_daily --n-sims $(NUM_SIMS) || echo "$(CYAN)MC simulator skipped (dependencies not met or no games today).$(RESET)"
 	@echo "$(GREEN)Simulation complete.$(RESET)"
 
 backtest: ## Run backtest for the past week
@@ -51,7 +54,7 @@ train: ## Retrain the XGBoost matchup model
 
 refresh-data: ## Fetch latest Statcast, props, and umpire data
 	@echo "$(CYAN)Refreshing data...$(RESET)"
-	$(PYTHON) scripts/fetch_statcast.py
+	$(PYTHON) pipeline/fetch_statcast.py
 	$(PYTHON) pipeline/fetch_props.py
 	$(PYTHON) pipeline/fetch_umpire_framing.py
 	@echo "$(GREEN)Data refresh complete.$(RESET)"
