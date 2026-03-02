@@ -13,13 +13,15 @@ Data source: pybaseball statcast() — 2021-2024 seasons
 Model: Logistic regression with position + count + handedness controls
 """
 
-import pandas as pd
+import warnings
+
 import numpy as np
+import pandas as pd
 from pybaseball import statcast
 from sklearn.linear_model import LogisticRegression
-from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import cross_val_score
-import warnings
+from sklearn.preprocessing import StandardScaler
+
 warnings.filterwarnings('ignore')
 
 # ---------------------------------------------------------------------------
