@@ -13,7 +13,7 @@
 - Fetches daily game schedules, player stats, and prop lines automatically via GitHub Actions
 - Pulls Statcast pitch data to compute **catcher framing scores** and **umpire accuracy** for each game
 - Generates **glass-box prop projections** (no black-box models — every factor is visible and explained)
-- Tracks historical prediction accuracy on a **public dashboard** at [baselinemlb.com](https://baselinemlb.com)
+- Tracks historical prediction accuracy on a **public dashboard** at [baselinemlb.vercel.app](https://baselinemlb.vercel.app)
 - Designed for **mid-stakes prop bettors** who want edge, not guesswork
 
 ---
@@ -22,12 +22,15 @@
 
 | Feature | Details |
 |---|---|
-| **Automated pipelines** | GitHub Actions cron jobs run daily at 8 AM, 2 PM, and 2 AM ET |
+| **Automated pipelines** | GitHub Actions cron jobs run 4x daily (8 AM, 10:30 AM, 4:30 PM, 2 AM ET) |
 | **Glass-box models** | All projection inputs are logged and publicly viewable |
+| **Off-season aware** | Pipelines automatically skip Nov 16 – Feb 14 |
 | **Umpire composites** | Per-umpire called-strike accuracy, zone tendencies (L/R batter splits) |
 | **Catcher framing** | Shadow-zone framing rate per catcher, updated nightly from Statcast |
 | **Prop coverage** | K's, hits, total bases, RBIs, runs scored, home runs, pitcher outs |
 | **Public accuracy dashboard** | Track our hit rate vs. the closing line over time |
+| **Edge detection** | Kelly criterion bet sizing with confidence tiers |
+| **CLV tracking** | Closing Line Value analysis for every pick |
 
 ---
 
@@ -36,18 +39,41 @@
 ```
 baselinemlb/
 ├── .github/workflows/
-│   └── pipelines.yml          # Daily cron: fetch games, players, props, statcast
-├── scripts/
-│   ├── fetch_games.py         # MLB Stats API → game schedule
-│   ├── fetch_players.py       # Pitcher + batter season stats
-│   ├── fetch_props.py         # The Odds API → prop lines (10 markets)
-│   └── fetch_statcast.py      # Statcast → framing + umpire accuracy
-├── pipeline/                  # Data transformation + scoring logic
-├── supabase/                  # Database schema (8-table)
-├── dashboard/                 # Public accuracy dashboard (HTML/JS)
-├── data/                      # Local output: games/, players/, props/, statcast/
-├── requirements.txt
-├── .env.example
+│   └── pipelines.yml              # Daily cron: 4 pipeline windows + linting
+├── frontend/                      # Next.js 14 app (Vercel)
+│   └── app/
+│       ├── layout.tsx             # Root layout with nav + SEO meta tags
+│       ├── page.tsx               # Homepage — today's slate
+│       ├── props/page.tsx         # Live prop lines from The Odds API
+│       ├── projections/page.tsx   # Model projections with confidence scores
+│       ├── accuracy/page.tsx      # Live + backtest accuracy dashboard
+│       └── players/page.tsx       # Player lookup
+├── pipeline/                      # Data ingestion + projection engines
+│   ├── fetch_games.py             # MLB Stats API → games table
+│   ├── fetch_players.py           # MLB Stats API → players table
+│   ├── fetch_props.py             # The Odds API → props table
+│   ├── fetch_statcast.py          # Statcast → framing + umpire data
+│   ├── fetch_umpire_framing.py    # Umpire framing composites
+│   ├── generate_projections.py    # Pitcher K projection engine (30 parks)
+│   └── generate_batter_projections.py  # Batter TB projection engine (30 parks)
+├── scripts/                       # Analysis + grading scripts
+│   ├── fetch_games.py             # Game schedule fetcher
+│   ├── fetch_players.py           # Player roster fetcher
+│   ├── fetch_props.py             # Prop line fetcher
+│   ├── fetch_statcast.py          # Statcast data fetcher
+│   ├── grade_accuracy.py          # Nightly accuracy grading
+│   ├── track_clv.py               # Closing Line Value tracker
+│   └── find_edges.py              # Edge detection + Kelly sizing
+├── lib/                           # Shared Python utilities
+│   └── supabase.py                # Centralized Supabase client + helpers
+├── supabase/                      # Database schema + migrations
+│   ├── schema.sql                 # Full schema (all tables)
+│   └── migrations/                # Versioned migrations
+├── docs/
+│   └── MODEL_METHODOLOGY.md       # Detailed model documentation
+├── requirements.txt               # Python dependencies
+├── .env.example                   # Environment variable template
+├── LICENSE                        # MIT License
 └── README.md
 ```
 
@@ -70,38 +96,67 @@ git clone https://github.com/nrlefty5/baselinemlb.git
 cd baselinemlb
 pip install -r requirements.txt
 cp .env.example .env
-# Fill in your ODDS_API_KEY in .env
+# Fill in your API keys and Supabase credentials in .env
 ```
 
 Run individual scripts:
 
 ```bash
-python scripts/fetch_games.py
-python scripts/fetch_players.py
-python scripts/fetch_props.py      # Requires ODDS_API_KEY
-python scripts/fetch_statcast.py   # Pulls yesterday's Statcast data
+python pipeline/fetch_games.py          # Fetch today's game schedule
+python pipeline/fetch_players.py        # Fetch active rosters
+python pipeline/fetch_props.py          # Fetch prop lines (requires ODDS_API_KEY)
+python pipeline/generate_projections.py # Generate pitcher K projections
+python pipeline/generate_batter_projections.py  # Generate batter TB projections
+python scripts/grade_accuracy.py        # Grade yesterday's picks
+python scripts/find_edges.py            # Find today's betting edges
+```
+
+### Frontend (Next.js)
+
+```bash
+cd frontend
+npm install
+npm run dev
+# Open http://localhost:3000
 ```
 
 ### GitHub Actions Secrets Required
 
 | Secret | Description |
 |---|---|
-| `ODDS_API_KEY` | From [the-odds-api.com](https://the-odds-api.com) |
-| `SUPABASE_URL` | Your Supabase project URL |
+| `SUPABASE_PROJECT_URL` | Your Supabase project URL (`https://xxx.supabase.co`) |
 | `SUPABASE_SERVICE_KEY` | Supabase service role key |
-| `SUPABASE_ANON_KEY` | Supabase anon (public) key — used by dashboard/js/stats.js |
+| `ODDS_API_KEY` | From [the-odds-api.com](https://the-odds-api.com) |
+
+### Vercel Environment Variables
+
+| Variable | Description |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL (for frontend) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key (for frontend) |
+
+---
+
+## Model Methodology
+
+See **[docs/MODEL_METHODOLOGY.md](docs/MODEL_METHODOLOGY.md)** for full documentation of:
+- Pitcher strikeout model (v1.0-glass-box)
+- Batter total bases model (v1.1-glass-box-tb-rampup)
+- Edge detection and Kelly criterion sizing
+- Accuracy grading and CLV tracking
+- Park factors for all 30 MLB stadiums
 
 ---
 
 ## Prop Markets Tracked
 
 - `pitcher_strikeouts` — our #1 focus
+- `batter_total_bases` — batter model
 - `pitcher_outs`
 - `pitcher_hits_allowed`
 - `pitcher_walks`
 - `pitcher_earned_runs`
 - `batter_hits`
-- `batter_total_bases`
 - `batter_home_runs`
 - `batter_rbis`
 - `batter_runs_scored`
@@ -117,24 +172,13 @@ Every game projection includes:
 - **Catcher framing rate** — shadow-zone strike conversion over trailing 30 games
 - **Net framing impact** — estimated extra K's per 9 innings from umpire + catcher combo
 
-All of this is pulled nightly from Statcast via pybaseball and stored in `data/statcast/`.
-
----
-
-## Public Accuracy Dashboard
-
-Our prediction accuracy is tracked publicly at **[baselinemlb.com](https://baselinemlb.com)**. (live at **[nrlefty5.github.io/baselinemlb](https://nrlefty5.github.io/baselinemlb/)**).
-
-Metrics shown:
-- Overall hit rate (past 30 days, season)
-- Hit rate by prop market
-- Hit rate by bookmaker
-- Closing line value (CLV) trend
+All of this is pulled nightly from Statcast via pybaseball and stored in Supabase.
 
 ---
 
 ## License
 
+MIT — open source, use freely. See [LICENSE](LICENSE).
 
 ---
 
@@ -144,12 +188,9 @@ Metrics shown:
 
 All database schema changes are versioned in `supabase/migrations/`.
 
-**To apply migrations to your Supabase project:**
-
 ```bash
-# Install Supabase CLI (if not already installed)
+# Install Supabase CLI
 brew install supabase/tap/supabase  # macOS
-# or: npm install -g supabase
 
 # Link to your project
 supabase link --project-ref [YOUR_PROJECT_REF]
@@ -160,93 +201,15 @@ supabase db push
 
 ### Required Tables
 
-The following tables must exist for the pipeline to function:
-
-| Table | Purpose | Migration File |
-|-------|---------|----------------|
-| `games` | MLB game schedule | `schema.sql` |
-| `players` | Active MLB players (40-man rosters) | `schema.sql` |
-| `props` | Prop lines from The Odds API | `schema.sql` |
-| `projections` | Our K/TB projections | `schema.sql` |
-| `statcast` | Pitch-level data from MLB | `schema.sql` |
-| `picks` | Graded projection results | `schema.sql` |
-| `accuracy_summary` | Aggregate hit rate stats | `schema.sql` |
-| **`clv_tracking`** | Closing Line Value analysis | `20260225_create_clv_tracking.sql` |
-
-### CLV Tracking Table Schema
-
-```sql
-CREATE TABLE clv_tracking (
-  id BIGSERIAL PRIMARY KEY,
-  game_date DATE NOT NULL,
-  player_name TEXT NOT NULL,
-  market TEXT NOT NULL,
-  opening_price INTEGER,  -- American odds (e.g., -110, +150)
-  closing_price INTEGER,
-  opening_line NUMERIC,   -- Prop line (e.g., 6.5 Ks)
-  closing_line NUMERIC,
-  price_movement INTEGER, -- opening_price - closing_price
-  clv_percent NUMERIC,    -- (price_movement / abs(closing_price)) * 100
-  calculated_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(game_date, player_name, market)
-);
-
-CREATE INDEX idx_clv_game_date ON clv_tracking(game_date);
-CREATE INDEX idx_clv_player ON clv_tracking(player_name);
-```
-
-### Verifying Migrations
-
-To confirm all migrations have been applied:
-
-```bash
-# Check migration status
-supabase migration list
-
-# Or query directly in Supabase SQL Editor:
-SELECT * FROM supabase_migrations.schema_migrations ORDER BY version;
-```
-
-You should see:
-- `20260225_create_clv_tracking` with `inserted_at` timestamp
-
-### Row-Level Security (RLS) for Dashboard
-
-The public dashboard at [baselinemlb.com](https://baselinemlb.com) uses the Supabase **anon key** to fetch read-only data. Enable RLS policies:
-
-```sql
--- Allow public read access to completed picks
-ALTER TABLE picks ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Public read completed picks"
-  ON picks FOR SELECT
-  USING (result IS NOT NULL);  -- Only show graded picks
-
--- Allow public read access to CLV tracking
-ALTER TABLE clv_tracking ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Public read CLV"
-  ON clv_tracking FOR SELECT
-  USING (true);
-
--- Allow public read access to accuracy summary
-ALTER TABLE accuracy_summary ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Public read accuracy"
-  ON accuracy_summary FOR SELECT
-  USING (true);
-```
-
-**⚠️ Important:** Never expose your `SUPABASE_SERVICE_KEY` in client-side code. Only the `SUPABASE_ANON_KEY` should be used in `dashboard/js/stats.js`.
-MIT — open source, use freely.
-
-
-<!-- System validated and pipeline tested on 2026-02-26 -->
-
-
----
-
-## Screenshots
-
-| Homepage | Today's Slate |
-|----------|---------------|
-| ![Homepage](docs/screenshots/homepage.png) | ![Today's Slate](docs/screenshots/todays_slate.png) |
-
-See [`docs/screenshots/`](docs/screenshots/) for all Week 1 launch screenshots.
+| Table | Purpose |
+|-------|---------|
+| `games` | MLB game schedule |
+| `players` | Active MLB players (40-man rosters) |
+| `props` | Prop lines from The Odds API |
+| `projections` | K/TB projections |
+| `statcast` | Pitch-level data from MLB |
+| `picks` | Graded projection results |
+| `accuracy_summary` | Aggregate hit rate stats |
+| `clv_tracking` | Closing Line Value analysis |
+| `email_subscribers` | Newsletter subscriptions |
+| `pitcher_overrides` | Manual pitcher assignments |

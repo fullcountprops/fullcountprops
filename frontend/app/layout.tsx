@@ -4,13 +4,28 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: 'Baseline MLB — Glass-Box MLB Analytics',
-  description: 'MLB player prop analytics with transparent, glass-box AI projections. Every factor logged. Every result graded publicly.',
-  keywords: 'MLB, baseball, analytics, player props, betting, strikeouts, Statcast',
+  description: 'MLB player prop analytics with transparent, glass-box AI projections. Every factor logged. Every result graded publicly. Pitcher strikeouts, batter total bases, and more.',
+  keywords: 'MLB, baseball, analytics, player props, betting, strikeouts, total bases, Statcast, glass-box, projections, pitcher props, batter props',
   openGraph: {
-    title: 'Baseline MLB',
-    description: 'Glass-box MLB prop analytics. No black boxes.',
-    url: 'https://baselinemlb.com',
+    title: 'Baseline MLB — Glass-Box MLB Analytics',
+    description: 'Transparent MLB prop analytics. No black boxes. Every factor logged, every result graded publicly.',
+    url: 'https://baselinemlb.vercel.app',
     siteName: 'Baseline MLB',
+    type: 'website',
+    locale: 'en_US',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Baseline MLB — Glass-Box MLB Analytics',
+    description: 'Transparent MLB prop analytics. No black boxes.',
+    creator: '@baselinemlb',
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+  alternates: {
+    canonical: 'https://baselinemlb.vercel.app',
   },
 }
 
@@ -43,7 +58,7 @@ export default function RootLayout({
               <a href="/props" className="text-slate-300 hover:text-white transition-colors">Props</a>
               <a href="/projections" className="text-slate-300 hover:text-white transition-colors">Projections</a>
               <a href="/players" className="text-slate-300 hover:text-white transition-colors">Players</a>
-              <a href="https://nrlefty5.github.io/baselinemlb/" target="_blank" className="text-slate-300 hover:text-white transition-colors">Accuracy</a>
+              <a href="/accuracy" className="text-slate-300 hover:text-white transition-colors">Accuracy</a>
               <a href="https://twitter.com/baselinemlb" target="_blank" className="text-blue-400 hover:text-blue-300 transition-colors">@baselinemlb</a>
             </div>
           </div>
@@ -54,7 +69,7 @@ export default function RootLayout({
         </main>
 
         <footer className="border-t border-gray-800 px-6 py-8 mt-16">
-          <div className="max-w-w-7xl mx-auto">
+          <div className="max-w-7xl mx-auto">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2 mb-1">
@@ -69,6 +84,7 @@ export default function RootLayout({
                 <a href="/props" className="text-slate-400 hover:text-white">Props</a>
                 <a href="/projections" className="text-slate-400 hover:text-white">Projections</a>
                 <a href="/players" className="text-slate-400 hover:text-white">Players</a>
+                <a href="/accuracy" className="text-slate-400 hover:text-white">Accuracy</a>
               </div>
             </div>
             <p className="text-xs text-slate-600 mt-4">
