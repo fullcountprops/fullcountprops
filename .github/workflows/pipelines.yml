@@ -114,6 +114,7 @@ jobs:
         run: python pipeline/generate_batter_projections.py
       - name: Generate daily content
         run: python scripts/generate_daily_content.py --format all --top 5
+        continue-on-error: true
 
   # -- Afternoon Pipeline: Props Refresh + Update Projections (4:30 PM ET)
   afternoon-props-projections:
