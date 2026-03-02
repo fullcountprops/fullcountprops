@@ -27,11 +27,9 @@ import argparse
 import hashlib
 import json
 import logging
-import os
 import sys
 import time
-import warnings
-from datetime import date, datetime
+from datetime import date
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -83,9 +81,9 @@ except ImportError:
 # sklearn helpers
 try:
     from sklearn.metrics import (  # type: ignore
+        brier_score_loss,
         classification_report,
         log_loss,
-        brier_score_loss,
     )
     from sklearn.preprocessing import LabelEncoder  # type: ignore
     _SKLEARN_AVAILABLE = True
