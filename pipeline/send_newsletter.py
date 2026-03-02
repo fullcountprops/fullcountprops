@@ -156,7 +156,7 @@ def build_html(projections: list, game_date: str) -> str:
         </div>
 
         <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #999;">
-            <a href="{{{{ unsubscribe_url }}}}">Unsubscribe</a>
+            <a href="{{ unsubscribe_url }}">Unsubscribe</a>
         </div>
     </body>
     </html>"""
