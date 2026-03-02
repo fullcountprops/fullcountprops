@@ -114,7 +114,7 @@ def load_props(game_date: str) -> dict:
     rows = sb_get("props", {
         "game_date": f"eq.{game_date}",
         "select": "*",
-        "order": "timestamp.desc",
+        "order": "fetched_at.desc",
     })
 
     props = {}
