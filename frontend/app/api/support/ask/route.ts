@@ -7,9 +7,9 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { routeAndCallAI } from '@/lib/ai';
 import type { TaskDescriptor } from '@/lib/ai';
 
-let _supabase: SupabaseClient | null = null;
-
-function getSupabase(): SupabaseClient {
+// Lazy-init Supabase client to avoid build-time crashes
+let _supabase: ReturnType<typeof createClient> | null = null;
+function getSupabase() {
   if (!_supabase) {
     _supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -38,6 +38,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const supabase = getSupabase();
+
     // Build context from Supabase if prop/player context provided
     const supabase = getSupabase();
 
@@ -52,6 +54,7 @@ export async function POST(req: NextRequest) {
         ragContext += `\nRelevant prop data: ${JSON.stringify(prop)}`;
       }
     }
+
     if (context?.player_name) {
       const { data: projections } = await supabase
         .from('projections')
@@ -70,6 +73,7 @@ export async function POST(req: NextRequest) {
 
     // Determine task complexity
     const isComplex = question.length > 200 || question.includes('explain') || question.includes('methodology');
+
     const task: TaskDescriptor = {
       task_type: 'user_question',
       criticality: isComplex ? 'medium' : 'low',
