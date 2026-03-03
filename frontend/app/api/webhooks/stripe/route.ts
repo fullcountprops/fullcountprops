@@ -56,7 +56,7 @@ async function findUserByStripeCustomerId(customerId: string): Promise<string | 
     console.error('[stripe-webhook] Failed to list users:', error.message)
     return null
   }
-  const user = data.users.find(u => u.user_metadata?.stripe_customer_id === customerId)
+  const user = data.users.find((u: any) => u.user_metadata?.stripe_customer_id === customerId)
   return user?.id || null
 }
 
