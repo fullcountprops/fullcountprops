@@ -1,121 +1,154 @@
+// frontend/app/api/checkout/route.ts
 // ============================================================
+// BaselineMLB — Stripe Checkout Session (Issue #8: 4-tier)
+//
 // POST /api/checkout
-// Creates a Stripe Checkout Session for Pro Monthly or Pro Annual.
-// Requires a logged-in Supabase Auth user.
+// Body: { plan: 'double_a' | 'triple_a' | 'the_show', period?: 'monthly' | 'annual' }
+// Returns: { url: string } — Stripe Checkout redirect URL
 // ============================================================
 
-import { NextRequest, NextResponse } from 'next/server'
-import Stripe from 'stripe'
-import { createClient } from '@supabase/supabase-js'
+import { NextRequest, NextResponse } from 'next/server';
+import Stripe from 'stripe';
+import { createClient } from '@supabase/supabase-js';
+import { TIERS, normalizeTier } from '@/app/lib/tiers';
 
-// Lazy-init Stripe to avoid build-time crash when env vars are missing
-let _stripe: Stripe | null = null
-function getStripe(): Stripe {
-  if (!_stripe) {
-    const key = process.env.STRIPE_SECRET_KEY
-    if (!key) {
-      throw new Error('STRIPE_SECRET_KEY is not configured')
-    }
-    _stripe = new Stripe(key, {
-      apiVersion: '2025-01-27.acacia' as any,
-    })
-  }
-  return _stripe
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2024-12-18.acacia',
+});
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+
+/** Map plan + period to Stripe price ID from env vars. */
+function getPriceId(
+  plan: string,
+  period: string = 'monthly'
+): string | null {
+  const map: Record<string, string | undefined> = {
+    double_a_monthly: process.env.STRIPE_DOUBLE_A_MONTHLY_PRICE_ID,
+    triple_a_monthly: process.env.STRIPE_PRO_MONTHLY_PRICE_ID,
+    triple_a_annual: process.env.STRIPE_PRO_ANNUAL_PRICE_ID,
+    the_show_monthly: process.env.STRIPE_PREMIUM_MONTHLY_PRICE_ID,
+    the_show_annual: process.env.STRIPE_PREMIUM_ANNUAL_PRICE_ID,
+  };
+
+  return map[`${plan}_${period}`] ?? null;
 }
 
-const PRICE_IDS: Record<string, string> = {
-  pro_monthly: process.env.STRIPE_PRO_MONTHLY_PRICE_ID || '',
-  pro_annual: process.env.STRIPE_PRO_ANNUAL_PRICE_ID || '',
-}
-
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const body = await req.json()
-    const { plan, access_token } = body
-
-    // -- Validate plan
-    if (!plan || !['pro_monthly', 'pro_annual'].includes(plan)) {
+    // ---- 1. Authenticate user ----
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json(
-        { error: 'Invalid plan. Must be pro_monthly or pro_annual.', code: 'INVALID_PLAN' },
-        { status: 400 }
-      )
-    }
-
-    const priceId = PRICE_IDS[plan]
-    if (!priceId) {
-      return NextResponse.json(
-        { error: `Stripe price ID not configured for ${plan}`, code: 'CONFIG_ERROR' },
-        { status: 503 }
-      )
-    }
-
-    // -- Authenticate via Supabase
-    if (!access_token) {
-      return NextResponse.json(
-        { error: 'Authentication required. Please sign in.', code: 'AUTH_REQUIRED' },
+        { error: 'Authorization required' },
         { status: 401 }
-      )
+      );
     }
+    const accessToken = authHeader.replace('Bearer ', '');
 
     const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-      { global: { headers: { Authorization: `Bearer ${access_token}` } } }
-    )
+      supabaseUrl,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { global: { headers: { Authorization: `Bearer ${accessToken}` } } }
+    );
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(accessToken);
+
     if (authError || !user) {
       return NextResponse.json(
-        { error: 'Invalid session. Please sign in again.', code: 'INVALID_SESSION' },
+        { error: 'Invalid or expired token' },
         { status: 401 }
-      )
+      );
     }
 
-    // -- Check for existing Stripe customer
-    const existingCustomerId = (user as any).user_metadata?.stripe_customer_id
-    let customerId: string | undefined
-    if (existingCustomerId) {
-      customerId = existingCustomerId
+    // ---- 2. Parse request ----
+    const body = await request.json().catch(() => ({}));
+    const plan = body.plan as string;
+    const period = (body.period as string) || 'monthly';
+
+    const validPlans = [TIERS.DOUBLE_A, TIERS.TRIPLE_A, TIERS.THE_SHOW];
+    if (!validPlans.includes(plan as typeof TIERS.DOUBLE_A)) {
+      return NextResponse.json(
+        { error: `Invalid plan. Must be one of: ${validPlans.join(', ')}` },
+        { status: 400 }
+      );
     }
 
-    // -- Create Checkout Session
-    const stripe = getStripe()
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://baselinemlb.vercel.app'
+    // ---- 3. Check if user already has this or higher tier ----
+    const currentTier = normalizeTier(user.user_metadata?.subscription_tier);
+    // (Allow checkout regardless — Stripe handles upgrades/downgrades)
 
-    const sessionParams: Stripe.Checkout.SessionCreateParams = {
+    // ---- 4. Get or create Stripe customer ----
+    let customerId = user.user_metadata?.stripe_customer_id as
+      | string
+      | undefined;
+
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        email: user.email,
+        metadata: {
+          supabase_user_id: user.id,
+        },
+      });
+      customerId = customer.id;
+
+      // Save customer ID to user metadata
+      const supabaseAdmin = createClient(
+        supabaseUrl,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+      await supabaseAdmin.auth.admin.updateUserById(user.id, {
+        user_metadata: {
+          stripe_customer_id: customerId,
+        },
+      });
+    }
+
+    // ---- 5. Resolve Stripe price ID ----
+    const priceId = getPriceId(plan, period);
+    if (!priceId) {
+      return NextResponse.json(
+        {
+          error: `No Stripe price configured for ${plan} (${period}). Check environment variables.`,
+        },
+        { status: 500 }
+      );
+    }
+
+    // ---- 6. Create Checkout Session ----
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.baselinemlb.com';
+
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
       mode: 'subscription',
       payment_method_types: ['card'],
-      line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${appUrl}/best-bets?checkout=success`,
-      cancel_url: `${appUrl}/pricing`,
-      metadata: {
-        supabase_user_id: user.id,
-        plan,
-      },
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      success_url: `${baseUrl}/account?checkout=success&plan=${plan}`,
+      cancel_url: `${baseUrl}/pricing?checkout=cancelled`,
       subscription_data: {
         metadata: {
           supabase_user_id: user.id,
-          plan,
+          plan: plan,
         },
       },
-    }
+      allow_promotion_codes: true,
+    });
 
-    // Attach existing customer or pre-fill email
-    if (customerId) {
-      sessionParams.customer = customerId
-    } else {
-      sessionParams.customer_email = user.email
-    }
-
-    const session = await stripe.checkout.sessions.create(sessionParams)
-
-    return NextResponse.json({ url: session.url, sessionId: session.id })
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    console.error('[checkout] Error:', message)
+    return NextResponse.json({ url: session.url });
+  } catch (err) {
+    console.error('Checkout error:', err);
+    const message = err instanceof Error ? err.message : 'Unknown error';
     return NextResponse.json(
-      { error: message, code: 'STRIPE_ERROR' },
+      { error: `Checkout failed: ${message}` },
       { status: 500 }
-    )
+    );
   }
 }
