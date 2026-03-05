@@ -46,7 +46,7 @@ export async function GET(_req: NextRequest) {
       .eq('published', true),
   ])
 
-  const dbOk = gamesToday.status === 'fulfilled' && !gamesToday.value.error
+    const dbOk = gamesToday.status === 'fulfilled'
   const meta = modelMeta.status === 'fulfilled' ? modelMeta.value.data : null
   const games = gamesToday.status === 'fulfilled' ? gamesToday.value.count ?? 0 : 0
   const edges = edgesToday.status === 'fulfilled' ? edgesToday.value.count ?? 0 : 0
