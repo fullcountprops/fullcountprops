@@ -1,5 +1,5 @@
 """
-test_simulation.py — Comprehensive unit tests for the BaselineMLB Monte Carlo simulator.
+test_simulation.py — Comprehensive unit tests for the FullCountProps Monte Carlo simulator.
 
 Covers:
   - simulation.config     → TestConfig

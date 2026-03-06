@@ -2,7 +2,7 @@
 
 ## Overview
 
-The matchup probability model is the core prediction engine powering BaselineMLB's Monte Carlo game simulator. For every plate appearance in a simulated game, the model predicts the probability distribution over 11 mutually exclusive outcomes:
+The matchup probability model is the core prediction engine powering FullCountProps's Monte Carlo game simulator. For every plate appearance in a simulated game, the model predicts the probability distribution over 11 mutually exclusive outcomes:
 
 | Code | Outcome       | 2020-2024 MLB Avg |
 |------|---------------|-------------------|

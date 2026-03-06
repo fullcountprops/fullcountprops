@@ -1,4 +1,4 @@
-# BaselineMLB AI System Setup
+# FullCountProps AI System Setup
 
 ## Architecture Overview
 
@@ -27,7 +27,7 @@ frontend/app/api/
   support/ask/route.ts    # User-facing support bot with RAG
 
 frontend/components/
-  AskBaselineMLB.tsx      # Floating chat widget
+  AskFullCountProps.tsx      # Floating chat widget
   ExplainProjection.tsx   # Inline "Why this projection?" button
 
 supabase/migrations/
@@ -67,10 +67,10 @@ This creates:
 Add to `frontend/app/layout.tsx`:
 
 ```tsx
-import AskBaselineMLB from '@/components/AskBaselineMLB';
+import AskFullCountProps from '@/components/AskFullCountProps';
 
 // Inside body, before closing </body>:
-<AskBaselineMLB />
+<AskFullCountProps />
 ```
 
 ### 4. Add ExplainProjection to Prop Cards

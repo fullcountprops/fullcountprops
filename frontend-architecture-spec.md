@@ -20,17 +20,17 @@
 
 ## Domain Setup
 
-1. In Vercel dashboard: Settings → Domains → Add `baselinemlb.com`
+1. In Vercel dashboard: Settings → Domains → Add `fullcountprops.com`
 2. In Namecheap DNS: Add Vercel's CNAME/A records
 3. Vercel handles SSL automatically
-4. Keep GitHub Pages dashboard at `nrlefty5.github.io/baselinemlb/` as separate free site
+4. Keep GitHub Pages dashboard at `nrlefty5.github.io/fullcountprops/` as separate free site
 
 ---
 
 ## Site Map & Page Architecture
 
 ```
-baselinemlb.com/
+fullcountprops.com/
 │
 ├── /                       ← Today's Slate (homepage)
 ├── /game/[gamePk]          ← Individual Game Deep Dive
@@ -311,7 +311,7 @@ For each pitcher:
 - How projections work (glass-box methodology explanation)
 - What we track: every factor, every adjustment, every result
 - FAQ
-- Contact: @baselinemlb on Twitter
+- Contact: @fullcountprops on Twitter
 
 ---
 
@@ -440,10 +440,10 @@ async function getPitcherProfile(pitcherId: number) {
 ### Sprint 1: Skeleton + Today's Slate (Week 1)
 - [ ] Initialize Next.js project with Tailwind CSS
 - [ ] Set up Supabase client
-- [ ] Deploy to Vercel, connect baselinemlb.com domain
+- [ ] Deploy to Vercel, connect fullcountprops.com domain
 - [ ] Build navigation bar and dark theme layout
 - [ ] Build homepage: fetch and display game cards (basic — just teams, time, pitchers)
-- **Milestone:** baselinemlb.com shows today's MLB schedule with pitcher names
+- **Milestone:** fullcountprops.com shows today's MLB schedule with pitcher names
 
 ### Sprint 2: Statcast + Environment Layer (Week 2)
 - [ ] Add Statcast metrics to pitcher display on game cards
@@ -489,7 +489,7 @@ async function getPitcherProfile(pitcherId: number) {
 ## DEPLOYMENT CHECKLIST
 
 - [ ] Vercel project created, linked to GitHub repo
-- [ ] Custom domain baselinemlb.com pointed to Vercel
+- [ ] Custom domain fullcountprops.com pointed to Vercel
 - [ ] SSL certificate active (Vercel auto-provisions)
 - [ ] Environment variables set in Vercel dashboard
 - [ ] Supabase RLS policies verified (anon key can only read public tables)
@@ -528,7 +528,7 @@ async function getPitcherProfile(pitcherId: number) {
 ## FILE STRUCTURE
 
 ```
-baselinemlb-web/
+fullcountprops-web/
 ├── app/
 │   ├── layout.tsx              ← Root layout, dark theme, nav
 │   ├── page.tsx                ← Homepage (Today's Slate)

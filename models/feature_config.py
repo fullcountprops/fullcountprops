@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-feature_config.py — BaselineMLB Matchup Model
+feature_config.py — FullCountProps Matchup Model
 
 Centralized definitions for:
   - Feature column names and groupings

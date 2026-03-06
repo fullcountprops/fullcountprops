@@ -39,7 +39,7 @@ TWITTER_API_SECRET = os.environ.get("TWITTER_API_SECRET", "").strip()
 TWITTER_ACCESS_TOKEN = os.environ.get("TWITTER_ACCESS_TOKEN", "").strip()
 TWITTER_ACCESS_SECRET = os.environ.get("TWITTER_ACCESS_SECRET", "").strip()
 
-SITE_URL = "https://baselinemlb.vercel.app"
+SITE_URL = "https://fullcountprops.vercel.app"
 
 STAT_EMOJI = {
     "pitcher_strikeouts": "\U0001f525",
@@ -248,7 +248,7 @@ def main(dry_run=False):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Post BaselineMLB picks to Twitter/X")
+    parser = argparse.ArgumentParser(description="Post FullCountProps picks to Twitter/X")
     parser.add_argument(
         "--dry-run",
         action="store_true",

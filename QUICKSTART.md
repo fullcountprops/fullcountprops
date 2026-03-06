@@ -1,4 +1,4 @@
-# 🚀 BaselineMLB Quick Start Guide
+# 🚀 FullCountProps Quick Start Guide
 
 Get your MLB analytics platform running in 10 minutes.
 
@@ -16,8 +16,8 @@ Get your MLB analytics platform running in 10 minutes.
 ## Step 1: Clone the Repository
 
 ```bash
-git clone https://github.com/nrlefty5/baselinemlb.git
-cd baselinemlb
+git clone https://github.com/fullcountprops/fullcountprops.git
+cd fullcountprops
 ```
 
 ---
@@ -27,7 +27,7 @@ cd baselinemlb
 ### Create a Supabase Project
 1. Go to [supabase.com](https://supabase.com)
 2. Click "New Project"
-3. Name it `baselinemlb` (or your preference)
+3. Name it `fullcountprops` (or your preference)
 4. Save your **Project URL** and **API keys**
 
 ### Create Database Tables
@@ -109,7 +109,7 @@ python scripts/run_pipeline_test.py
 **Expected output:**
 ```
 ╔════════════════════════════════════════════════════════╗
-║   BASELINEMLB - WEEK 1 PIPELINE TEST SUITE            ║
+║   FULLCOUNTPROPS - WEEK 1 PIPELINE TEST SUITE            ║
 ╚════════════════════════════════════════════════════════╝
 
 ✅ Environment Check: PASS
@@ -166,7 +166,7 @@ Open: http://localhost:8000
 2. Source: **GitHub Actions**
 3. Go to **Actions** tab
 4. Run "Deploy Dashboard" workflow
-5. Dashboard will be live at: `https://[username].github.io/baselinemlb`
+5. Dashboard will be live at: `https://[username].github.io/fullcountprops`
 
 ---
 
@@ -226,7 +226,7 @@ Get a live public URL for the Next.js frontend.
 ### Option A: One-Click via Vercel Dashboard (Recommended)
 
 1. Go to [vercel.com/new](https://vercel.com/new)
-2. Import your `nrlefty5/baselinemlb` GitHub repository
+2. Import your `fullcountprops/fullcountprops` GitHub repository
 3. Vercel will auto-detect the `vercel.json` and set `Root Directory: frontend`
 4. Add these **Environment Variables** in Vercel project settings:
    - `NEXT_PUBLIC_SUPABASE_URL` = your Supabase project URL
@@ -245,8 +245,8 @@ Once you have a Vercel project created (via Option A above), add these 3 secrets
 
 After adding secrets, every push to `main` that touches `frontend/` or `vercel.json` will auto-deploy to production.
 
-> 💡 **Your live URL** will be: `https://baselinemlb.vercel.app` (or similar)
-> Set a custom domain in Vercel Settings → Domains if you have `baselinemlb.com`
+> 💡 **Your live URL** will be: `https://fullcountprops.vercel.app` (or similar)
+> Set a custom domain in Vercel Settings → Domains if you have `fullcountprops.com`
 
 ## 📚 Additional Resources
 

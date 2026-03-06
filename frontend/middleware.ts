@@ -1,6 +1,6 @@
 // frontend/middleware.ts
 // ============================================================
-// BaselineMLB — Middleware (Password gate REMOVED per Issue #8)
+// FullCountProps — Middleware (Password gate REMOVED per Issue #8)
 // ============================================================
 //
 // The pre-launch password gate has been removed. The site is now

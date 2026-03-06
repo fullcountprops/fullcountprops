@@ -1,5 +1,5 @@
 """
-game_engine.py — BaselineMLB Monte Carlo Game Simulation Engine
+game_engine.py — FullCountProps Monte Carlo Game Simulation Engine
 
 Simulates complete MLB games plate-appearance by plate-appearance, tracking all
 game state and collecting full probability distributions for every player stat.
@@ -841,7 +841,7 @@ class SimulationResult:
 
 class GameSimulator:
     """
-    The core Monte Carlo game simulation engine for BaselineMLB.
+    The core Monte Carlo game simulation engine for FullCountProps.
 
     Args:
         matchup_model: A fitted :class:`~simulation.matchup_model.MatchupModel`

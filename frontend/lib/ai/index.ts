@@ -1,5 +1,5 @@
 // frontend/lib/ai/index.ts
-// Main entry point for BaselineMLB AI system
+// Main entry point for FullCountProps AI system
 // Usage: import { routeAndCallAI } from '@/lib/ai';
 
 import { routeTask } from './router';

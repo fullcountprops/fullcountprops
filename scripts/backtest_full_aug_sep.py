@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-backtest_full_aug_sep.py — BaselineMLB
+backtest_full_aug_sep.py — FullCountProps
 ======================================
 Expanded backtesting engine covering ALL Aug–Sep 2025 MLB regular-season games.
 
@@ -755,7 +755,7 @@ def run_backtest(
     os.makedirs(output_dir, exist_ok=True)
 
     logger.info("=" * 65)
-    logger.info("BaselineMLB — Full Aug-Sep 2025 Backtest")
+    logger.info("FullCountProps — Full Aug-Sep 2025 Backtest")
     logger.info("  Date range : %s → %s", start_date, end_date)
     logger.info("  Simulations: %d per player", N_SIMS)
     logger.info("  Prop types : %s", ", ".join(PROP_TYPES))
@@ -879,7 +879,7 @@ def run_backtest(
 
     # Print summary
     print("\n" + "=" * 65)
-    print("  BASELINEMLB — BACKTEST RESULTS (Aug-Sep 2025)")
+    print("  FULLCOUNTPROPS — BACKTEST RESULTS (Aug-Sep 2025)")
     print("=" * 65)
     print(f"\n  Games: {games_processed}  |  Predictions: {len(all_predictions)}")
     print(f"\n  {'Prop':>4s}  {'Total':>7s}  {'Correct':>7s}  {'Acc%':>6s}  {'MAE':>6s}  {'Brier':>7s}")
@@ -916,7 +916,7 @@ def run_backtest(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="BaselineMLB full Aug-Sep 2025 backtest",
+        description="FullCountProps full Aug-Sep 2025 backtest",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("--start", default="2025-08-01", help="Start date (YYYY-MM-DD)")

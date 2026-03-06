@@ -1,5 +1,5 @@
 """
-run_simulation.py -- BaselineMLB Monte Carlo Simulator CLI Entry Point
+run_simulation.py -- FullCountProps Monte Carlo Simulator CLI Entry Point
 =======================================================================
 
 Orchestrates the full daily simulation pipeline:
@@ -87,7 +87,7 @@ except ImportError:  # pragma: no cover
 
     def configure_logging(level=logging.INFO, **_kw):  # type: ignore[misc]
         logging.basicConfig(level=level)
-        return logging.getLogger("baselinemlb")
+        return logging.getLogger("fullcountprops")
 
 
 try:
@@ -120,7 +120,7 @@ except ImportError:  # pragma: no cover
     _MODEL_AVAILABLE = False
     MatchupModel = None  # type: ignore[assignment,misc]
 
-logger = logging.getLogger("baselinemlb.run_simulation")
+logger = logging.getLogger("fullcountprops.run_simulation")
 
 # ---------------------------------------------------------------------------
 # Lightweight progress bar (no third-party deps required)
@@ -527,7 +527,7 @@ class OutputWriter:
             edges.sort(key=lambda a: a.edge, reverse=True)
 
             lines: List[str] = [
-                f"# BaselineMLB Simulation Report -- {self.date_str}",
+                f"# FullCountProps Simulation Report -- {self.date_str}",
                 f"*Generated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}*",
                 "",
                 "## Summary",
@@ -697,9 +697,9 @@ class OutputWriter:
             reverse=True,
         )
         if not edges:
-            return f"[baseball] BaselineMLB ({self.date_str}): No strong edges found today. #MLB #Props"
+            return f"[baseball] FullCountProps ({self.date_str}): No strong edges found today. #MLB #Props"
 
-        tweet_lines = [f"[baseball] BaselineMLB Top Edges -- {self.date_str}"]
+        tweet_lines = [f"[baseball] FullCountProps Top Edges -- {self.date_str}"]
         for a in edges[:5]:
             ev_val = a.ev_over if a.recommendation == "OVER" else a.ev_under
             game_label = f"{a.away_team}@{a.home_team}" if a.away_team else f"Game {a.game_pk}"
@@ -1277,7 +1277,7 @@ def build_parser() -> argparse.ArgumentParser:
     """Build and return the argument parser."""
     parser = argparse.ArgumentParser(
         prog="python -m simulation.run_simulation",
-        description="BaselineMLB Monte Carlo Simulator -- CLI Entry Point",
+        description="FullCountProps Monte Carlo Simulator -- CLI Entry Point",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )

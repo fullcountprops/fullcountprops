@@ -1,4 +1,4 @@
-# Week 2 Progress — BaselineMLB
+# Week 2 Progress — FullCountProps
 
 **Week 2: March 2-8, 2026**
 **Sprint Goal:** Ship the Monte Carlo simulation engine and connect it end-to-end through the prop edge pipeline.

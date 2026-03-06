@@ -2,7 +2,7 @@ import { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Terms of Use',
-  description: 'Terms of use for BaselineMLB.',
+  description: 'Terms of use for FullCountProps.',
 }
 
 export default function TermsPage() {
@@ -14,12 +14,12 @@ export default function TermsPage() {
           <p>Last updated: March 2, 2026</p>
           <h2 className="text-lg font-semibold text-white mt-8">1. Acceptance</h2>
           <p>
-            By using BaselineMLB (&quot;the Service&quot;), you agree to these terms. If you
+            By using FullCountProps (&quot;the Service&quot;), you agree to these terms. If you
             do not agree, do not use the Service.
           </p>
           <h2 className="text-lg font-semibold text-white mt-8">2. Description of Service</h2>
           <p>
-            BaselineMLB provides analytical tools and statistical projections for MLB
+            FullCountProps provides analytical tools and statistical projections for MLB
             player prop bets using Monte Carlo simulation. The Service is provided
             for entertainment and informational purposes only.
           </p>
@@ -39,7 +39,7 @@ export default function TermsPage() {
           </p>
           <h2 className="text-lg font-semibold text-white mt-8">5. Limitation of Liability</h2>
           <p>
-            BaselineMLB and its creators shall not be liable for any losses arising
+            FullCountProps and its creators shall not be liable for any losses arising
             from the use of projections, picks, or any other information provided by
             the Service. Use at your own risk.
           </p>

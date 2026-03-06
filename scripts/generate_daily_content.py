@@ -249,7 +249,7 @@ def format_twitter(enriched: dict) -> Optional[str]:
     🔍 Ump {name}: {adj}K adj
     🧤 Catcher {name}: {framing}K framing
     ⚡ Edge: {tier} ({dev} units {lean})
-    #MLB #BaselineMLB
+    #MLB #FullCountProps
     """
     # Only surface projections with genuine edge
     if enriched["deviation"] is None:
@@ -285,7 +285,7 @@ def format_twitter(enriched: dict) -> Optional[str]:
     if catcher_line:
         lines.append(catcher_line)
     lines.append(f"{emoji} Edge: {tier} ({dev:.1f} units {lean})")
-    lines.append("#MLB #BaselineMLB")
+    lines.append("#MLB #FullCountProps")
 
     tweet = "\n".join(lines)
 
@@ -296,7 +296,7 @@ def format_twitter(enriched: dict) -> Optional[str]:
             f"{name} K Projection:",
             f"📊 {proj}K | Line: O/U {line}K",
             f"{emoji} {tier} ({dev:.1f}u {lean})",
-            "#MLB #BaselineMLB",
+            "#MLB #FullCountProps",
         ]
         tweet = "\n".join(lines_short)
 
@@ -350,7 +350,7 @@ def format_email(enriched_list: list, game_date: str) -> str:
     body = "\n---\n\n".join(entries)
 
     footer = "\n\n---\n\n"
-    footer += "*Projections by Baseline MLB | baselinemlb.com | @baselinemlb*\n"
+    footer += "*Projections by Baseline MLB | fullcountprops.com | @fullcountprops*\n"
 
     return header + body + footer
 
@@ -376,7 +376,7 @@ def format_thread(enriched_list: list, game_date: str) -> list:
     )
     if high_conf > 0:
         hook += f", {high_conf} HIGH confidence edges"
-    hook += ".\n\nFull glass-box breakdown in thread 🧵\n#MLB #BaselineMLB"
+    hook += ".\n\nFull glass-box breakdown in thread 🧵\n#MLB #FullCountProps"
     tweets.append(hook)
 
     # Individual projection tweets

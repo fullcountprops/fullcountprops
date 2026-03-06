@@ -4,16 +4,16 @@ import FAQClient from './FAQClient'
 export const metadata: Metadata = {
   title: 'FAQ',
   description:
-    'Frequently asked questions about BaselineMLB: what props we cover, how picks update, what edge % means, free vs paid plans, and our accuracy track record.',
+    'Frequently asked questions about FullCountProps: what props we cover, how picks update, what edge % means, free vs paid plans, and our accuracy track record.',
   openGraph: {
-    title: 'FAQ — BaselineMLB',
+    title: 'FAQ — FullCountProps',
     description:
-      'Everything you need to know about BaselineMLB prop analytics.',
+      'Everything you need to know about FullCountProps prop analytics.',
     images: ['/og-image.png'],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'FAQ — BaselineMLB',
+    title: 'FAQ — FullCountProps',
     description:
       'What props we cover, how picks update, what edge % means, and more.',
     images: ['/og-image.png'],
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 function FAQJsonLd() {
   const faqItems = [
     {
-      question: 'What player props does BaselineMLB cover?',
+      question: 'What player props does FullCountProps cover?',
       answer:
         'We cover six prop types: strikeouts (K), hits (H), total bases (TB), RBIs, walks (BB), and runs scored (R). Pitcher strikeout props are our strongest suit.',
     },
@@ -48,9 +48,9 @@ function FAQJsonLd() {
         'In backtesting on the 2024 season (12,847 graded props), the model achieved 3.1% calibration error (ECE) and +8.7% ROI at the 4% edge threshold. When we predict 60% probability, actual hit rate was approximately 58-62%.',
     },
     {
-      question: 'Is BaselineMLB open source?',
+      question: 'Is FullCountProps open source?',
       answer:
-        'Yes. The entire codebase — simulation engine, matchup model, data pipelines, and frontend — is available on GitHub at github.com/nrlefty5/baselinemlb.',
+        'Yes. The entire codebase — simulation engine, matchup model, data pipelines, and frontend — is available on GitHub at github.com/fullcountprops/fullcountprops.',
     },
   ]
 

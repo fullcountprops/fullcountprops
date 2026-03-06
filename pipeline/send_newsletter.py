@@ -33,7 +33,7 @@ log = logging.getLogger("send_newsletter")
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").strip()
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "").strip()
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "").strip()
-FROM_EMAIL = os.environ.get("NEWSLETTER_FROM", "BaselineMLB <noreply@baselinemlb.com>")
+FROM_EMAIL = os.environ.get("NEWSLETTER_FROM", "FullCountProps <noreply@fullcountprops.com>")
 SUBSCRIBER_LIST_ID = os.environ.get("RESEND_AUDIENCE_ID", "")
 
 
@@ -124,12 +124,12 @@ def build_html(projections: list, game_date: str) -> str:
     <html lang="en">
     <head>
         <meta charset="UTF-8">
-        <title>BaselineMLB — Projections for {date_str}</title>
+        <title>FullCountProps — Projections for {date_str}</title>
     </head>
     <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background: #1a1a2e; color: white; padding: 20px; border-radius: 8px;
                     text-align: center; margin-bottom: 20px;">
-            <h1 style="margin: 0; font-size: 24px;">⚾ BaselineMLB</h1>
+            <h1 style="margin: 0; font-size: 24px;">⚾ FullCountProps</h1>
             <p style="margin: 5px 0 0;">Daily Pitcher Strikeout Projections</p>
         </div>
 
@@ -205,7 +205,7 @@ def run_newsletter(game_date: str = None, dry_run: bool = False):
     log.info(f"Found {len(projections)} projections")
 
     # Build email content
-    subject = f"⚾ BaselineMLB Projections — {game_date}"
+    subject = f"⚾ FullCountProps Projections — {game_date}"
     html = build_html(projections, game_date)
 
     if dry_run:
@@ -246,7 +246,7 @@ def run_newsletter(game_date: str = None, dry_run: bool = False):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Send BaselineMLB daily newsletter")
+    parser = argparse.ArgumentParser(description="Send FullCountProps daily newsletter")
     parser.add_argument(
         "--dry-run",
         action="store_true",

@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
 
     // -- Create Customer Portal Session
     const stripe = getStripe()
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://baselinemlb.vercel.app'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://fullcountprops.vercel.app'
 
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: customerId,

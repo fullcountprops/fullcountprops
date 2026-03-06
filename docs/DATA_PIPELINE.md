@@ -1,4 +1,4 @@
-# BaselineMLB — Data Pipeline Guide
+# FullCountProps — Data Pipeline Guide
 
 This document explains how to run the full model-training data pipeline:
 from raw Statcast download through feature engineering to a trained LightGBM

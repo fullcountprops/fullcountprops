@@ -1,7 +1,7 @@
 """
 models/predict.py
 =================
-Game-day inference script for the BaselineMLB XGBoost matchup model.
+Game-day inference script for the FullCountProps XGBoost matchup model.
 
 For each game (or all games today), fetches live pitcher/batter stats from the
 MLB Stats API, builds feature vectors that match the training schema, and returns
@@ -567,7 +567,7 @@ def _print_text_summary(results: Dict[str, Any]) -> None:
     """
     sep = "=" * 68
     print(sep)
-    print("  BaselineMLB -- Matchup Probabilities")
+    print("  FullCountProps -- Matchup Probabilities")
     print(sep)
     for game_pk, matchups in results.items():
         print(f"\n  Game PK: {game_pk}")

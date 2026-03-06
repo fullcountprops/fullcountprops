@@ -1,1 +1,1 @@
-# lib/__init__.py — BaselineMLB shared utilities
+# lib/__init__.py — FullCountProps shared utilities

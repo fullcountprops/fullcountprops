@@ -1,8 +1,8 @@
-# BaselineMLB — System Architecture
+# FullCountProps — System Architecture
 
 > **Version:** 2.0 (Monte Carlo Engine)
 > **Last Updated:** March 2026
-> **Maintainer:** BaselineMLB Core Team
+> **Maintainer:** FullCountProps Core Team
 
 ---
 
@@ -22,7 +22,7 @@
 
 ## 1. Project Overview
 
-**BaselineMLB** is a production-grade MLB player prop analytics platform built around a plate-appearance-level Monte Carlo simulation engine. The system ingests real-time game, player, and Statcast pitch data, trains an XGBoost matchup model on ~6 million historical plate appearances, and simulates each game 3,000 times to generate probability distributions over every meaningful player outcome (strikeouts, hits, total bases, RBIs, walks, etc.).
+**FullCountProps** is a production-grade MLB player prop analytics platform built around a plate-appearance-level Monte Carlo simulation engine. The system ingests real-time game, player, and Statcast pitch data, trains an XGBoost matchup model on ~6 million historical plate appearances, and simulates each game 3,000 times to generate probability distributions over every meaningful player outcome (strikeouts, hits, total bases, RBIs, walks, etc.).
 
 The simulation output is cross-referenced against live sportsbook lines from The Odds API to identify edges — situations where the model's estimated probability of a prop outcome meaningfully exceeds the no-vig implied probability embedded in the market. Edges are ranked using a fractional Kelly criterion for stake sizing and surfaced to users via a Next.js frontend deployed on Vercel.
 
@@ -90,7 +90,7 @@ The models directory contains training infrastructure for the plate-appearance o
 
 ### `simulator/` — Monte Carlo Engine (CANONICAL)
 
-The simulator is the core intellectual contribution of BaselineMLB v2.0. It orchestrates the plate-appearance model into full game simulations.
+The simulator is the core intellectual contribution of FullCountProps v2.0. It orchestrates the plate-appearance model into full game simulations.
 
 | File | Purpose |
 |------|---------|
@@ -283,7 +283,7 @@ frontend/ (reads via Supabase JS client)
 
 ## 5. Database Schema
 
-BaselineMLB uses Supabase (PostgreSQL) with 20 core tables.
+FullCountProps uses Supabase (PostgreSQL) with 20 core tables.
 
 ### Table Overview
 
@@ -336,8 +336,8 @@ All cron jobs run as GitHub Actions workflows. Times are Eastern Time.
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/baselinemlb.git
-cd baselinemlb
+git clone https://github.com/your-org/fullcountprops.git
+cd fullcountprops
 
 # Create and activate a Python virtual environment
 python3 -m venv .venv

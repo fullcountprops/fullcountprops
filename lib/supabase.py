@@ -1,5 +1,5 @@
 """
-Shared Supabase helper module for BaselineMLB pipeline scripts.
+Shared Supabase helper module for FullCountProps pipeline scripts.
 
 Centralizes connection setup, header generation, and common operations
 so individual scripts don't duplicate boilerplate.
@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional
 
 import requests
 
-log = logging.getLogger("baselinemlb.supabase")
+log = logging.getLogger("fullcountprops.supabase")
 
 
 # ────────────────────────────────────────────────────────────

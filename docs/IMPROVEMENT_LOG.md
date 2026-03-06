@@ -1,4 +1,4 @@
-# BaselineMLB — Improvement Log
+# FullCountProps — Improvement Log
 
 ## Cycle #1 — 2026-03-02
 
@@ -400,7 +400,7 @@ Full codebase after post-sprint parallel execution batch (9 concurrent tasks). I
 
 ### What We Found
 1. **CRITICAL: 4 files corrupted to `PLACEHOLDER_WILL_BE_REPLACED`** — `pipeline/generate_projections.py`, `simulator/monte_carlo_engine.py`, `lib/framing.py`, and `tests/test_framing_integration.py` were all overwritten with 1-line placeholder text during commit 6e9a7a1. This broke the entire projection pipeline and Monte Carlo engine.
-2. **Live site 404s** — `/subscribe` and `/newsletter` pages return 404 on baselinemlb.com despite the files existing on main. Root cause: layout.tsx on main had a simplified nav (Edges, Newsletter, Subscribe) but the Vercel deployment was serving a different version with the full nav but missing page routes.
+2. **Live site 404s** — `/subscribe` and `/newsletter` pages return 404 on fullcountprops.com despite the files existing on main. Root cause: layout.tsx on main had a simplified nav (Edges, Newsletter, Subscribe) but the Vercel deployment was serving a different version with the full nav but missing page routes.
 3. **test_simulation.py import failures** — The migration commit b2c03f4 changed imports from `simulation/` to `simulator/`, but `simulator/` doesn't have the same modules (`config.py`, `game_engine.py`, `matchup_model.py`, `prop_analyzer.py`). These only exist in `simulation/`.
 4. **16 lint errors** — 3 F401 (unused imports), 2 F821 (undefined names from stubs), 10 I001 (import sorting), 1 W292 (missing newlines).
 
@@ -409,7 +409,7 @@ Full codebase after post-sprint parallel execution batch (9 concurrent tasks). I
 2. **Created proper `lib/framing.py`** (147 lines) — New module with `get_umpire_adjustment()` and `get_catcher_adjustment()` functions that fetch trailing composite scores from Supabase `umpire_framing` table and return bounded K-probability multipliers (±3-5% for umpires, ±3-6% for catchers).
 3. **Created `tests/test_framing_integration.py`** (207 lines, 11 tests) — Full test coverage for the framing module with mocked Supabase responses: umpire strike rates, catcher composites, adjustment bounds, edge cases.
 4. **Fixed test_simulation.py imports** — Reverted to `simulation/` imports (the actual package with config, game_engine, matchup_model, prop_analyzer). The `simulator/` package has different, non-overlapping modules.
-5. **Updated layout.tsx with complete navigation** — Added all working page routes (Today, Projections, Props, Simulator, Best Bets, Players, Accuracy, Newsletter) plus Subscribe CTA button and @baselinemlb link. Footer includes Calibration and API Status links.
+5. **Updated layout.tsx with complete navigation** — Added all working page routes (Today, Projections, Props, Simulator, Best Bets, Players, Accuracy, Newsletter) plus Subscribe CTA button and @fullcountprops link. Footer includes Calibration and API Status links.
 6. **Auto-fixed all 15 lint errors** — Import sorting, unused imports removed across 10 files.
 
 ### Component Grades

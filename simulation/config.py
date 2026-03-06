@@ -1,5 +1,5 @@
 """
-config.py — BaselineMLB Monte Carlo Simulator
+config.py — FullCountProps Monte Carlo Simulator
 Central configuration module.
 
 All tuning parameters, feature definitions, park factors, league averages,
@@ -437,7 +437,7 @@ def configure_logging(
     datefmt: str = "%Y-%m-%d %H:%M:%S",
 ) -> logging.Logger:
     """
-    Configure the root logger and return the ``baselinemlb`` application logger.
+    Configure the root logger and return the ``fullcountprops`` application logger.
 
     Parameters
     ----------
@@ -455,7 +455,7 @@ def configure_logging(
     Returns
     -------
     logging.Logger
-        The ``baselinemlb`` named logger, ready to use.
+        The ``fullcountprops`` named logger, ready to use.
 
     Example
     -------
@@ -494,7 +494,7 @@ def configure_logging(
         # If root is already configured, update its level silently.
         root.setLevel(min(root.level, level))
 
-    return logging.getLogger("baselinemlb")
+    return logging.getLogger("fullcountprops")
 
 
 # ---------------------------------------------------------------------------

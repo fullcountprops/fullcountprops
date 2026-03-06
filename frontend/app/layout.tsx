@@ -5,13 +5,13 @@ import Link from 'next/link'
 
 const inter = Inter({ subsets: ['latin'] })
 
-const siteUrl = 'https://baselinemlb.vercel.app'
+const siteUrl = 'https://fullcountprops.vercel.app'
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: 'BaselineMLB — Monte Carlo MLB Prop Analytics',
-    template: '%s | BaselineMLB',
+    default: 'FullCountProps — Monte Carlo MLB Prop Analytics',
+    template: '%s | FullCountProps',
   },
   description:
     'MLB player prop edges powered by 2,500 PA-level Monte Carlo simulations per game. LightGBM matchup model trained on 6M+ Statcast plate appearances. Glass-box transparency — every factor visible.',
@@ -24,16 +24,16 @@ export const metadata: Metadata = {
     'player props',
     'sports betting analytics',
     'Statcast',
-    'BaselineMLB',
+    'FullCountProps',
   ],
-  authors: [{ name: 'BaselineMLB' }],
-  creator: 'BaselineMLB',
+  authors: [{ name: 'FullCountProps' }],
+  creator: 'FullCountProps',
   openGraph: {
     type: 'website',
     locale: 'en_US',
     url: siteUrl,
-    siteName: 'BaselineMLB',
-    title: 'BaselineMLB — Monte Carlo MLB Prop Analytics',
+    siteName: 'FullCountProps',
+    title: 'FullCountProps — Monte Carlo MLB Prop Analytics',
     description:
       'MLB player prop edges powered by 2,500 PA-level Monte Carlo simulations per game. Glass-box transparency.',
     images: [
@@ -41,17 +41,17 @@ export const metadata: Metadata = {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'BaselineMLB — Monte Carlo MLB Prop Analytics',
+        alt: 'FullCountProps — Monte Carlo MLB Prop Analytics',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'BaselineMLB — Monte Carlo MLB Prop Analytics',
+    title: 'FullCountProps — Monte Carlo MLB Prop Analytics',
     description:
       'MLB player prop edges powered by 2,500 PA-level Monte Carlo simulations. Glass-box transparency.',
     images: ['/og-image.png'],
-    creator: '@BaselineMLB',
+    creator: '@fullcountprops',
   },
   robots: {
     index: true,
@@ -73,7 +73,7 @@ function JsonLd() {
   const structuredData = {
     '@context': 'https://schema.org',
     '@type': 'WebApplication',
-    name: 'BaselineMLB',
+    name: 'FullCountProps',
     url: siteUrl,
     description:
       'MLB player prop analytics powered by Monte Carlo simulation. 2,500 PA-level simulations per game with glass-box transparency.',
@@ -105,7 +105,7 @@ function JsonLd() {
     ],
     creator: {
       '@type': 'Organization',
-      name: 'BaselineMLB',
+      name: 'FullCountProps',
       url: siteUrl,
     },
   }
@@ -136,7 +136,7 @@ export default function RootLayout({
 
             {/* Logo */}
             <Link href="/" className="font-bold text-lg tracking-tight hover:text-white transition-colors">
-              ⚾ BaselineMLB
+              ⚾ FullCountProps
             </Link>
 
             {/* Nav Links */}
@@ -186,7 +186,7 @@ export default function RootLayout({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
               {/* Brand */}
               <div>
-                <div className="font-bold text-lg mb-3">⚾ BaselineMLB</div>
+                <div className="font-bold text-lg mb-3">⚾ FullCountProps</div>
                 <p className="text-slate-500 text-sm leading-relaxed">
                   Monte Carlo MLB prop analytics with glass-box transparency.
                   Every factor visible. Every result graded publicly.
@@ -264,7 +264,7 @@ export default function RootLayout({
                 <ul className="space-y-2 text-sm">
                   <li>
                     <a
-                      href="https://twitter.com/BaselineMLB"
+                      href="https://twitter.com/fullcountprops"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-slate-500 hover:text-slate-300 transition-colors inline-flex items-center gap-1.5"
@@ -277,7 +277,7 @@ export default function RootLayout({
                   </li>
                   <li>
                     <a
-                      href="https://github.com/nrlefty5/baselinemlb"
+                      href="https://github.com/fullcountprops/fullcountprops"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-slate-500 hover:text-slate-300 transition-colors inline-flex items-center gap-1.5"
@@ -305,7 +305,7 @@ export default function RootLayout({
             {/* Bottom bar */}
             <div className="border-t border-slate-800 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
               <p className="text-slate-600 text-xs">
-                &copy; {new Date().getFullYear()} BaselineMLB. For entertainment purposes only. Not gambling advice.
+                &copy; {new Date().getFullYear()} FullCountProps. For entertainment purposes only. Not gambling advice.
               </p>
                             <p className="text-slate-600 text-xs mt-2">
                 If you or someone you know has a gambling problem, call 1-800-GAMBLER (1-800-426-2537). Must be 21+ to use this service.

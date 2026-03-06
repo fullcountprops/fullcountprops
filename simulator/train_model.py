@@ -1,5 +1,5 @@
 """
-train_model.py -- BaselineMLB Monte Carlo Simulator
+train_model.py -- FullCountProps Monte Carlo Simulator
 ====================================================
 Training pipeline that builds the LightGBM matchup model from historical
 Statcast data.
@@ -1371,7 +1371,7 @@ def _json_serialisable(obj):
 def _build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="train_model",
-        description="Build and train the BaselineMLB LightGBM matchup model.",
+        description="Build and train the FullCountProps LightGBM matchup model.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
@@ -1438,7 +1438,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     log_level = getattr(logging, args.log_level.upper(), logging.INFO)
     configure_logging(level=log_level, log_file=args.log_file)
 
-    logger.info("BaselineMLB -- Training Pipeline")
+    logger.info("FullCountProps -- Training Pipeline")
     logger.info("Seasons: %s", args.seasons)
     logger.info("Output dir: %s", args.output_dir)
     logger.info("Cache dir: %s", args.cache_dir)

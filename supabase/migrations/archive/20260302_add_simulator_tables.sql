@@ -1,6 +1,6 @@
 -- =============================================================================
 -- Migration: 20260302_add_simulator_tables.sql
--- Description: Add tables required by the BaselineMLB Monte Carlo simulator.
+-- Description: Add tables required by the FullCountProps Monte Carlo simulator.
 --              Tables: sim_results, sim_prop_edges, lineups, weather
 -- =============================================================================
 

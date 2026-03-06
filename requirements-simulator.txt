@@ -1,4 +1,4 @@
-# BaselineMLB Monte Carlo Simulator Dependencies
+# FullCountProps Monte Carlo Simulator Dependencies
 # Install with: pip install -r requirements-simulator.txt
 
 # Core ML

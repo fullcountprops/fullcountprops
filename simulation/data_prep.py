@@ -1,5 +1,5 @@
 """
-data_prep.py — Data preparation module for the BaselineMLB Monte Carlo Simulator.
+data_prep.py — Data preparation module for the FullCountProps Monte Carlo Simulator.
 
 Fetches and prepares Statcast metrics, MLB schedule/lineup data, umpire/catcher
 framing data from Supabase, and weather data from OpenWeatherMap. All fetchers
@@ -163,7 +163,7 @@ def _build_session(retries: int = 3, backoff: float = 0.5) -> requests.Session:
     adapter = HTTPAdapter(max_retries=retry)
     session.mount("https://", adapter)
     session.mount("http://", adapter)
-    session.headers.update({"User-Agent": "BaselineMLB/1.0 (+research)"})
+    session.headers.update({"User-Agent": "FullCountProps/1.0 (+research)"})
     return session
 
 

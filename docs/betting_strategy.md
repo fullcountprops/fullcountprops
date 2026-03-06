@@ -1,6 +1,6 @@
-# BaselineMLB Betting Strategy Guide
+# FullCountProps Betting Strategy Guide
 
-*A comprehensive reference for profitable MLB player prop betting, built for the BaselineMLB projection system.*
+*A comprehensive reference for profitable MLB player prop betting, built for the FullCountProps projection system.*
 
 ---
 
@@ -41,7 +41,7 @@ Full Kelly produces mathematically optimal growth but carries extreme volatility
 
 ### Why Quarter Kelly (0.25x)
 
-BaselineMLB's Edge Finder defaults to **Quarter Kelly (25%)** — the most widely recommended starting point for model-based bettors.
+FullCountProps's Edge Finder defaults to **Quarter Kelly (25%)** — the most widely recommended starting point for model-based bettors.
 
 | Kelly Fraction | Probability of 50% Drawdown (1,000 bets) | Growth Rate vs. Full Kelly |
 |---|---|---|
@@ -159,9 +159,9 @@ Source: [RebelBetting](https://www.rebelbetting.com/faq/expected-value-and-varia
 
 Source: [SportsBettingDime](https://www.sportsbettingdime.com/guides/betting-101/closing-line-value/)
 
-### Tracking CLV with BaselineMLB
+### Tracking CLV with FullCountProps
 
-The `scripts/track_clv.py` script in the BaselineMLB repo already tracks CLV. Combine it with the Edge Finder to:
+The `scripts/track_clv.py` script in the FullCountProps repo already tracks CLV. Combine it with the Edge Finder to:
 1. Record the line at time of recommendation (`find_edges.py` output)
 2. Record the closing line just before first pitch
 3. Calculate CLV for every play
@@ -173,7 +173,7 @@ The `scripts/track_clv.py` script in the BaselineMLB repo already tracks CLV. Co
 
 ### Edge-to-Unit Mapping
 
-BaselineMLB's Edge Finder assigns confidence tiers based on the projection edge (the gap between projected value and the prop line).
+FullCountProps's Edge Finder assigns confidence tiers based on the projection edge (the gap between projected value and the prop line).
 
 | Edge Size | Confidence Tier | Recommended Units | Kelly Equivalent |
 |---|---|---|---|
@@ -266,9 +266,9 @@ Sources: [USA Today](https://www.usatoday.com/story/sports/mlb/columnist/bob-nig
 
 ## 5. MLB Prop Strategy Playbook
 
-### Pitcher Strikeouts — The BaselineMLB Sweet Spot
+### Pitcher Strikeouts — The FullCountProps Sweet Spot
 
-Strikeout props are the most analytically tractable prop type and the primary focus of the BaselineMLB projection model.
+Strikeout props are the most analytically tractable prop type and the primary focus of the FullCountProps projection model.
 
 **Key metrics the model considers:**
 - **K/9 & K%:** Baseline strikeout rate — elite pitchers: 28-35%+
@@ -433,6 +433,6 @@ The tool queries the `picks` table to show hit rates segmented by edge magnitude
 
 ---
 
-*Built for the [BaselineMLB](https://github.com/nrlefty5/baselinemlb) project.*
+*Built for the [FullCountProps](https://github.com/fullcountprops/fullcountprops) project.*
 
 *Sources: [Harry Crane](https://harrycrane.substack.com/p/two-arguments-for-fractional-kelly), [Sports Insights](https://www.sportsinsights.com/how-to-bet-on-sports/bankroll-management/betting-unit-size/), [OddsIndex](https://oddsindex.com/guides/bankroll-management-guide), [VSiN](https://vsin.com/how-to-bet/the-importance-of-closing-line-value/), [Boyd's Bets](https://www.boydsbets.com/closing-line-value/), [OddsJam](https://oddsjam.com/betting-education/closing-line-value), [RebelBetting](https://www.rebelbetting.com/faq/expected-value-and-variance), [Pikkit](https://pikkit.com/blog/which-sportsbooks-are-sharp), [BettingUSA](https://www.bettingusa.com/sports/mlb/), [RotoWire](https://www.rotowire.com/baseball/article/mlb-betting-strikeout-props-strategy-57185), [Props Optimizer](https://www.propsoptimizer.com/guides/mlb-player-props-strategy), [Outlier](https://help.outlier.bet/en/articles/12313109-how-much-does-weather-the-ballpark-itself-impact-mlb-betting/), [BettorEdge](https://www.bettoredge.com/post/mlb-player-prop-betting-how-to-pick-winners-for-hits-hrs-and-more), [Wizard of Odds](https://wizardofodds.com/article/variance-and-bankroll-management-for-player-props/)*

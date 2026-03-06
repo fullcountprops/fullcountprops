@@ -2,9 +2,9 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: 'Why BaselineMLB? — Compare MLB Prop Analytics Tools',
+  title: 'Why FullCountProps? — Compare MLB Prop Analytics Tools',
   description:
-    'See how BaselineMLB compares to BallparkPal, EV Analytics, Action Network, FanGraphs, and Dimers. Glass-box Monte Carlo simulation at $29/mo vs $10–85/mo competitors.',
+    'See how FullCountProps compares to BallparkPal, EV Analytics, Action Network, FanGraphs, and Dimers. Glass-box Monte Carlo simulation at $29/mo vs $10–85/mo competitors.',
   keywords: [
     'MLB prop analytics comparison',
     'BallparkPal alternative',
@@ -17,9 +17,9 @@ export const metadata: Metadata = {
     'sports betting analytics',
   ],
   openGraph: {
-    title: 'Why BaselineMLB? — Compare MLB Prop Analytics Tools',
+    title: 'Why FullCountProps? — Compare MLB Prop Analytics Tools',
     description:
-      'Glass-box analytics. No black boxes. See how BaselineMLB stacks up against every major MLB analytics platform.',
+      'Glass-box analytics. No black boxes. See how FullCountProps stacks up against every major MLB analytics platform.',
     type: 'website',
   },
 }
@@ -35,7 +35,7 @@ type Platform = {
 }
 
 const platforms: Platform[] = [
-  { name: 'BaselineMLB', price: '$29/mo', shortName: 'Baseline' },
+  { name: 'FullCountProps', price: '$29/mo', shortName: 'Baseline' },
   { name: 'BallparkPal', price: '$10/mo', shortName: 'BallparkPal' },
   { name: 'EV Analytics', price: '$85/mo', shortName: 'EV Analytics' },
   { name: 'Action Network', price: '$10/mo', shortName: 'Action Net.' },
@@ -100,7 +100,7 @@ const differentiators = [
     title: 'Aggressive Pricing',
     subtitle: '$29/mo vs $10–85/mo',
     description:
-      'Competitors charge $10 to $85 per month for less transparency and often fewer features. BaselineMLB Pro starts at $29/mo — the most affordable option with full Monte Carlo distributions, Kelly sizing, SHAP explanations, and confidence grades included.',
+      'Competitors charge $10 to $85 per month for less transparency and often fewer features. FullCountProps Pro starts at $29/mo — the most affordable option with full Monte Carlo distributions, Kelly sizing, SHAP explanations, and confidence grades included.',
     icon: (
       <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -144,7 +144,7 @@ export default function ComparePage() {
 
         <div className="relative max-w-5xl mx-auto px-4 pt-20 pb-16 text-center">
           <p className="text-blue-400 font-medium text-sm tracking-wider uppercase mb-4">
-            Why BaselineMLB?
+            Why FullCountProps?
           </p>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight mb-6">
             Glass-Box Analytics.
@@ -155,7 +155,7 @@ export default function ComparePage() {
           </h1>
           <p className="text-slate-400 text-lg sm:text-xl max-w-2xl mx-auto leading-relaxed mb-10">
             Most MLB analytics platforms hide their methodology behind closed doors.
-            BaselineMLB shows you every factor, every weight, every simulation —
+            FullCountProps shows you every factor, every weight, every simulation —
             so you can verify our edge before you bet on it.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -180,7 +180,7 @@ export default function ComparePage() {
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold mb-3">Feature Comparison</h2>
           <p className="text-slate-400 max-w-xl mx-auto">
-            How BaselineMLB stacks up against the most popular MLB prop analytics platforms.
+            How FullCountProps stacks up against the most popular MLB prop analytics platforms.
           </p>
         </div>
 
@@ -280,7 +280,7 @@ export default function ComparePage() {
         <div className="text-center mb-14">
           <h2 className="text-3xl font-bold mb-3">What Makes Us Different</h2>
           <p className="text-slate-400 max-w-xl mx-auto">
-            BaselineMLB was built from day one around transparency, accuracy, and value.
+            FullCountProps was built from day one around transparency, accuracy, and value.
           </p>
         </div>
 

@@ -1241,9 +1241,9 @@ class PropCalculator:  # type: ignore[no-redef]
     def format_summary(self, edges: list["PropEdge"]) -> str:
         """Return a plain-text summary of the top edges."""
         if not edges:
-            return "BaselineMLB -- No edges found.\n"
+            return "FullCountProps -- No edges found.\n"
         sep = "-" * 60
-        lines = [sep, "  BaselineMLB Prop Edge Summary", sep]
+        lines = [sep, "  FullCountProps Prop Edge Summary", sep]
         for i, e in enumerate(edges, 1):
             lines.append(
                 f"#{i:2d} {e.player_name:20s}  {e.stat_type:4s} {e.direction:5s} "

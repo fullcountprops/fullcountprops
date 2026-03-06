@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-test_simulator.py — BaselineMLB
+test_simulator.py — FullCountProps
 =================================
 Comprehensive unit tests for the Monte Carlo simulation engine,
 prop calculator, and daily orchestrator.
@@ -776,7 +776,7 @@ class TestPropEdgeSerialization:
         ]
         edges = calc.evaluate_props(quick_sim_results, props)
         summary = calc.format_summary(edges[:3])
-        assert "BaselineMLB" in summary
+        assert "FullCountProps" in summary
         assert len(summary) > 50
 
 
@@ -898,7 +898,7 @@ class TestIntegration:
 
         # Summary
         summary = calc.format_summary(edges[:5])
-        assert "BaselineMLB" in summary
+        assert "FullCountProps" in summary
 
     def test_results_serialization(self, sample_matchup):
         """Results should be fully JSON-serializable."""

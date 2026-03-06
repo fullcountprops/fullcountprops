@@ -1,5 +1,5 @@
 """
-run_daily.py — Daily orchestrator for the BaselineMLB simulation pipeline
+run_daily.py — Daily orchestrator for the FullCountProps simulation pipeline
 ==========================================================================
 
 Drives the full end-to-end simulation workflow for a given MLB game date:
@@ -879,7 +879,7 @@ def generate_daily_report(
 
     lines = [
         sep,
-        f"  BaselineMLB Daily Simulation Report — {game_date}",
+        f"  FullCountProps Daily Simulation Report — {game_date}",
         f"  {'[DRY RUN] ' if dry_run else ''}Run at {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC",
         sep,
         f"  Games processed : {len(results)}  ({len(successes)} OK, {len(failures)} failed)",
@@ -920,7 +920,7 @@ def main(argv: list[str] | None = None) -> int:
         Exit code: 0 on success, 1 on any failure.
     """
     parser = argparse.ArgumentParser(
-        description="Run the BaselineMLB Monte Carlo simulation pipeline for today's games.",
+        description="Run the FullCountProps Monte Carlo simulation pipeline for today's games.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
@@ -973,7 +973,7 @@ def main(argv: list[str] | None = None) -> int:
     model_path = Path(args.model_path) if args.model_path else None
 
     logger.info(
-        "BaselineMLB daily pipeline starting: date=%s  n_sims=%d  dry_run=%s",
+        "FullCountProps daily pipeline starting: date=%s  n_sims=%d  dry_run=%s",
         game_date,
         n_sims,
         dry_run,

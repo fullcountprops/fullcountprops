@@ -1,5 +1,5 @@
 // ============================================================
-// BaselineMLB — Shared TypeScript Types for API Layer
+// FullCountProps — Shared TypeScript Types for API Layer
 // ============================================================
 
 // ── Subscription Tiers ──────────────────────────────────────────────

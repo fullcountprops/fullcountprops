@@ -2,7 +2,7 @@
 models/matchup_model.py
 =======================
 XGBoost multiclass classifier that predicts plate-appearance outcome probabilities
-for pitcher-batter matchups in the BaselineMLB Monte Carlo simulator.
+for pitcher-batter matchups in the FullCountProps Monte Carlo simulator.
 
 Outcome classes (8) — canonical order matching simulator/monte_carlo_engine.py
 and pipeline/build_training_dataset.py:

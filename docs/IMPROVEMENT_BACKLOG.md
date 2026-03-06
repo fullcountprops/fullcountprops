@@ -1,4 +1,4 @@
-# BaselineMLB — Improvement Backlog
+# FullCountProps — Improvement Backlog
 
 _Last updated: March 2, 2026 (post-Cycle #5)_
 

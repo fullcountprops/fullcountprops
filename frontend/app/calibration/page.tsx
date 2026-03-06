@@ -3,10 +3,10 @@ import { getPublicClient, isSupabaseConfigured } from '../lib/supabase'
 import CalibrationChartWrapper from './CalibrationChartWrapper'
 
 export const metadata: Metadata = {
-  title: 'Calibration — BaselineMLB',
+  title: 'Calibration — FullCountProps',
   description: 'Model calibration chart showing how well our confidence scores predict actual outcomes.',
   openGraph: {
-    title: 'Calibration Chart — BaselineMLB',
+    title: 'Calibration Chart — FullCountProps',
     description: 'Is the model well-calibrated? When we say 70% confidence, are we right 70% of the time?',
   },
 }

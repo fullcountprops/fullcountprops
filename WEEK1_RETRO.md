@@ -13,7 +13,7 @@
 - **Frontend** — Next.js dashboard deployed on Vercel with Today's Projections, Accuracy Summary, and individual player cards
 - **Accuracy tracking** — `accuracy_summary` table wired to public dashboard for ongoing grading
 - **CI/CD** — GitHub Actions pipelines (static site + data ingestion), Vercel auto-deploy on push
-- **Domain** — baselinemlb.com added to Vercel (DNS propagation in progress)
+- **Domain** — fullcountprops.com added to Vercel (DNS propagation in progress)
 
 ---
 

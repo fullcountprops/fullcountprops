@@ -701,7 +701,7 @@ export default async function AccuracyPage() {
       <p className="text-center text-xs text-slate-500 mt-8">
         Data updates daily at 2 AM ET via GitHub Actions &middot;{' '}
         <a
-          href="https://github.com/nrlefty5/baselinemlb"
+          href="https://github.com/fullcountprops/fullcountprops"
           className="text-green-400 hover:underline"
           target="_blank"
           rel="noopener noreferrer"

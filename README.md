@@ -1,17 +1,17 @@
-# BaselineMLB
+# FullCountProps
 
-[![Build Status](https://img.shields.io/github/actions/workflow/status/nrlefty5/baselinemlb/pipelines.yml?branch=main&label=CI)](https://github.com/nrlefty5/baselinemlb/actions)
-[![Pipeline](https://img.shields.io/github/actions/workflow/status/nrlefty5/baselinemlb/simulator.yml?branch=main&label=pipeline)](https://github.com/nrlefty5/baselinemlb/actions)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/fullcountprops/fullcountprops/pipelines.yml?branch=main&label=CI)](https://github.com/fullcountprops/fullcountprops/actions)
+[![Pipeline](https://img.shields.io/github/actions/workflow/status/fullcountprops/fullcountprops/simulator.yml?branch=main&label=pipeline)](https://github.com/fullcountprops/fullcountprops/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Vercel](https://img.shields.io/badge/frontend-Vercel-black?logo=vercel)](https://baselinemlb.vercel.app)
+[![Vercel](https://img.shields.io/badge/frontend-Vercel-black?logo=vercel)](https://fullcountprops.vercel.app)
 
 **MLB player prop analytics powered by plate-appearance-level Monte Carlo simulation.**
 
 ---
 
-## What Is BaselineMLB?
+## What Is FullCountProps?
 
-BaselineMLB is an open-source platform that simulates every MLB game 3,000 times — one plate appearance at a time — to generate probability distributions over player prop outcomes (strikeouts, hits, total bases, RBIs, walks, and more).
+FullCountProps is an open-source platform that simulates every MLB game 3,000 times — one plate appearance at a time — to generate probability distributions over player prop outcomes (strikeouts, hits, total bases, RBIs, walks, and more).
 
 The simulation uses an XGBoost matchup model trained on ~6 million historical plate appearances from Statcast data. Outputs are cross-referenced against live sportsbook lines to identify edges, ranked by a fractional Kelly criterion for stake sizing, and surfaced daily on a Next.js frontend.
 
@@ -57,8 +57,8 @@ For the full architecture with ASCII data flow diagram, component descriptions, 
 ### 1. Clone and Install
 
 ```bash
-git clone https://github.com/nrlefty5/baselinemlb.git
-cd baselinemlb
+git clone https://github.com/fullcountprops/fullcountprops.git
+cd fullcountprops
 
 # Python environment
 python3 -m venv .venv
@@ -123,7 +123,7 @@ npm run dev
 
 ### How It Works
 
-BaselineMLB's core is a **plate-appearance-level Monte Carlo simulator**. Rather than using a career average rate multiplied by estimated innings (which gives one number, not a distribution), we simulate each PA individually:
+FullCountProps's core is a **plate-appearance-level Monte Carlo simulator**. Rather than using a career average rate multiplied by estimated innings (which gives one number, not a distribution), we simulate each PA individually:
 
 1. **For each PA**, the XGBoost matchup model outputs a probability distribution over 8 outcome types: `K, BB, 1B, 2B, 3B, HR, HBP, OUT`
 2. **Adjustments** are applied: park factors, weather, umpire tendencies, catcher framing, pitcher fatigue
@@ -151,7 +151,7 @@ For complete methodology, see [`docs/MONTE_CARLO_METHODOLOGY.md`](docs/MONTE_CAR
 ## Directory Structure
 
 ```
-baselinemlb/
+fullcountprops/
 ├── pipeline/                   # Data ingestion scripts
 │   ├── fetch_games.py          #   MLB Stats API: schedule + venues
 │   ├── fetch_players.py        #   Lineups + rosters
@@ -301,10 +301,10 @@ pytest tests/
 
 ## License
 
-MIT © BaselineMLB Contributors
+MIT © FullCountProps Contributors
 
 See [LICENSE](LICENSE) for full terms.
 
 ---
 
-> **Disclaimer:** BaselineMLB is an analytical tool for baseball research and entertainment purposes. Nothing on this platform constitutes financial or gambling advice. Please bet responsibly and in accordance with the laws of your jurisdiction.
+> **Disclaimer:** FullCountProps is an analytical tool for baseball research and entertainment purposes. Nothing on this platform constitutes financial or gambling advice. Please bet responsibly and in accordance with the laws of your jurisdiction.

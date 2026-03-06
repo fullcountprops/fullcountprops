@@ -3,10 +3,10 @@ import Link from 'next/link'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Best Bets — BaselineMLB',
+  title: 'Best Bets — FullCountProps',
   description: 'Top MLB player prop picks ranked by edge percentage. Powered by Monte Carlo simulations.',
   openGraph: {
-    title: 'Best Bets — BaselineMLB',
+    title: 'Best Bets — FullCountProps',
     description: 'Today\'s highest-edge MLB player props, ranked by confidence and edge %.',
   },
 }

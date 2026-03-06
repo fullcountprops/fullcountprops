@@ -1,5 +1,5 @@
 """
-BaselineMLB -- matchup_model.py
+FullCountProps -- matchup_model.py
 ================================
 Core ML model that predicts per-PA outcome probabilities for each
 batter-pitcher matchup.
@@ -17,7 +17,7 @@ Three classes are exposed:
   MatchupModel         -- Unified facade that tries the trained model first
                          and degrades gracefully to OddsRatioModel.  Also
                          exposes the glass-box explain_prediction() method
-                         that is BaselineMLB's key differentiator.
+                         that is FullCountProps's key differentiator.
 
 All predict_pa_probs() methods return a dict[str, float] whose values sum
 to exactly 1.0, keyed by the 8 strings in MODEL_OUTCOMES.

@@ -1,6 +1,6 @@
 // frontend/app/lib/tiers.ts
 // ============================================================
-// BaselineMLB — Tier Constants (Single Source of Truth)
+// FullCountProps — Tier Constants (Single Source of Truth)
 // Issue #8: 4-tier MiLB structure
 // ============================================================
 

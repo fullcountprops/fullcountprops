@@ -1,4 +1,4 @@
-# BaselineMLB — Monte Carlo Simulation Methodology
+# FullCountProps — Monte Carlo Simulation Methodology
 
 > **Version:** 2.0
 > **Last Updated:** March 2026
@@ -37,7 +37,7 @@ That was one simulation. We run this **3,000 times**. The result is a frequency 
 
 ## 2. Our Approach
 
-BaselineMLB v2.0 simulates baseball at the **plate appearance level**. This is the key architectural difference from v1.0 (which used career K/9 rate × estimated innings) and from most competing projection systems.
+FullCountProps v2.0 simulates baseball at the **plate appearance level**. This is the key architectural difference from v1.0 (which used career K/9 rate × estimated innings) and from most competing projection systems.
 
 ### Why Plate-Appearance Level?
 
@@ -559,7 +559,7 @@ We run automated data validation checks during the overnight pipeline to flag an
 
 ### 8.7 This Is Not Gambling Advice
 
-BaselineMLB is an analytical tool for baseball enthusiasts and researchers. Nothing in this platform constitutes personalized financial or gambling advice. Past model performance does not guarantee future results. Sports betting involves risk and the potential to lose money. Please bet responsibly and in accordance with the laws of your jurisdiction.
+FullCountProps is an analytical tool for baseball enthusiasts and researchers. Nothing in this platform constitutes personalized financial or gambling advice. Past model performance does not guarantee future results. Sports betting involves risk and the potential to lose money. Please bet responsibly and in accordance with the laws of your jurisdiction.
 
 ---
 

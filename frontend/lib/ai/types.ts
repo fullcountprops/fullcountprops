@@ -1,5 +1,5 @@
 // frontend/lib/ai/types.ts
-// Core types for BaselineMLB AI routing and prompt system
+// Core types for FullCountProps AI routing and prompt system
 
 export type AIModel =
   | 'haiku-4.5'

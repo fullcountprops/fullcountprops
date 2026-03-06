@@ -1,6 +1,6 @@
 // frontend/app/api/webhooks/stripe/route.ts
 // ============================================================
-// BaselineMLB — Stripe Webhook (Issue #8: 4-tier system)
+// FullCountProps — Stripe Webhook (Issue #8: 4-tier system)
 //
 // Maps Stripe price IDs → new tier names and updates
 // user_metadata.subscription_tier in Supabase on:
@@ -25,7 +25,7 @@ const supabaseAdmin = createClient(
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
-/** Resolve a Stripe price ID to a BaselineMLB tier name. */
+/** Resolve a Stripe price ID to a FullCountProps tier name. */
 function tierFromPriceId(priceId: string): TierName {
   const priceToTier = buildPriceToTierMap();
   return priceToTier[priceId] ?? 'single_a';

@@ -1,10 +1,10 @@
-# Model Methodology — BaselineMLB
+# Model Methodology — FullCountProps
 
 > Every projection is a glass box. Every factor is logged. Every result is graded publicly.
 
 ## Philosophy
 
-BaselineMLB rejects black-box machine learning for player prop projections. Instead, we use **transparent, interpretable models** where every input factor is visible and every output is reproducible. If we project a pitcher for 6.2 strikeouts, you can see exactly why.
+FullCountProps rejects black-box machine learning for player prop projections. Instead, we use **transparent, interpretable models** where every input factor is visible and every output is reproducible. If we project a pitcher for 6.2 strikeouts, you can see exactly why.
 
 ---
 

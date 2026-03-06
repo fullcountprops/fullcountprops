@@ -32,7 +32,7 @@ export default function GatePage() {
   return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center">
       <div className="bg-gray-900 p-8 rounded-xl border border-gray-800 w-full max-w-sm">
-        <h1 className="text-2xl font-bold text-white mb-2 text-center">BaselineMLB</h1>
+        <h1 className="text-2xl font-bold text-white mb-2 text-center">FullCountProps</h1>
         <p className="text-gray-400 text-sm text-center mb-6">
           This site is in pre-launch mode. Enter the password to continue.
         </p>

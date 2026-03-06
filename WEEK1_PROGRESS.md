@@ -69,7 +69,7 @@
 
 - ⏳ **Dashboard Deployment**
   - Trigger GitHub Actions to deploy dashboard
-  - Verify live site at https://nrlefty5.github.io/baselinemlb
+  - Verify live site at https://nrlefty5.github.io/fullcountprops
   - Test responsive design on mobile devices
 
 - ⏳ **Initial Data Collection**
@@ -173,7 +173,7 @@ None identified yet. Will track after first test run.
 - **Architecture:** [Frontend Spec](frontend-architecture-spec.md)
 - **Setup Guide:** [README.md](README.md)
 - **Test Suite:** `python scripts/run_pipeline_test.py`
-- **Dashboard:** https://nrlefty5.github.io/baselinemlb (pending deployment)
+- **Dashboard:** https://nrlefty5.github.io/fullcountprops (pending deployment)
 
 ---
 

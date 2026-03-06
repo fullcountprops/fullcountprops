@@ -1,5 +1,5 @@
 """
-prop_analyzer.py -- BaselineMLB Monte Carlo Simulator
+prop_analyzer.py -- FullCountProps Monte Carlo Simulator
 =====================================================
 Compares simulated probability distributions to sportsbook prop lines and
 identifies edges.
@@ -568,7 +568,7 @@ class PropReporter:
         num_sims = game_info.get("num_simulations", "?")
 
         lines: list[str] = [
-            f"# BaselineMLB Prop Analysis -- {away} @ {home}",
+            f"# FullCountProps Prop Analysis -- {away} @ {home}",
             f"**Date:** {game_date}  |  **Venue:** {venue}  |  **Simulations:** {num_sims}",
             "",
             "| Player | Prop | Line | Sim Mean | P(Over) | Book Imp | Edge | Side | Kelly% | Confidence |",
@@ -667,7 +667,7 @@ class PropReporter:
 
     def format_json(self, analyses: list[PropAnalysis]) -> str:
         """
-        Serialize analyses to a JSON string compatible with the BaselineMLB
+        Serialize analyses to a JSON string compatible with the FullCountProps
         projections table format.
 
         Parameters
@@ -808,7 +808,7 @@ class PropReporter:
         str
             Short-form post text (<= ~280 characters per block).
         """
-        parts: list[str] = ["[baseball] BaselineMLB Prop Edges\n"]
+        parts: list[str] = ["[baseball] FullCountProps Prop Edges\n"]
 
         over_plays = top_plays.get("over", [])[:3]
         under_plays = top_plays.get("under", [])[:3]
@@ -838,7 +838,7 @@ class PropReporter:
         if not over_plays and not under_plays:
             parts.append("No edges found today. Model says sit tight.")
 
-        parts.append("\n#MLB #Props #BaselineMLB")
+        parts.append("\n#MLB #Props #FullCountProps")
         return "\n".join(parts)
 
 

@@ -8,10 +8,10 @@ import { Metadata } from 'next'
 import SubscribeClient from './SubscribeClient'
 
 export const metadata: Metadata = {
-  title: 'Subscribe — BaselineMLB',
+  title: 'Subscribe — FullCountProps',
   description: 'Unlock full MLB prop edges with Pro ($29/mo) or Premium ($49/mo). Daily email alerts, API access, and more.',
   openGraph: {
-    title: 'Subscribe to BaselineMLB',
+    title: 'Subscribe to FullCountProps',
     description: 'Professional-grade MLB prop analytics. Upgrade to Pro or Premium for full edge access.',
   },
 }

@@ -1,5 +1,5 @@
 """
-conftest.py — Shared pytest configuration for BaselineMLB tests.
+conftest.py — Shared pytest configuration for FullCountProps tests.
 
 Ensures the workspace root is on sys.path so all package imports
 (simulation/, simulator/, models/, lib/, pipeline/) resolve correctly

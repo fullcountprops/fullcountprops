@@ -1,5 +1,5 @@
 // ============================================================
-// BaselineMLB — Supabase Client Utilities
+// FullCountProps — Supabase Client Utilities
 // Server-side client with service role key for API routes
 // ============================================================
 

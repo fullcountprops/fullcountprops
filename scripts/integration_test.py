@@ -1,7 +1,7 @@
 """
 integration_test.py
 -------------------
-End-to-end integration test for the BaselineMLB Monte Carlo simulator pipeline.
+End-to-end integration test for the FullCountProps Monte Carlo simulator pipeline.
 
 Performs a full dry-run of every stage without touching external APIs or
 credentials:
@@ -418,7 +418,7 @@ def run_step(name: str, fn) -> TestResult:
 def main() -> int:
     """Run all integration test steps and return exit code."""
     logger.info("=" * 60)
-    logger.info("BaselineMLB Monte Carlo Simulator – Integration Test")
+    logger.info("FullCountProps Monte Carlo Simulator – Integration Test")
     logger.info("=" * 60)
 
     MatchupModel, SimulatorCls, PropCalculatorCls = _try_real_import()

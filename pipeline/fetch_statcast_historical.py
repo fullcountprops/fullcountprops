@@ -207,7 +207,7 @@ def download_date_range(start: date, end: date) -> pd.DataFrame:
     """
     session = requests.Session()
     session.headers.update({
-        "User-Agent": "BaselineMLB/1.0 (research; statcast backfill)"
+        "User-Agent": "FullCountProps/1.0 (research; statcast backfill)"
     })
 
     chunks = []

@@ -1,6 +1,6 @@
 // frontend/app/api/export/route.ts
 // ============================================================
-// BaselineMLB — CSV Export API (Issue #8)
+// FullCountProps — CSV Export API (Issue #8)
 //
 // POST /api/export
 // Body: { export_type: string, filters?: Record<string, string> }
@@ -332,7 +332,7 @@ export async function POST(request: NextRequest) {
 
     // ---- 10. Return CSV file ----
     const today = new Date().toISOString().slice(0, 10);
-    const filename = `baselinemlb_${exportType}_${today}.csv`;
+    const filename = `fullcountprops_${exportType}_${today}.csv`;
 
     return new NextResponse(csv, {
       status: 200,

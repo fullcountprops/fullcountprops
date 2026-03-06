@@ -1,5 +1,5 @@
 -- ============================================================
--- BaselineMLB — API Monetization Migration
+-- FullCountProps — API Monetization Migration
 -- 2026-03-02
 -- ============================================================
 

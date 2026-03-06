@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-track_clv.py — CLV (Closing Line Value) tracking for BaselineMLB.
+track_clv.py — CLV (Closing Line Value) tracking for FullCountProps.
 Compares opening props prices with closing prices to measure sharpness.
 
 CLV = (Our Opening Price - Closing Price) / Closing Price

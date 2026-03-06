@@ -52,7 +52,7 @@ from simulator import DEFAULT_N_SIMS, VERSION  # noqa: E402, F401
 # Legacy metadata preserved for backward compatibility
 __version__ = "1.0.0"
 __status__ = "deprecated"
-__author__ = "BaselineMLB"
+__author__ = "FullCountProps"
 __model_version__ = "mc-v1.0"
 
 __all__ = [

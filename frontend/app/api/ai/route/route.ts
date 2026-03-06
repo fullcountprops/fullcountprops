@@ -1,5 +1,5 @@
 // frontend/app/api/ai/route/route.ts
-// Internal AI routing endpoint for BaselineMLB UI and n8n
+// Internal AI routing endpoint for FullCountProps UI and n8n
 // POST /api/ai/route
 
 import { NextRequest, NextResponse } from 'next/server';

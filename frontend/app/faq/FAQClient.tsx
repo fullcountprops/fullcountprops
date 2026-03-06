@@ -39,7 +39,7 @@ const FAQ_SECTIONS: { title: string; items: FAQItem[] }[] = [
     title: 'Product & Coverage',
     items: [
       {
-        question: 'What player props does BaselineMLB cover?',
+        question: 'What player props does FullCountProps cover?',
         answer: (
           <>
             <p>
@@ -277,7 +277,7 @@ const FAQ_SECTIONS: { title: string; items: FAQItem[] }[] = [
         ),
       },
       {
-        question: 'How does BaselineMLB compare to BallparkPal?',
+        question: 'How does FullCountProps compare to BallparkPal?',
         answer: (
           <p>
             BallparkPal is our closest structural competitor — they also run PA-level
@@ -308,13 +308,13 @@ const FAQ_SECTIONS: { title: string; items: FAQItem[] }[] = [
     title: 'Technical',
     items: [
       {
-        question: 'Is BaselineMLB open source?',
+        question: 'Is FullCountProps open source?',
         answer: (
           <p>
             Yes. The entire codebase — simulation engine, matchup model, data
             pipelines, and this frontend — is available on{' '}
             <a
-              href="https://github.com/nrlefty5/baselinemlb"
+              href="https://github.com/fullcountprops/fullcountprops"
               target="_blank"
               rel="noopener noreferrer"
               className="text-green-400 hover:text-green-300 underline"
@@ -356,7 +356,7 @@ export default function FAQClient() {
             Frequently Asked Questions
           </h1>
           <p className="text-slate-400 text-lg">
-            Everything you need to know about BaselineMLB, our methodology, and
+            Everything you need to know about FullCountProps, our methodology, and
             how to use our picks.
           </p>
         </div>
@@ -387,7 +387,7 @@ export default function FAQClient() {
           </p>
           <div className="flex items-center justify-center gap-4">
             <a
-              href="https://twitter.com/BaselineMLB"
+              href="https://twitter.com/fullcountprops"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition-colors"
@@ -398,7 +398,7 @@ export default function FAQClient() {
               Twitter / X
             </a>
             <a
-              href="https://github.com/nrlefty5/baselinemlb/issues"
+              href="https://github.com/fullcountprops/fullcountprops/issues"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition-colors"

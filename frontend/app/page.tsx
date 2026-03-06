@@ -240,7 +240,7 @@ export default async function HomePage() {
       <section className="max-w-6xl mx-auto px-4 py-20">
         <div className="text-center mb-12">
           <h2 className="text-2xl font-bold text-white mb-3">
-            How BaselineMLB Works
+            How FullCountProps Works
           </h2>
           <p className="text-slate-400 max-w-lg mx-auto">
             Three layers of analysis, updated twice daily during the season.

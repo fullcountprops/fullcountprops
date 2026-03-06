@@ -1,5 +1,5 @@
 // frontend/app/api/support/ask/route.ts
-// "Ask BaselineMLB" support bot endpoint
+// "Ask FullCountProps" support bot endpoint
 // POST /api/support/ask
 
 import { NextRequest, NextResponse } from 'next/server';

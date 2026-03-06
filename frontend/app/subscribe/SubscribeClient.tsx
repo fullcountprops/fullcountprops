@@ -119,7 +119,7 @@ export default function SubscribeClient() {
           Upgrade Your Edge
         </h1>
         <p className="text-slate-400 text-lg max-w-xl mx-auto">
-          BaselineMLB runs 10,000+ Monte Carlo simulations per game to surface
+          FullCountProps runs 10,000+ Monte Carlo simulations per game to surface
           statistically significant prop bets. Choose the plan that fits your workflow.
         </p>
       </div>

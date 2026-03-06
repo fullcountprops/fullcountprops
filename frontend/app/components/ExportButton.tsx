@@ -1,6 +1,6 @@
 // frontend/app/components/ExportButton.tsx
 // ============================================================
-// BaselineMLB — Tier-Aware CSV Export Button (Issue #8)
+// FullCountProps — Tier-Aware CSV Export Button (Issue #8)
 //
 // Usage:
 //   <ExportButton exportType="best_bets" />
@@ -116,7 +116,7 @@ export default function ExportButton({
       a.href = url;
       a.download =
         res.headers.get('content-disposition')?.match(/filename="(.+)"/)?.[1] ||
-        `baselinemlb_${exportType}.csv`;
+        `fullcountprops_${exportType}.csv`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);

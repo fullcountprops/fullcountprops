@@ -3,16 +3,16 @@ import { Metadata } from 'next'
 export const metadata: Metadata = {
   title: 'Methodology',
   description:
-    'How BaselineMLB works: LightGBM matchup model trained on 6M+ Statcast plate appearances, 2,500 PA-level Monte Carlo simulations per game, umpire and catcher framing adjustments, SHAP explanations.',
+    'How FullCountProps works: LightGBM matchup model trained on 6M+ Statcast plate appearances, 2,500 PA-level Monte Carlo simulations per game, umpire and catcher framing adjustments, SHAP explanations.',
   openGraph: {
-    title: 'Methodology — BaselineMLB',
+    title: 'Methodology — FullCountProps',
     description:
       'A detailed, plain-English walkthrough of our Monte Carlo simulation engine, matchup model, and edge detection system.',
     images: ['/og-image.png'],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Methodology — BaselineMLB',
+    title: 'Methodology — FullCountProps',
     description:
       'How our Monte Carlo MLB prop simulator works — from Statcast data to actionable edges.',
     images: ['/og-image.png'],
@@ -23,11 +23,11 @@ function JsonLd() {
   const data = {
     '@context': 'https://schema.org',
     '@type': 'Article',
-    headline: 'BaselineMLB Methodology',
+    headline: 'FullCountProps Methodology',
     description:
-      'How the BaselineMLB Monte Carlo simulation engine produces MLB player prop projections.',
-    author: { '@type': 'Organization', name: 'BaselineMLB' },
-    publisher: { '@type': 'Organization', name: 'BaselineMLB' },
+      'How the FullCountProps Monte Carlo simulation engine produces MLB player prop projections.',
+    author: { '@type': 'Organization', name: 'FullCountProps' },
+    publisher: { '@type': 'Organization', name: 'FullCountProps' },
     datePublished: '2026-03-01',
     dateModified: '2026-03-02',
   }
@@ -83,7 +83,7 @@ export default function MethodologyPage() {
               Methodology
             </h1>
             <p className="text-slate-400 text-lg leading-relaxed">
-              BaselineMLB is built on a simple idea: simulate every plate appearance
+              FullCountProps is built on a simple idea: simulate every plate appearance
               of every game thousands of times, using real data, and let the math
               tell you which prop bets are mispriced. Here&apos;s exactly how we do
               it &mdash; no black boxes.
@@ -123,7 +123,7 @@ export default function MethodologyPage() {
           {/* Section 2 */}
           <SectionCard number="02" title="The Two-Layer Architecture">
             <p>
-              BaselineMLB is built in two layers that work together:
+              FullCountProps is built in two layers that work together:
             </p>
             <div className="bg-slate-900 border border-slate-700 rounded-xl p-5 my-4 font-mono text-sm text-slate-300">
               <div className="mb-3">
@@ -391,7 +391,7 @@ export default function MethodologyPage() {
           {/* Section 7 */}
           <SectionCard number="07" title="SHAP Explanations (Glass-Box Transparency)">
             <p>
-              This is what makes BaselineMLB different from every other prop
+              This is what makes FullCountProps different from every other prop
               analytics service. For every single projection, you can see exactly
               what drove the number:
             </p>
@@ -561,7 +561,7 @@ export default function MethodologyPage() {
               Disclaimer
             </h3>
             <p className="text-slate-500 text-sm leading-relaxed">
-              BaselineMLB is an analytical tool for baseball enthusiasts and
+              FullCountProps is an analytical tool for baseball enthusiasts and
               researchers. Nothing on this site constitutes financial or gambling
               advice. Past model performance does not guarantee future results.
               Sports betting involves risk. Please bet responsibly and in
@@ -572,10 +572,10 @@ export default function MethodologyPage() {
           {/* Open Source CTA */}
           <div className="mt-8 text-center">
             <p className="text-slate-500 text-sm mb-3">
-              BaselineMLB is open source. Verify everything yourself.
+              FullCountProps is open source. Verify everything yourself.
             </p>
             <a
-              href="https://github.com/nrlefty5/baselinemlb"
+              href="https://github.com/fullcountprops/fullcountprops"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 text-sm text-slate-300 hover:text-white transition-colors"

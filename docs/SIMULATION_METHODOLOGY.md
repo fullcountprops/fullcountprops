@@ -1,4 +1,4 @@
-# BaselineMLB Monte Carlo Simulation Engine — Methodology
+# FullCountProps Monte Carlo Simulation Engine — Methodology
 
 *Last updated: March 2, 2026*
 
@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-BaselineMLB is an open-source, plate-appearance–level Monte Carlo simulator that runs 2,500 full-game simulations per matchup to produce probability distributions over individual player stats, then compares those distributions to sportsbook prop lines to identify edges. Unlike season-level projection systems (Steamer, ZiPS, PECOTA) that answer "what will this player do over 600 PA?", BaselineMLB answers "what is the probability this pitcher fans more than 6.5 batters *tonight at Coors Field* with Angel Hernandez behind the plate and a 12 mph wind blowing in?" Every projection is accompanied by a glass-box factor breakdown — park, umpire, catcher framing, weather, platoon — so bettors can understand exactly what is driving each number and make better-informed decisions.
+FullCountProps is an open-source, plate-appearance–level Monte Carlo simulator that runs 2,500 full-game simulations per matchup to produce probability distributions over individual player stats, then compares those distributions to sportsbook prop lines to identify edges. Unlike season-level projection systems (Steamer, ZiPS, PECOTA) that answer "what will this player do over 600 PA?", FullCountProps answers "what is the probability this pitcher fans more than 6.5 batters *tonight at Coors Field* with Angel Hernandez behind the plate and a 12 mph wind blowing in?" Every projection is accompanied by a glass-box factor breakdown — park, umpire, catcher framing, weather, platoon — so bettors can understand exactly what is driving each number and make better-informed decisions.
 
 ---
 
@@ -417,7 +417,7 @@ The default `NUM_SIMULATIONS = 2500` balances statistical precision against comp
 
 - **Precision:** For a binary prop (over/under), the standard error of a proportion estimated from N simulations is √(p(1−p)/N). At N=2500 and p=0.50, SE ≈ 1.0%, which is sufficient for edge detection thresholds of 3–5%.
 - **Runtime:** At approximately 70 PA per simulated game and ~50 μs per matchup model call, 2,500 simulations complete in under 60 seconds on a single CPU core. The `GameSimulator` supports parallel execution via `concurrent.futures` for further speedup.
-- **Comparison:** BallparkPal uses 3,000 simulations per game. The [thorpe0/strikeout-simulation](https://github.com/thorpe0/strikeout-simulation) repo uses 100,000 iterations but with a much simpler Poisson model (not PA-level). The INFORMS Operations Research batting-order simulation used 200,000 game iterations. BaselineMLB's 2,500 PA-level simulations provide more realistic game-state modelling than a Poisson approximation while remaining tractable for daily use.
+- **Comparison:** BallparkPal uses 3,000 simulations per game. The [thorpe0/strikeout-simulation](https://github.com/thorpe0/strikeout-simulation) repo uses 100,000 iterations but with a much simpler Poisson model (not PA-level). The INFORMS Operations Research batting-order simulation used 200,000 game iterations. FullCountProps's 2,500 PA-level simulations provide more realistic game-state modelling than a Poisson approximation while remaining tractable for daily use.
 
 ---
 
@@ -437,7 +437,7 @@ This is read directly off the full integer distribution, not approximated by a s
 
 ### American Odds → No-Vig Implied Probability
 
-American odds include the sportsbook's vig (margin). BaselineMLB removes the vig before computing edge by normalising both sides:
+American odds include the sportsbook's vig (margin). FullCountProps removes the vig before computing edge by normalising both sides:
 
 ```
 Raw implied (over)  = |over_odds| / (|over_odds| + 100)   [if negative odds]
@@ -499,7 +499,7 @@ Decimal odds conversion:
 
 ## Glass-Box Transparency (Key Differentiator)
 
-Unlike proprietary systems (BallparkPal, THE BAT X) that output a single number with no explanation, BaselineMLB exposes every factor that contributed to each projection through the `MatchupModel.explain_prediction()` method and the `factors` field on every `PropAnalysis`.
+Unlike proprietary systems (BallparkPal, THE BAT X) that output a single number with no explanation, FullCountProps exposes every factor that contributed to each projection through the `MatchupModel.explain_prediction()` method and the `factors` field on every `PropAnalysis`.
 
 ### How It Works
 
@@ -541,13 +541,13 @@ Transparency builds trust in two ways:
 
 ---
 
-## BaselineMLB vs. Competitors
+## FullCountProps vs. Competitors
 
 ### vs. BallparkPal
 
-[BallparkPal](https://www.ballparkpal.com/Methods.html) is the closest structural analogue to BaselineMLB — it also runs PA-level Monte Carlo simulations.
+[BallparkPal](https://www.ballparkpal.com/Methods.html) is the closest structural analogue to FullCountProps — it also runs PA-level Monte Carlo simulations.
 
-| Feature | BallparkPal | BaselineMLB |
+| Feature | BallparkPal | FullCountProps |
 |---|---|---|
 | Simulations per game | 3,000 | 2,500 |
 | PA-level resolution | Yes | Yes |
@@ -560,35 +560,35 @@ Transparency builds trust in two ways:
 | Free / Open source | No ($30+/month) | Yes |
 | Trained model available | Yes | Pending (odds-ratio fallback currently active) |
 
-**Assessment:** BallparkPal has the advantage of a trained proprietary model with substantially more features. BaselineMLB's advantages are cost (free), transparency (glass-box explanations), and deeper park factor granularity (6 dimensions vs. 4). The gap will narrow once BaselineMLB's LightGBM model is trained on 5 seasons of Statcast data.
+**Assessment:** BallparkPal has the advantage of a trained proprietary model with substantially more features. FullCountProps's advantages are cost (free), transparency (glass-box explanations), and deeper park factor granularity (6 dimensions vs. 4). The gap will narrow once FullCountProps's LightGBM model is trained on 5 seasons of Statcast data.
 
 ### vs. Steamer / ZiPS / PECOTA
 
 These are **season-level projection systems**, not game simulators. They answer fundamentally different questions:
 
 - **Steamer/ZiPS/PECOTA:** "What will Mike Trout do over ~500 plate appearances in 2026?" — useful for fantasy drafts and season-long analysis
-- **BaselineMLB:** "What is the probability Mike Trout records 2+ hits *tonight* vs. Cole at Globe Life Field with wind blowing out?" — useful for daily props
+- **FullCountProps:** "What is the probability Mike Trout records 2+ hits *tonight* vs. Cole at Globe Life Field with wind blowing out?" — useful for daily props
 
 Season-level systems project stable expected performance but cannot incorporate game-specific context: tonight's umpire, current weather, bullpen availability, or recent form over the past 14 days. [PECOTA 2025](https://www.baseballprospectus.com/news/article/96300/) uses a sophisticated aging curve and comparable player methodology, but its output is a point-estimate for the season, not a probability distribution for a single night.
 
-BaselineMLB fills a different niche: game-specific, prop-optimised, with daily context adjustments.
+FullCountProps fills a different niche: game-specific, prop-optimised, with daily context adjustments.
 
 ### vs. THE BAT X
 
 [THE BAT X](https://www.fantasypros.com/2026/02/most-accurate-fantasy-baseball-projections-2025-results/) is the top-ranked original projection system per FantasyPros accuracy rankings for 2025 results. It incorporates Statcast data alongside park, weather, umpire, and defensive context — making it the most contextually aware season-level system available.
 
-Key difference: **THE BAT X outputs point estimates; BaselineMLB outputs P(over) for any line.**
+Key difference: **THE BAT X outputs point estimates; FullCountProps outputs P(over) for any line.**
 
 - THE BAT X says "Corbin Burnes projects for 220 strikeouts this season" — which implies roughly 5.5 per start but provides no probability distribution around that estimate
-- BaselineMLB says "P(Burnes records ≥ 7 Ks tonight) = 41%" — directly actionable for prop betting
+- FullCountProps says "P(Burnes records ≥ 7 Ks tonight) = 41%" — directly actionable for prop betting
 
-The approaches are complementary: BaselineMLB's recent-form and game-specific features could be improved by incorporating THE BAT X's longer-horizon stable projections as a prior.
+The approaches are complementary: FullCountProps's recent-form and game-specific features could be improved by incorporating THE BAT X's longer-horizon stable projections as a prior.
 
 ### vs. Singlearity (Baseball Prospectus)
 
 [Singlearity](https://www.baseballprospectus.com/news/article/59993/) is a neural network PA outcome predictor published by Baseball Prospectus. Direct comparison:
 
-| Dimension | Singlearity | BaselineMLB |
+| Dimension | Singlearity | FullCountProps |
 |---|---|---|
 | Model architecture | 2-layer neural network | LightGBM + odds-ratio fallback |
 | Input features | 79 (includes head-to-head history, game state, fielder IDs) | 33 (Statcast metrics, context, weather) |
@@ -601,7 +601,7 @@ The approaches are complementary: BaselineMLB's recent-form and game-specific fe
 | Prop betting output | Not designed for it | Core use case (P(over) for any line) |
 | Open source / free | Academic paper only | Yes |
 
-Singlearity is the gold standard for PA outcome prediction accuracy but is not designed for game-level simulation or prop betting. BaselineMLB trades some outcome resolution (8 classes vs. 21) and feature depth (33 vs. 79) for prop-bet-specific output, game simulation, and daily operational use.
+Singlearity is the gold standard for PA outcome prediction accuracy but is not designed for game-level simulation or prop betting. FullCountProps trades some outcome resolution (8 classes vs. 21) and feature depth (33 vs. 79) for prop-bet-specific output, game simulation, and daily operational use.
 
 ---
 
@@ -611,8 +611,8 @@ Singlearity is the gold standard for PA outcome prediction accuracy but is not d
 |---|---|---|
 | **[MLB Stats API](https://statsapi.mlb.com/api/v1/)** | Free, no API key required | Daily schedules with probable pitchers, confirmed lineups, team-level stats, platoon splits, historical boxscores |
 | **[Baseball Savant / Statcast](https://baseballsavant.mlb.com/)** | Free, no API key required | Pitch-level data for training; leaderboard CSVs for pitcher/batter Statcast season stats (whiff%, xBA, barrel%, etc.); expected stats; arsenal stats |
-| **[The Odds API](https://the-odds-api.com/)** | Existing BaselineMLB integration | Prop lines (over/under odds) for all major sportsbooks |
-| **[Supabase](https://supabase.com/)** | Existing BaselineMLB tables | Umpire framing composites (`umpire_k_factor`), catcher framing z-scores, historical projections |
+| **[The Odds API](https://the-odds-api.com/)** | Existing FullCountProps integration | Prop lines (over/under odds) for all major sportsbooks |
+| **[Supabase](https://supabase.com/)** | Existing FullCountProps tables | Umpire framing composites (`umpire_k_factor`), catcher framing z-scores, historical projections |
 | **[OpenWeatherMap](https://openweathermap.org/)** | Free tier (1,000 calls/day) | Game-time temperature (°F), wind speed (mph), wind direction for outdoor ballparks |
 
 Data prep rate limits and caching:
@@ -626,7 +626,7 @@ Data prep rate limits and caching:
 
 1. **Model has not been trained yet.** The odds-ratio fallback is the active prediction mechanism. The LightGBM model in `matchup_model.py` loads gracefully and falls back to `OddsRatioModel` when no saved model file is present at `models/matchup_model.joblib`. Training requires downloading and processing ~5M PAs from Baseball Savant, which takes several hours and significant storage.
 
-2. **33 features vs. BallparkPal's 100+ proprietary features.** BaselineMLB's feature set is deliberately parsimonious — focusing on the highest-signal Statcast metrics — but it will underperform a well-tuned high-feature model on raw accuracy, particularly for outcome classes with more subtle predictors (ground-ball double play rates, sac fly tendencies, etc.).
+2. **33 features vs. BallparkPal's 100+ proprietary features.** FullCountProps's feature set is deliberately parsimonious — focusing on the highest-signal Statcast metrics — but it will underperform a well-tuned high-feature model on raw accuracy, particularly for outcome classes with more subtle predictors (ground-ball double play rates, sac fly tendencies, etc.).
 
 3. **No stolen base or error modeling.** Stolen base attempts and caught stealings are omitted from the simulation. In 2024, successful steals occurred in roughly 2–3% of base-running situations — small on average but non-trivial in specific matchup contexts (e.g., fast leadoff hitter vs. slow-throwing catcher). Errors are similarly excluded; they affect roughly 1–2% of at-bats.
 

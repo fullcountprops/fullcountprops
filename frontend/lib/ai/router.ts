@@ -1,5 +1,5 @@
 // frontend/lib/ai/router.ts
-// Deterministic model router for BaselineMLB
+// Deterministic model router for FullCountProps
 // Routes requests to the cheapest adequate model based on task type + criticality
 
 import {
@@ -90,7 +90,7 @@ export function buildRouterPrompt(task: TaskDescriptor): {
   system: string;
   user: string;
 } {
-  const system = `You are the AI Router for BaselineMLB, a glass-box MLB prop betting analytics platform.
+  const system = `You are the AI Router for FullCountProps, a glass-box MLB prop betting analytics platform.
 Your job: choose the cheapest model that can complete the task with high quality, and return a JSON object {model, reason, expected_risk} without doing the task.
 Available models (cheapest → most capable):
 haiku-4.5: Fast, cheap Anthropic model for Q&A, explanations, QA (~70% of calls).

@@ -6,10 +6,10 @@ import { Metadata } from 'next'
 import { getPublicClient } from '../lib/supabase'
 
 export const metadata: Metadata = {
-  title: 'Newsletter Archive — BaselineMLB',
+  title: 'Newsletter Archive — FullCountProps',
   description: 'Browse past daily edge digests and see how our picks performed.',
   openGraph: {
-    title: 'BaselineMLB Newsletter Archive',
+    title: 'FullCountProps Newsletter Archive',
     description: 'Every daily edge digest, with results tracked.',
   },
 }

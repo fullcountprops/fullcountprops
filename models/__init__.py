@@ -1,7 +1,7 @@
 """
 models/
 =======
-XGBoost-based matchup probability models for the BaselineMLB Monte Carlo simulator.
+XGBoost-based matchup probability models for the FullCountProps Monte Carlo simulator.
 
 Modules
 -------

@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServiceClient } from '../../lib/supabase'
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY || ''
-const FROM_EMAIL = process.env.ALERT_FROM_EMAIL || 'alerts@baselinemlb.com'
+const FROM_EMAIL = process.env.ALERT_FROM_EMAIL || 'alerts@fullcountprops.com'
 const CRON_SECRET = process.env.CRON_SECRET || ''
 
 export const dynamic = 'force-dynamic'
@@ -39,14 +39,14 @@ function buildEmailHtml(edges: EdgeRow[], gameDate: string): string {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>BaselineMLB — Daily Edge Digest</title>
+  <title>FullCountProps — Daily Edge Digest</title>
 </head>
 <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8fafc;margin:0;padding:0">
   <div style="max-width:640px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;margin-top:24px">
 
     <!-- Header -->
     <div style="background:linear-gradient(135deg,#1e293b 0%,#0f172a 100%);padding:32px;text-align:center">
-      <h1 style="color:#fff;margin:0;font-size:24px;letter-spacing:-0.5px">⚾ BaselineMLB</h1>
+      <h1 style="color:#fff;margin:0;font-size:24px;letter-spacing:-0.5px">⚾ FullCountProps</h1>
       <p style="color:#94a3b8;margin:8px 0 0;font-size:14px">Daily Edge Digest — ${gameDate}</p>
     </div>
 
@@ -78,10 +78,10 @@ function buildEmailHtml(edges: EdgeRow[], gameDate: string): string {
     <!-- Footer -->
     <div style="padding:24px 32px;background:#f8fafc;border-top:1px solid #e2e8f0;text-align:center">
       <p style="margin:0;color:#94a3b8;font-size:12px">
-        You're receiving this because you subscribed to BaselineMLB Pro/Premium alerts.
+        You're receiving this because you subscribed to FullCountProps Pro/Premium alerts.
         <br>
         <a href="{{unsubscribe_url}}" style="color:#64748b">Unsubscribe</a> ·
-        <a href="https://baselinemlb.com" style="color:#64748b">View on site</a>
+        <a href="https://fullcountprops.com" style="color:#64748b">View on site</a>
       </p>
     </div>
   </div>
@@ -168,7 +168,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Build email
-    const subject = `⚾ BaselineMLB Edges — ${today} (${edges.length} picks)`
+    const subject = `⚾ FullCountProps Edges — ${today} (${edges.length} picks)`
     const html = buildEmailHtml(edges as EdgeRow[], today)
 
     // 5. Send via Resend (batch)

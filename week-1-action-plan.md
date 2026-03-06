@@ -15,14 +15,14 @@ Complete these steps before running any scripts. Estimated time: 20 minutes.
 ## Step 1: Clone the repository (if not already local)
 
 ```bash
-git clone https://github.com/nrlefty5/baselinemlb.git
-cd baselinemlb
+git clone https://github.com/fullcountprops/fullcountprops.git
+cd fullcountprops
 ```
 
 If you already have it cloned, pull the latest:
 
 ```bash
-cd baselinemlb
+cd fullcountprops
 git pull origin main
 ```
 
@@ -92,7 +92,7 @@ WEATHER_API_KEY=<YOUR KEY — sign up at https://openweathermap.org/api>
 **How to get your Supabase Service Key:**
 
 1. Go to https://supabase.com/dashboard and log in
-2. Select the "baselinemlb" project
+2. Select the "fullcountprops" project
 3. Click **Settings** (gear icon) in the left sidebar
 4. Click **API** under Configuration
 5. Look for **Project API keys** section
@@ -198,7 +198,7 @@ If you get a connection error: check that SUPABASE_URL is correct and has no tra
 
 Your cron jobs run in GitHub Actions, which need the same environment variables. Verify they're configured:
 
-1. Go to https://github.com/nrlefty5/baselinemlb
+1. Go to https://github.com/fullcountprops/fullcountprops
 2. Click **Settings** tab
 3. Click **Secrets and variables** → **Actions** in the left sidebar
 4. Verify these secrets exist:
@@ -281,7 +281,7 @@ Key things to verify:
 
 **Error: `EnvironmentError: Missing env vars: SUPABASE_SERVICE_KEY`**
 - Fix: Your `.env` file is missing the service key, or the script can't find `.env`
-- Run from the repo root directory: `cd baselinemlb && python scripts/grade_accuracy.py --date 2025-10-28`
+- Run from the repo root directory: `cd fullcountprops && python scripts/grade_accuracy.py --date 2025-10-28`
 - Verify `.env` is in the same directory you're running from
 
 **Error: `requests.exceptions.ConnectionError`**
@@ -383,7 +383,7 @@ If any step fails, the error will show which script broke. Fix that script befor
 After running the pipelines, check that data actually landed:
 
 1. Go to https://supabase.com/dashboard
-2. Select baselinemlb project
+2. Select fullcountprops project
 3. Click **Table Editor** in the left sidebar
 4. Check each table:
    - `games` — should have rows if spring training games exist
@@ -420,7 +420,7 @@ park factors + weather — all visible, all auditable.
 
 Building in public. Launching summer 2026.
 
-baselinemlb.com
+fullcountprops.com
 ```
 
 ## Option B: The Problem Statement (best for resonating with bettors)
@@ -479,7 +479,7 @@ Every factor visible. Every result graded publicly.
 
 Launching summer 2026.
 
-baselinemlb.com
+fullcountprops.com
 ```
 
 ## Posting Strategy for the First Tweet:
@@ -547,11 +547,11 @@ That matters for K props.
 
 ### Afternoon Block (30-45 minutes)
 
-- [ ] Set up @baselinemlb Twitter profile:
+- [ ] Set up @fullcountprops Twitter profile:
   - [ ] Profile photo (baseball-themed, or simple wordmark from Canva)
   - [ ] Header image (dark gradient + tagline)
   - [ ] Bio: "MLB prop analytics. Every factor visible. Every result graded. Launching summer 2026."
-  - [ ] Website link: baselinemlb.com
+  - [ ] Website link: fullcountprops.com
   - [ ] Location: (optional — your city or leave blank)
 - [ ] Follow 50-100 relevant accounts:
   - @BallparkPal, @baseaborant, @FanGraphs, @PitcherList
@@ -638,8 +638,8 @@ That matters for K props.
 - [ ] Sign up for Vercel (https://vercel.com) — use "Continue with GitHub"
 - [ ] Create a new Next.js project locally:
   ```bash
-  npx create-next-app@latest baselinemlb-web --typescript --tailwind --app --src-dir --use-npm
-  cd baselinemlb-web
+  npx create-next-app@latest fullcountprops-web --typescript --tailwind --app --src-dir --use-npm
+  cd fullcountprops-web
   ```
 - [ ] When prompted:
   - Would you like to use TypeScript? → **Yes**
@@ -676,17 +676,17 @@ That matters for K props.
   git init
   git add .
   git commit -m "feat: initialize Next.js project with Supabase client"
-  git remote add origin https://github.com/nrlefty5/baselinemlb-web.git
+  git remote add origin https://github.com/fullcountprops/fullcountprops-web.git
   git push -u origin main
   ```
   (Or add it as a `/web` directory in the existing repo — your choice)
 - [ ] Connect to Vercel:
   1. Go to https://vercel.com/dashboard
   2. Click "Add New Project"
-  3. Import your `baselinemlb-web` repo from GitHub
+  3. Import your `fullcountprops-web` repo from GitHub
   4. Add environment variables: `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`
   5. Click Deploy
-  6. Vercel gives you a URL like `baselinemlb-web.vercel.app` — verify it loads
+  6. Vercel gives you a URL like `fullcountprops-web.vercel.app` — verify it loads
 
 ### Evening (10 minutes)
 
@@ -787,20 +787,20 @@ That matters for K props.
 
 ### Afternoon (1 hour)
 
-- [ ] Connect baselinemlb.com to Vercel:
-  1. In Vercel dashboard: Settings → Domains → Add "baselinemlb.com"
+- [ ] Connect fullcountprops.com to Vercel:
+  1. In Vercel dashboard: Settings → Domains → Add "fullcountprops.com"
   2. Vercel will give you DNS instructions (typically an A record or CNAME)
   3. In Namecheap:
-     - Go to Domain List → baselinemlb.com → Manage
+     - Go to Domain List → fullcountprops.com → Manage
      - Click "Advanced DNS"
      - Add the records Vercel specifies (usually):
        - A Record: @ → 76.76.21.21
        - CNAME Record: www → cname.vercel-dns.com
      - Delete any existing parking page records
   4. Wait 10-30 minutes for DNS propagation
-  5. Visit baselinemlb.com — should show your Next.js app
+  5. Visit fullcountprops.com — should show your Next.js app
   6. Vercel auto-provisions SSL (HTTPS)
-- [ ] Verify baselinemlb.com loads with HTTPS
+- [ ] Verify fullcountprops.com loads with HTTPS
 - [ ] Screenshot it — this is a milestone
 
 ### Evening (15 minutes)
@@ -844,7 +844,7 @@ pip install python-dotenv
 
 Make sure you're running scripts from the repo root directory:
 ```bash
-cd baselinemlb
+cd fullcountprops
 python scripts/grade_accuracy.py --date 2025-10-28
 ```
 
@@ -953,7 +953,7 @@ python scripts/grade_accuracy.py --date 2025-10-28
 
 **Fix:**
 ```bash
-cd baselinemlb-web
+cd fullcountprops-web
 npm install @supabase/supabase-js
 ```
 
@@ -978,11 +978,11 @@ npm install @supabase/supabase-js
 
 ---
 
-### DNS: "baselinemlb.com not resolving"
+### DNS: "fullcountprops.com not resolving"
 
 **Fix:**
 1. DNS changes can take 10 minutes to 48 hours (usually 10-30 minutes)
-2. Check propagation: https://dnschecker.org/#A/baselinemlb.com
+2. Check propagation: https://dnschecker.org/#A/fullcountprops.com
 3. Verify the records in Namecheap match what Vercel specified
 4. Common mistake: leaving the old Namecheap parking page records active — delete those
 
@@ -1014,7 +1014,7 @@ npm install @supabase/supabase-js
 
 By end of day Sunday Mar 2, you should have:
 
-- [ ] All pipeline scripts tested and verified working# Week 1 Action Plan - BaselineMLB
+- [ ] All pipeline scripts tested and verified working# Week 1 Action Plan - FullCountProps
 *Generated: January 2025*
 *Status: IN PROGRESS*
 
@@ -1166,7 +1166,7 @@ Establish core data infrastructure and initial player analytics capability
 - [ ] Data flowing into Supabase tables (at least games and props)
 - [ ] Grade accuracy script tested with historical date
 - [ ] GitHub Actions confirmed running on schedule
-- [ ] @baselinemlb Twitter account live with first 3-5 tweets posted
+- [ ] @fullcountprops Twitter account live with first 3-5 tweets posted
 - [ ] 20-50 accounts followed, some engagement happening
 - [ ] Google Sheet results tracker created
 - [ ] Next.js project initialized and deployed to Vercel
@@ -1176,8 +1176,8 @@ Establish core data infrastructure and initial player analytics capability
 
 By end of day Monday Mar 3:
 
-- [ ] baselinemlb.com pointing to your Vercel deployment
-- [ ] SSL working (https://baselinemlb.com loads)
+- [ ] fullcountprops.com pointing to your Vercel deployment
+- [ ] SSL working (https://fullcountprops.com loads)
 - [ ] Ready for WBC content week (starts March 5)
 
 ---

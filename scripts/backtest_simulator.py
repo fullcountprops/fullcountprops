@@ -1,7 +1,7 @@
 """
 backtest_simulator.py
 ---------------------
-Backtest the BaselineMLB Monte Carlo simulator against historical MLB game data.
+Backtest the FullCountProps Monte Carlo simulator against historical MLB game data.
 
 For each sampled game the script:
   1. Fetches actual box-score / player stats from the MLB Stats API.
@@ -614,7 +614,7 @@ def parse_args() -> argparse.Namespace:
     """Parse command-line arguments."""
     default_start, default_end = _default_date_range()
     parser = argparse.ArgumentParser(
-        description="Backtest the BaselineMLB Monte Carlo simulator.",
+        description="Backtest the FullCountProps Monte Carlo simulator.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
@@ -681,7 +681,7 @@ def main() -> int:
     os.makedirs(args.output_dir, exist_ok=True)
 
     logger.info("=" * 60)
-    logger.info("BaselineMLB Monte Carlo Simulator – Backtest")
+    logger.info("FullCountProps Monte Carlo Simulator – Backtest")
     logger.info("  date range  : %s → %s", args.start_date, args.end_date)
     logger.info("  sample size : %d games", args.sample_size)
     logger.info("  n_sims      : %d", args.n_sims)

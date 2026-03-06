@@ -1,5 +1,5 @@
 // ============================================================
-// BaselineMLB — Rate Limiting & API Key Authentication
+// FullCountProps — Rate Limiting & API Key Authentication
 // Middleware for API v1 routes
 // ============================================================
 

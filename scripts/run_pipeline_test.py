@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Pipeline Test Runner for BaselineMLB
+Pipeline Test Runner for FullCountProps
 Tests all data pipelines in sequence to verify Week 1 functionality.
 
 Usage: python scripts/run_pipeline_test.py
@@ -86,7 +86,7 @@ def main():
 
     print("""
     ╔════════════════════════════════════════════════════════╗
-    ║   BASELINEMLB - WEEK 1 PIPELINE TEST SUITE            ║
+    ║   FULLCOUNTPROPS - WEEK 1 PIPELINE TEST SUITE            ║
     ║   Testing: Data pipelines, projections, dashboard     ║
     ╚════════════════════════════════════════════════════════╝
     """)
@@ -149,7 +149,7 @@ def main():
 
         Next steps:
         1. Check GitHub Actions logs for automated runs
-        2. View dashboard at: https://nrlefty5.github.io/baselinemlb
+        2. View dashboard at: https://nrlefty5.github.io/fullcountprops
         3. Verify data quality in Supabase dashboard
         """)
         sys.exit(0)

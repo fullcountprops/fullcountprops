@@ -2,7 +2,7 @@
 """
 models/train_model.py
 =====================
-Production-ready training script for the BaselineMLB LightGBM matchup model.
+Production-ready training script for the FullCountProps LightGBM matchup model.
 
 Reads X_train / y_train (and optionally X_test / y_test) parquet files
 produced by pipeline/build_training_dataset.py, trains a LightGBM multiclass
@@ -574,7 +574,7 @@ def print_summary(
 
     lines = [
         sep,
-        "  BaselineMLB LightGBM Training Summary",
+        "  FullCountProps LightGBM Training Summary",
         sep,
         f"  Model type  : {m.get('model_type', 'N/A')}",
         f"  Trained at  : {m.get('trained_at', 'N/A')}",
@@ -733,7 +733,7 @@ def run_training(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Train the BaselineMLB LightGBM matchup model.",
+        description="Train the FullCountProps LightGBM matchup model.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(

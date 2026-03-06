@@ -1,6 +1,6 @@
 // frontend/app/api/checkout/route.ts
 // ============================================================
-// BaselineMLB — Stripe Checkout Session (Issue #8: 4-tier)
+// FullCountProps — Stripe Checkout Session (Issue #8: 4-tier)
 //
 // POST /api/checkout
 // Body: { plan: 'double_a' | 'triple_a' | 'the_show', period?: 'monthly' | 'annual' }
@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
     }
 
     // ---- 6. Create Checkout Session ----
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.baselinemlb.com';
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.fullcountprops.com';
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,

@@ -1,6 +1,6 @@
 // frontend/app/(main)/pricing/PricingClient.tsx
 // ============================================================
-// BaselineMLB — Pricing Page Client Component (Issue #8)
+// FullCountProps — Pricing Page Client Component (Issue #8)
 // 4-tier MiLB-themed pricing with CSV export rows
 // ============================================================
 

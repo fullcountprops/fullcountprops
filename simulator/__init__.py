@@ -1,9 +1,9 @@
 """
-simulator — BaselineMLB Monte Carlo Simulation Engine
+simulator — FullCountProps Monte Carlo Simulation Engine
 ======================================================
 
 This package implements the full Monte Carlo game-simulation pipeline for
-BaselineMLB.  It consists of three primary modules (production) plus the
+FullCountProps.  It consists of three primary modules (production) plus the
 full legacy simulation suite (migrated from simulation/).
 
 Production modules

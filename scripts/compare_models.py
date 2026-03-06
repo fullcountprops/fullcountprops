@@ -675,7 +675,7 @@ def _print_header(
     prop_types: str,
     sample_days: Optional[int],
 ) -> None:
-    print("\n=== BaselineMLB Model Comparison ===")
+    print("\n=== FullCountProps Model Comparison ===")
     print(f"Date range:  {start} to {end}")
     print(f"Configs:     {', '.join(selected_configs)}")
     print(f"Prop types:  {prop_types}")
@@ -986,7 +986,7 @@ def _json_default(obj: Any) -> Any:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="BaselineMLB — Multi-model comparison tool",
+        description="FullCountProps — Multi-model comparison tool",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )

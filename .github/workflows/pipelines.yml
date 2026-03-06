@@ -294,8 +294,8 @@ jobs:
     steps:
       - name: Report pipeline failure
         run: |
-          echo "::error::One or more BaselineMLB pipeline jobs failed."
+          echo "::error::One or more FullCountProps pipeline jobs failed."
           echo "Check the workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           # Future: send Slack/Discord/email notification here
           # curl -X POST "$WEBHOOK_URL" -H "Content-Type: application/json" \
-          #   -d "{\"text\": \"BaselineMLB pipeline failed: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}"
+          #   -d "{\"text\": \"FullCountProps pipeline failed: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}"

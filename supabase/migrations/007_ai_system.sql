@@ -1,5 +1,5 @@
 -- 007_ai_system.sql
--- AI logging and prompt registry tables for BaselineMLB
+-- AI logging and prompt registry tables for FullCountProps
 -- Run in Supabase SQL Editor
 
 -- ============================================
