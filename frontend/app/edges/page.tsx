@@ -208,7 +208,7 @@ export default async function EdgesPage({
 
   const projections = await getProjections(selectedDate, selectedStatType)
 
-  const daysUntil = Math.max(0, Math.ceil((OPENING_DAY.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+  const daysUntil = (() => { const now = new Date(); const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()); const target = new Date(2026, 2, 26); return Math.max(0, Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))); })()
   const isPreSeason = daysUntil > 0
 
   const displayDate = new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', {
