@@ -95,8 +95,7 @@ EDGE_BUCKETS = [
 ]
 
 # Park factors — imported from single source of truth
-from pipeline.park_factors import PARK_K_FACTORS, PARK_HR_FACTORS  # noqa: E402
-
+from pipeline.park_factors import PARK_HR_FACTORS, PARK_K_FACTORS  # noqa: E402
 
 # ===========================================================================
 # MLB Stats API helpers
