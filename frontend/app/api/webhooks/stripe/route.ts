@@ -23,13 +23,20 @@ function getStripe(): Stripe {
   }
   return _stripe;
 }
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+let _supabaseAdmin: ReturnType<typeof createClient> | null = null;
+function getSupabaseAdmin() {
+  if (!_supabaseAdmin) {
+    _supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+  }
+  return _supabaseAdmin;
+}
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
-
+function getWebhookSecret() {
+  return process.env.STRIPE_WEBHOOK_SECRET!;
+}
 /** Resolve a Stripe price ID to a FullCountProps tier name. */
 function tierFromPriceId(priceId: string): TierName {
   const priceToTier = buildPriceToTierMap();
@@ -44,7 +51,7 @@ async function updateUserTier(
 ) {
   // Look up user by stripe_customer_id in user_metadata
   const { data: users, error: listError } =
-    await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
+    await getSupabaseAdmin().auth.admin.listUsers({ perPage: 1000 });
 
   if (listError) {
     console.error('Failed to list users:', listError);
@@ -61,7 +68,7 @@ async function updateUserTier(
   }
 
   const { error: updateError } =
-    await supabaseAdmin.auth.admin.updateUserById(user.id, {
+    await getSupabaseAdmin().auth.admin.updateUserById(user.id, {
       user_metadata: {
         subscription_tier: tier,
         stripe_subscription_id: stripeSubscriptionId ?? user.user_metadata?.stripe_subscription_id,
@@ -90,7 +97,7 @@ export async function POST(request: NextRequest) {
   let event: Stripe.Event;
 
   try {
-    event = getStripe().webhooks.constructEvent(body, sig, webhookSecret);
+    event = getStripe().webhooks.constructEvent(body, sig, getWebhookSecret());
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     console.error(`Webhook signature verification failed: ${message}`);
