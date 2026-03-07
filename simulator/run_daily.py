@@ -188,9 +188,9 @@ class GameRecord:
 
     game_pk: int
     game_date: str
-    home_team_id: int
-    away_team_id: int
-    venue_id: int
+    home_team: str
+    away_team: str
+    venue: str
     status: str
 
 
@@ -252,7 +252,7 @@ def fetch_todays_games(game_date: str, game_pks: list[int] | None = None) -> lis
         Parsed game records.
     """
     params: dict[str, Any] = {
-        "select": "game_pk,game_date,home_team_id,away_team_id,venue_id,status",
+        "select": "game_pk,game_date,home_team,away_team,venue,status",
         "game_date": f"eq.{game_date}",
     }
     if game_pks:
@@ -264,9 +264,9 @@ def fetch_todays_games(game_date: str, game_pks: list[int] | None = None) -> lis
         GameRecord(
             game_pk=int(r["game_pk"]),
             game_date=str(r.get("game_date", game_date)),
-            home_team_id=int(r.get("home_team_id", 0)),
-            away_team_id=int(r.get("away_team_id", 0)),
-            venue_id=int(r.get("venue_id", 0)),
+            home_team=str(r.get("home_team", "")),
+            away_team=str(r.get("away_team", "")),
+            venue=str(r.get("venue", "")),
             status=str(r.get("status", "")),
         )
         for r in rows
@@ -320,7 +320,7 @@ def fetch_lineups(game_pk: int, game_date: str) -> dict[str, Any]:
     }
 
 
-def fetch_weather(game_pk: int, venue_id: int) -> dict[str, Any]:
+def fetch_weather(game_pk: int, venue: str) -> dict[str, Any]:
     """Fetch weather data for a game venue.
 
     Query order:
@@ -728,7 +728,7 @@ def run_game_pipeline(
     from .prop_calculator import PropCalculator
 
     t0 = time.perf_counter()
-    logger.info("--- Game %d (%s @ %s) ---", game.game_pk, game.away_team_id, game.home_team_id)
+    logger.info("--- Game %d (%s @ %s) ---", game.game_pk, game.away_team, game.home_team)
 
     try:
         # Step 2: Lineups
@@ -756,7 +756,7 @@ def run_game_pipeline(
 
         # Step 3: Weather
         t_step = time.perf_counter()
-        weather = fetch_weather(game.game_pk, game.venue_id)
+        weather = fetch_weather(game.game_pk, game.venue)
         logger.info(
             "  Weather: %.0f°F, wind %s mph %s  (%.2fs)",
             weather.get("temp_f", 72),
