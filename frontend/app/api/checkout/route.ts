@@ -12,10 +12,15 @@ import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 import { TIERS, normalizeTier } from '@/app/lib/tiers';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-12-18.acacia',
-});
-
+let _stripe: Stripe | null = null;
+function getStripe(): Stripe {
+  if (!_stripe) {
+    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+      apiVersion: '2024-12-18.acacia',
+    });
+  }
+  return _stripe;
+}
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 
 /** Map plan + period to Stripe price ID from env vars. */
@@ -87,7 +92,7 @@ export async function POST(request: NextRequest) {
       | undefined;
 
     if (!customerId) {
-      const customer = await stripe.customers.create({
+      const customer = await getStripe().customers.create({
         email: user.email,
         metadata: {
           supabase_user_id: user.id,
@@ -121,7 +126,7 @@ export async function POST(request: NextRequest) {
     // ---- 6. Create Checkout Session ----
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.fullcountprops.com';
 
-    const session = await stripe.checkout.sessions.create({
+    const session = await getStripe().checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
       payment_method_types: ['card'],
