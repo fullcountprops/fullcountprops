@@ -92,14 +92,28 @@ const STAT_LABELS: Record<string, string> = {
 
 function ConfidenceBadge({ score }: { score: number }) {
   const pct = Math.round(score * 100)
-  const color =
-    pct >= 70 ? 'bg-green-900 text-green-300 border-green-700' :
-    pct >= 55 ? 'bg-blue-900 text-blue-300 border-blue-700' :
-    'bg-gray-700 text-slate-400 border-gray-600'
+  let color: string
+  let tier: string
+  if (pct >= 85) {
+    color = 'bg-emerald-900 text-emerald-200 border-emerald-600'
+    tier = 'ELITE'
+  } else if (pct >= 70) {
+    color = 'bg-green-900 text-green-300 border-green-700'
+    tier = 'HIGH'
+  } else if (pct >= 55) {
+    color = 'bg-blue-900 text-blue-300 border-blue-700'
+    tier = 'MED'
+  } else if (pct >= 40) {
+    color = 'bg-yellow-900 text-yellow-300 border-yellow-700'
+    tier = 'LOW'
+  } else {
+    color = 'bg-red-900/50 text-red-400 border-red-800'
+    tier = 'V.LOW'
+  }
 
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded border text-xs font-medium ${color}`}>
-      {pct}%
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-xs font-medium ${color}`}>
+      {pct}% <span className="opacity-75">{tier}</span>
     </span>
   )
 }

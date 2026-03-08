@@ -39,9 +39,11 @@ const STAT_TYPE_OPTIONS = [
 ]
 
 function getConfidenceTier(confidence: number): { label: string; color: string } {
-  if (confidence >= 0.7) return { label: 'HIGH', color: 'bg-green-900 text-green-300 border-green-700' }
-  if (confidence >= 0.5) return { label: 'MEDIUM', color: 'bg-blue-900 text-blue-300 border-blue-700' }
-  return { label: 'LOW', color: 'bg-gray-700 text-slate-400 border-gray-600' }
+  if (confidence >= 0.85) return { label: 'ELITE', color: 'bg-emerald-900 text-emerald-200 border-emerald-600' }
+  if (confidence >= 0.70) return { label: 'HIGH', color: 'bg-green-900 text-green-300 border-green-700' }
+  if (confidence >= 0.55) return { label: 'MEDIUM', color: 'bg-blue-900 text-blue-300 border-blue-700' }
+  if (confidence >= 0.40) return { label: 'LOW', color: 'bg-yellow-900 text-yellow-300 border-yellow-700' }
+  return { label: 'VERY LOW', color: 'bg-red-900/50 text-red-400 border-red-800' }
 }
 
 async function getProjections(gameDate?: string, statType?: string) {

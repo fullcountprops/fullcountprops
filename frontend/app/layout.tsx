@@ -82,25 +82,31 @@ function JsonLd() {
     offers: [
       {
         '@type': 'Offer',
-        name: 'Free',
+        name: 'Single-A',
         price: '0',
         priceCurrency: 'USD',
-        description: 'Top 3 edges per day with basic accuracy stats',
+        description: 'Top 3 best bets daily with grade, direction, and edge %',
       },
       {
         '@type': 'Offer',
-        name: 'Pro',
-        price: '29',
+        name: 'Double-A',
+        price: '7.99',
         priceCurrency: 'USD',
-        description:
-          'Full edge access, probability distributions, SHAP explanations, Kelly sizing',
+        description: 'Full daily best bets, edges page, basic SHAP, daily email digest',
       },
       {
         '@type': 'Offer',
-        name: 'Premium',
-        price: '49',
+        name: 'Triple-A',
+        price: '29.99',
         priceCurrency: 'USD',
-        description: 'Everything in Pro plus REST API access and CSV export',
+        description: 'Full SHAP breakdowns, probability distributions, Kelly sizing, simulator',
+      },
+      {
+        '@type': 'Offer',
+        name: 'The Show',
+        price: '49.99',
+        priceCurrency: 'USD',
+        description: 'Everything in Triple-A plus REST API access, CSV export, priority support',
       },
     ],
     creator: {
@@ -146,6 +152,12 @@ export default function RootLayout({
                 className="text-slate-400 hover:text-slate-100 transition-colors hidden sm:inline"
               >
                 Edges
+              </Link>
+              <Link
+                href="/park-factors"
+                className="text-slate-400 hover:text-slate-100 transition-colors hidden sm:inline"
+              >
+                Park Factors
               </Link>
               <Link
                 href="/compare"
@@ -212,6 +224,11 @@ export default function RootLayout({
                   <li>
                     <Link href="/players" className="text-slate-500 hover:text-slate-300 transition-colors">
                       Players
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/park-factors" className="text-slate-500 hover:text-slate-300 transition-colors">
+                      Park Factors
                     </Link>
                   </li>
                   <li>

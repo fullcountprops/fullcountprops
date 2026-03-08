@@ -45,7 +45,7 @@ function GameCard({ game }: { game: any }) {
       }) + ' ET'
     : 'TBD'
   return (
-    <div className="game-card">
+    <Link href={`/games/${game.game_pk}`} className="game-card block hover:border-gray-500 transition-colors">
       <div className="flex items-center justify-between mb-3">
         <span className="text-xs text-slate-400 uppercase tracking-wider">{game.venue || 'TBD'}</span>
         <span className="text-xs text-slate-400">{gameTime}</span>
@@ -76,7 +76,10 @@ function GameCard({ game }: { game: any }) {
           <span>{game.home_starter || 'SP TBD'}</span>
         </div>
       )}
-    </div>
+      <div className="mt-2 text-center">
+        <span className="text-xs text-blue-400">View Projected Box Score →</span>
+      </div>
+    </Link>
   )
 }
 
