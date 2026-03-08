@@ -131,17 +131,25 @@ class TestPitcherProjectionMath:
         # 10/9 * 6 = 6.667
         assert projected_k == pytest.approx(6.667, abs=0.01)
 
-    def test_confidence_scoring_min_max(self):
-        """Confidence should be bounded between 0.50 and 0.95."""
-        # Maximum possible confidence
-        conf = 0.50 + 0.10 + 0.10 + 0.05 + 0.05 + 0.03 + 0.02 + 0.03
-        conf = round(min(conf, 0.95), 3)
-        assert conf == 0.88
+    def test_confidence_scoring_multi_signal(self):
+        """Confidence uses weighted multi-signal model with range [0.15, 0.95]."""
+        # Veteran pitcher: 500+ IP, 3+ recent starts, all factors populated, 5.5+ IP avg
+        # sample=1.0 (40%), recency=1.0 (25%), completeness=1.0 (20%), stability=1.0 (15%)
+        conf = 0.40 * 1.0 + 0.25 * 1.0 + 0.20 * 1.0 + 0.15 * 1.0
+        conf = round(max(0.15, min(conf, 0.95)), 3)
+        assert conf == 0.95  # Capped at 0.95
 
-        # Minimum base confidence
-        conf = 0.50
-        conf = round(min(conf, 0.95), 3)
-        assert conf == 0.50
+        # Rookie in spring training: <50 IP, no recent data, partial factors, fallback IP
+        # sample=0.15 (40%), recency=0.15 (25%), completeness=0.4 (20%), stability=0.2 (15%)
+        conf = 0.40 * 0.15 + 0.25 * 0.15 + 0.20 * 0.4 + 0.15 * 0.2
+        conf = round(max(0.15, min(conf, 0.95)), 3)
+        assert conf == pytest.approx(0.208, abs=0.01)
+
+        # Mid-career pitcher: 200 IP, 2 recent starts, 3/5 factors, 5.0 IP
+        # sample=0.6 (40%), recency=0.8 (25%), completeness=0.6 (20%), stability=0.8 (15%)
+        conf = 0.40 * 0.6 + 0.25 * 0.8 + 0.20 * 0.6 + 0.15 * 0.8
+        conf = round(max(0.15, min(conf, 0.95)), 3)
+        assert conf == pytest.approx(0.68, abs=0.01)
 
 
 # ---------------------------------------------------------------------------
@@ -258,17 +266,22 @@ class TestBatterProjectionMath:
         projected_tb = adjusted_tb_per_pa * expected_pa
         assert projected_tb == pytest.approx(0.672, abs=0.01)
 
-    def test_batter_confidence_bounds(self):
-        """Batter confidence should be bounded 0.30 to 0.85."""
-        # Max confidence
-        conf = 0.45 + 0.10 + 0.15 + 0.10 + 0.03
-        conf = round(min(max(conf, 0.30), 0.85), 3)
-        assert conf == 0.83
+    def test_batter_confidence_multi_signal(self):
+        """Batter confidence uses weighted multi-signal model with range [0.15, 0.95]."""
+        # Established hitter: 1500+ PA, 60+ games, all factors, full ramp-up
+        # sample=1.0 (40%), recency=1.0 (25%), completeness=1.0 (20%), stability=1.0 (15%)
+        conf = 0.40 * 1.0 + 0.25 * 1.0 + 0.20 * 1.0 + 0.15 * 1.0
+        conf = round(max(0.15, min(conf, 0.95)), 3)
+        assert conf == 0.95  # Capped at 0.95
 
-        # Min confidence (early season)
-        conf = 0.45 - 0.05
-        conf = round(min(max(conf, 0.30), 0.85), 3)
-        assert conf == 0.40
+        # Rookie opening day: <150 PA, 0 games, partial data, no ramp-up
+        # sample=0.1 (40%), recency=0.1 (25%), completeness=0.5 (20%), stability=0.2 (15%)
+        conf = 0.40 * 0.1 + 0.25 * 0.1 + 0.20 * 0.5 + 0.15 * 0.2
+        conf = round(max(0.15, min(conf, 0.95)), 3)
+        assert conf == pytest.approx(0.195, abs=0.01)
+
+        # Spring training with tiny sample should be LOW confidence
+        assert conf < 0.30, "Spring training data should show low confidence"
 
 
 # ---------------------------------------------------------------------------

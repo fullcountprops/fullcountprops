@@ -159,11 +159,11 @@ async function getBestBets(): Promise<BestBet[]> {
       const absEdge = Math.abs(edge)
       const conf = proj.confidence ?? 0
       let grade = 'C'
-      if (conf >= 0.80 && absEdge >= 15) grade = 'A+'
+      if (conf >= 0.85 && absEdge >= 12) grade = 'A+'
       else if (conf >= 0.75 && absEdge >= 10) grade = 'A'
-      else if (conf >= 0.70 && absEdge >= 8) grade = 'B+'
-      else if (conf >= 0.65 && absEdge >= 5) grade = 'B'
-      else if (conf >= 0.60 && absEdge >= 5) grade = 'B-'
+      else if (conf >= 0.65 && absEdge >= 8) grade = 'B+'
+      else if (conf >= 0.55 && absEdge >= 5) grade = 'B'
+      else if (conf >= 0.40 && absEdge >= 5) grade = 'B-'
 
       bestBets.push({
         player_name: proj.player_name,

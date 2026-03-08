@@ -200,19 +200,83 @@ def project_batter(mlbam_id, player_name, opponent_pitcher, venue,
     adjusted_tb_per_pa = blended_tb_pa * park_factor * platoon_factor
     projected_tb = adjusted_tb_per_pa * expected_pa
 
-    # Confidence scoring
-    conf = 0.45
-    if expected_pa >= 4.0:
-        conf += 0.10
-    if career_tb_per_pa > 0.135:
-        conf += 0.15
-    if career_tb_per_pa >= 0.180:
-        conf += 0.10
+    # ------------------------------------------------------------------
+    # Confidence scoring — multi-signal weighted model (v2.0)
+    #
+    # Produces a continuous score in [0.15, 0.95] based on:
+    #   1. Sample size (career PA / games played) — 40% weight
+    #   2. Data recency (games played this season) — 25% weight
+    #   3. Model completeness (platoon, park, etc.) — 20% weight
+    #   4. Projection stability (how much ramp-up is applied) — 15% weight
+    # ------------------------------------------------------------------
+    confidence_factors = {}
+
+    # --- Signal 1: Sample size (career PA) — 40% weight ---
+    # Fetch career PA for sample depth
+    career_pa = 0
+    try:
+        url = f"https://statsapi.mlb.com/api/v1/people/{mlbam_id}/stats"
+        r = requests.get(url, params={"stats": "career", "group": "hitting", "sportId": 1}, timeout=10)
+        r.raise_for_status()
+        splits = r.json().get("stats", [{}])[0].get("splits", [])
+        if splits:
+            career_pa = int(splits[0].get("stat", {}).get("plateAppearances", 0))
+    except Exception:
+        pass
+
+    if career_pa >= 1500:
+        sample_score = 1.0       # 1500+ PA: full confidence
+    elif career_pa >= 600:
+        sample_score = 0.6 + 0.4 * (career_pa - 600) / 900
+    elif career_pa >= 150:
+        sample_score = 0.2 + 0.4 * (career_pa - 150) / 450
+    elif career_pa > 0:
+        sample_score = 0.05 + 0.15 * (career_pa / 150)
+    else:
+        sample_score = 0.05      # No career data
+    confidence_factors["sample_size"] = round(sample_score, 3)
+
+    # --- Signal 2: Data recency (season games played) — 25% weight ---
+    if games_played >= 60:
+        recency_score = 1.0      # Well into the season
+    elif games_played >= 30:
+        recency_score = 0.6 + 0.4 * (games_played - 30) / 30
+    elif games_played >= 10:
+        recency_score = 0.3 + 0.3 * (games_played - 10) / 20
+    elif games_played > 0:
+        recency_score = 0.1 + 0.2 * (games_played / 10)
+    else:
+        recency_score = 0.1      # Opening day / spring training
+    confidence_factors["data_recency"] = round(recency_score, 3)
+
+    # --- Signal 3: Model completeness — 20% weight ---
+    factor_count = 0
+    factor_total = 4  # career_tb actual data, platoon, park, pitcher known
+    if career_tb_per_pa != MLB_AVG_TB_PA:
+        factor_count += 1  # Have actual career data
     if batter_hand and pitcher_hand:
-        conf += 0.03  # Bonus for having platoon data
-    if games_played < RAMP_UP_GAMES:
-        conf -= 0.05 * (1 - weight)
-    conf = round(min(max(conf, 0.30), 0.85), 3)
+        factor_count += 1  # Have platoon matchup data
+    if venue in PARK_TB_FACTORS:
+        factor_count += 1  # Have park factor
+    if opponent_pitcher:
+        factor_count += 1  # Know the opposing pitcher
+    completeness_score = factor_count / factor_total
+    confidence_factors["model_completeness"] = round(completeness_score, 3)
+
+    # --- Signal 4: Projection stability (ramp-up reliance) — 15% weight ---
+    # weight=1.0 means fully trusting career data; weight=0 means all league avg
+    stability_score = 0.2 + 0.8 * weight
+    confidence_factors["projection_stability"] = round(stability_score, 3)
+
+    # --- Weighted combination ---
+    conf = (
+        0.40 * sample_score +
+        0.25 * recency_score +
+        0.20 * completeness_score +
+        0.15 * stability_score
+    )
+    conf = round(max(0.15, min(conf, 0.95)), 3)
+    confidence_factors["overall"] = conf
 
     features = {
         "career_tb_per_pa": round(career_tb_per_pa, 3),
@@ -226,6 +290,8 @@ def project_batter(mlbam_id, player_name, opponent_pitcher, venue,
         "expected_pa": expected_pa,
         "opponent_pitcher": opponent_pitcher,
         "venue": venue,
+        # Confidence breakdown
+        "confidence_factors": confidence_factors,
     }
     return {
         "mlbam_id": mlbam_id,

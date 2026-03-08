@@ -414,24 +414,93 @@ def project_pitcher(mlbam_id, player_name, opponent, venue, game_pk=None):
     projected_bb = (career_bb9 / 9) * expected_ip * umpire_bb_factor * catcher_bb_factor
 
     # ------------------------------------------------------------------
-    # Confidence scoring (shared between both projections)
+    # Confidence scoring — multi-signal weighted model (v2.1)
+    #
+    # Produces a continuous score in [0.15, 0.95] based on:
+    #   1. Sample size (career IP) — 40% weight
+    #   2. Data recency (recent starts available) — 25% weight
+    #   3. Model completeness (how many factors are populated) — 20% weight
+    #   4. Pitcher workload stability (expected IP consistency) — 15% weight
     # ------------------------------------------------------------------
-    conf = 0.50
-    if expected_ip >= 5.0:
-        conf += 0.10
-    if career_k9 > 0:
-        conf += 0.10
-    if career_k9 >= 9.0:
-        conf += 0.05
-    if recent_k9 is not None:
-        conf += 0.05  # More confident with recent data
-    if umpire_data.get("strike_rate_avg") is not None:
-        conf += 0.03  # More confident with umpire data
-    if catcher_data.get("composite_score_avg") is not None:
-        conf += 0.02  # More confident with catcher data
+    confidence_factors = {}
+
+    # --- Signal 1: Sample size (career innings pitched) — 40% weight ---
+    # Fetch career IP for sample depth
+    career_ip = 0.0
+    try:
+        url = f"https://statsapi.mlb.com/api/v1/people/{mlbam_id}/stats"
+        r = requests.get(url, params={"stats": "career", "group": "pitching", "sportId": 1}, timeout=10)
+        r.raise_for_status()
+        splits = r.json().get("stats", [{}])[0].get("splits", [])
+        if splits:
+            stat = splits[0].get("stat", {})
+            ip_str = str(stat.get("inningsPitched", "0.0"))
+            parts = ip_str.split(".")
+            career_ip = int(parts[0]) + (int(parts[1]) / 3 if len(parts) > 1 and parts[1] else 0)
+    except Exception:
+        pass
+
+    if career_ip >= 500:
+        sample_score = 1.0       # 500+ IP: full confidence
+    elif career_ip >= 200:
+        sample_score = 0.6 + 0.4 * (career_ip - 200) / 300
+    elif career_ip >= 50:
+        sample_score = 0.2 + 0.4 * (career_ip - 50) / 150
+    elif career_ip > 0:
+        sample_score = 0.05 + 0.15 * (career_ip / 50)
+    else:
+        sample_score = 0.05      # No career data at all
+    confidence_factors["sample_size"] = round(sample_score, 3)
+
+    # --- Signal 2: Data recency (recent form available) — 25% weight ---
+    if recent_k9 is not None and recent_starts >= 3:
+        recency_score = 1.0      # 3+ recent starts: excellent
+    elif recent_k9 is not None and recent_starts >= 2:
+        recency_score = 0.8
+    elif recent_k9 is not None:
+        recency_score = 0.5      # 1 recent start: partial
+    else:
+        recency_score = 0.15     # No recent data (spring training, early season)
+    confidence_factors["data_recency"] = round(recency_score, 3)
+
+    # --- Signal 3: Model completeness (factor coverage) — 20% weight ---
+    factor_count = 0
+    factor_total = 5  # career_k9, opp_k_pct, umpire, catcher, park
+    if career_k9 != MLB_AVG_K9:
+        factor_count += 1  # Have actual career data, not fallback
     if opp_k_pct != MLB_AVG_K_PCT:
-        conf += 0.03  # Have actual team data
-    conf = round(min(conf, 0.95), 3)
+        factor_count += 1  # Have actual opponent data
+    if umpire_data.get("strike_rate_avg") is not None:
+        factor_count += 1
+    if catcher_data.get("composite_score_avg") is not None:
+        factor_count += 1
+    if venue in PARK_K_FACTORS:
+        factor_count += 1
+    completeness_score = factor_count / factor_total
+    confidence_factors["model_completeness"] = round(completeness_score, 3)
+
+    # --- Signal 4: Pitcher workload stability — 15% weight ---
+    if expected_ip >= 5.5:
+        stability_score = 1.0    # Deep into games consistently
+    elif expected_ip >= 5.0:
+        stability_score = 0.8
+    elif expected_ip >= 4.0:
+        stability_score = 0.5    # Short starters or openers
+    elif expected_ip != MLB_AVG_IP:
+        stability_score = 0.3    # Have data but low IP
+    else:
+        stability_score = 0.2    # Using fallback (no season data)
+    confidence_factors["workload_stability"] = round(stability_score, 3)
+
+    # --- Weighted combination ---
+    conf = (
+        0.40 * sample_score +
+        0.25 * recency_score +
+        0.20 * completeness_score +
+        0.15 * stability_score
+    )
+    conf = round(max(0.15, min(conf, 0.95)), 3)
+    confidence_factors["overall"] = conf
 
     # ------------------------------------------------------------------
     # Glass-box features (full breakdown for transparency)
@@ -463,6 +532,8 @@ def project_pitcher(mlbam_id, player_name, opponent, venue, game_pk=None):
         # Walk projection breakdown
         "career_bb9": round(career_bb9, 2),
         "projected_bb": round(projected_bb, 2),
+        # Confidence breakdown
+        "confidence_factors": confidence_factors,
     }
 
     k_proj = {

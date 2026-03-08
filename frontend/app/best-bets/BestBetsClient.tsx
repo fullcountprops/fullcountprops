@@ -35,18 +35,21 @@ function GradeBadge({ confidence, edge }: { confidence: number; edge: number }) 
   let grade = 'C'
   let color = 'bg-gray-700 text-slate-400'
 
-  if (confidence >= 0.80 && absEdge >= 15) {
+  if (confidence >= 0.85 && absEdge >= 12) {
     grade = 'A+'
-    color = 'bg-green-800 text-green-200'
+    color = 'bg-emerald-800 text-emerald-200'
   } else if (confidence >= 0.75 && absEdge >= 10) {
     grade = 'A'
     color = 'bg-green-900 text-green-300'
-  } else if (confidence >= 0.70 && absEdge >= 8) {
+  } else if (confidence >= 0.65 && absEdge >= 8) {
     grade = 'B+'
     color = 'bg-blue-900 text-blue-300'
-  } else if (confidence >= 0.65 && absEdge >= 5) {
+  } else if (confidence >= 0.55 && absEdge >= 5) {
     grade = 'B'
     color = 'bg-blue-900/50 text-blue-400'
+  } else if (confidence >= 0.40 && absEdge >= 5) {
+    grade = 'B-'
+    color = 'bg-slate-700 text-slate-300'
   }
 
   return (
