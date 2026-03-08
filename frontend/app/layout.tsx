@@ -160,6 +160,18 @@ export default function RootLayout({
                 Park Factors
               </Link>
               <Link
+                href="/pitchers/preview"
+                className="text-slate-400 hover:text-slate-100 transition-colors hidden sm:inline"
+              >
+                Pitchers
+              </Link>
+              <Link
+                href="/matchups"
+                className="text-slate-400 hover:text-slate-100 transition-colors hidden sm:inline"
+              >
+                Matchups
+              </Link>
+              <Link
                 href="/compare"
                 className="text-slate-400 hover:text-slate-100 transition-colors hidden sm:inline"
               >
@@ -224,6 +236,16 @@ export default function RootLayout({
                   <li>
                     <Link href="/players" className="text-slate-500 hover:text-slate-300 transition-colors">
                       Players
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/pitchers/preview" className="text-slate-500 hover:text-slate-300 transition-colors">
+                      Pitcher Preview
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/matchups" className="text-slate-500 hover:text-slate-300 transition-colors">
+                      Matchup Tool
                     </Link>
                   </li>
                   <li>
