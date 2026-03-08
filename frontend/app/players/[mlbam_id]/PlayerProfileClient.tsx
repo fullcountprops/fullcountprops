@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import PitcherArsenal from './PitcherArsenal'
+import MatchupGrades from './MatchupGrades'
 
 interface PlayerProfileClientProps {
   projections: any[]
@@ -9,6 +11,8 @@ interface PlayerProfileClientProps {
   rollingStats: any[]
   statLabels: Record<string, string>
   isPitcher: boolean
+  mlbamId?: number
+  playerName?: string
 }
 
 function ConfidenceBadge({ score }: { score: number }) {
@@ -204,7 +208,7 @@ function PropEdgeCard({
   )
 }
 
-type Tab = 'projections' | 'game-log' | 'trends'
+type Tab = 'projections' | 'game-log' | 'trends' | 'arsenal' | 'matchup-grades'
 
 export default function PlayerProfileClient({
   projections,
@@ -213,8 +217,10 @@ export default function PlayerProfileClient({
   rollingStats,
   statLabels,
   isPitcher,
+  mlbamId,
+  playerName,
 }: PlayerProfileClientProps) {
-  const [activeTab, setActiveTab] = useState<Tab>('projections')
+  const [activeTab, setActiveTab] = useState<Tab>(isPitcher ? 'arsenal' : 'projections')
   const [selectedStat, setSelectedStat] = useState<string>('all')
 
   const statTypes = useMemo(() => {
@@ -269,11 +275,19 @@ export default function PlayerProfileClient({
     return { wins, losses, pushes, total: graded.length, overHits, overTotal, underHits, underTotal }
   }, [gameLog])
 
-  const tabs: { key: Tab; label: string }[] = [
-    { key: 'projections', label: 'Projections' },
-    { key: 'game-log', label: 'Game Log' },
-    { key: 'trends', label: 'Trends & Splits' },
-  ]
+  const tabs: { key: Tab; label: string }[] = isPitcher
+    ? [
+        { key: 'arsenal', label: 'Arsenal' },
+        { key: 'projections', label: 'Projections' },
+        { key: 'game-log', label: 'Game Log' },
+        { key: 'matchup-grades', label: 'Matchup Grades' },
+        { key: 'trends', label: 'Trends & Splits' },
+      ]
+    : [
+        { key: 'projections', label: 'Projections' },
+        { key: 'game-log', label: 'Game Log' },
+        { key: 'trends', label: 'Trends & Splits' },
+      ]
 
   return (
     <>
@@ -659,6 +673,20 @@ export default function PlayerProfileClient({
             </p>
           )}
         </>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* ARSENAL TAB (Pitchers only) */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {activeTab === 'arsenal' && isPitcher && mlbamId && (
+        <PitcherArsenal mlbamId={mlbamId} playerName={playerName || 'Pitcher'} />
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* MATCHUP GRADES TAB (Pitchers only) */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {activeTab === 'matchup-grades' && isPitcher && mlbamId && (
+        <MatchupGrades mlbamId={mlbamId} projections={projections} />
       )}
     </>
   )
