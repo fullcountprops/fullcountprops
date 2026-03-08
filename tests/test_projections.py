@@ -332,7 +332,34 @@ class TestEdgeCases:
         from pipeline.generate_projections import MODEL_VERSION as PITCHER_VERSION
 
         assert "v2." in PITCHER_VERSION
-        assert "v2." in BATTER_VERSION
+        assert "v3." in BATTER_VERSION
+
+    def test_multi_stat_mlb_avg_rates(self):
+        """MLB average rates should be defined for all stat types."""
+        from pipeline.generate_batter_projections import MLB_AVG_RATES
+
+        expected_keys = ["tb_per_pa", "h_per_pa", "hr_per_pa", "rbi_per_pa",
+                         "bb_per_pa", "k_per_pa", "r_per_pa"]
+        for key in expected_keys:
+            assert key in MLB_AVG_RATES, f"Missing MLB_AVG_RATES[{key}]"
+            assert 0 < MLB_AVG_RATES[key] < 1.0, f"MLB_AVG_RATES[{key}] out of range"
+
+    def test_park_hr_factors_exist(self):
+        """Park HR factors should exist with Coors as highest."""
+        from pipeline.generate_batter_projections import PARK_HR_FACTORS
+
+        assert "Coors Field" in PARK_HR_FACTORS
+        assert PARK_HR_FACTORS["Coors Field"] == max(PARK_HR_FACTORS.values())
+
+    def test_fetch_batter_career_rates_returns_all_keys(self):
+        """fetch_batter_career_rates should return all expected rate keys."""
+        from pipeline.generate_batter_projections import MLB_AVG_RATES, fetch_batter_career_rates
+
+        # With a fake ID, should return MLB averages
+        rates = fetch_batter_career_rates(0)
+        for key in MLB_AVG_RATES:
+            assert key in rates, f"Missing key {key}"
+        assert "career_pa" in rates
 
     def test_features_json_serializable(self):
         """Features dict should be JSON serializable."""

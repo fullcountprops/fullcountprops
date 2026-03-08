@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import ProjectionsClient from './ProjectionsClient'
 
 export const dynamic = 'force-dynamic'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
@@ -46,9 +47,14 @@ async function getProjections(gameDate?: string) {
   if (props && props.length > 0) {
     const STAT_TO_MARKET: Record<string, string> = {
       pitcher_strikeouts: 'pitcher_strikeouts',
+      pitcher_walks: 'pitcher_walks',
       batter_total_bases: 'batter_total_bases',
       batter_hits: 'batter_hits',
       batter_home_runs: 'batter_home_runs',
+      batter_rbis: 'batter_rbis',
+      batter_walks: 'batter_walks',
+      batter_strikeouts: 'batter_strikeouts',
+      batter_runs: 'batter_runs',
     }
     const edgeMap: Record<string, any> = {}
     for (const prop of props) {
@@ -263,89 +269,36 @@ export default async function ProjectionsPage() {
     timeZone: 'America/New_York',
   })
 
-  const withEdge = projections.filter((p: any) => p._edge_pct != null && Math.abs(p._edge_pct) >= 3)
-  const highConf = projections.filter((p: any) => p.confidence != null && p.confidence >= 0.7)
-  const other = projections.filter((p: any) => !p.confidence || p.confidence < 0.7)
-
   return (
-    <div>
+    <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-white mb-2">Model Projections</h1>
         <p className="text-slate-400">
-          {today} &bull; v2.0 Multi-Factor Model &bull; {projections.length} projections
-          {withEdge.length > 0 && <span className="ml-1">&bull; {withEdge.length} with edge</span>}
+          {today} &bull; v3.0 Multi-Stat Model &bull; {projections.length} projections
         </p>
       </div>
 
       {projections.length === 0 ? (
         <div className="text-center py-16">
-          <div className="text-4xl mb-4">🤖</div>
           <h2 className="text-xl font-semibold text-slate-300 mb-2">No projections yet</h2>
           <p className="text-slate-500 max-w-md mx-auto">
             {!supabaseUrl
               ? 'Configure Supabase environment variables to load projections.'
-              : 'Projections generate automatically starting Opening Day 2026 using our v2.0 multi-factor model.'}
+              : 'Projections generate automatically starting Opening Day 2026 using our v3.0 multi-stat model.'}
           </p>
           <div className="mt-8 p-4 bg-gray-900 rounded-lg border border-gray-700 max-w-md mx-auto text-sm text-slate-400 text-left">
-            <p className="font-medium text-slate-300 mb-2">v2.0 Model factors:</p>
+            <p className="font-medium text-slate-300 mb-2">v3.0 Model — supported stat types:</p>
             <ul className="space-y-1">
-              <li>&bull; Career K/9 + 14-day recent form (30% weight)</li>
-              <li>&bull; Park K-factor adjustments (19 ballparks)</li>
-              <li>&bull; Umpire strike tendency (trailing 30-game)</li>
-              <li>&bull; Catcher framing composite score</li>
-              <li>&bull; Opponent team K% multiplier</li>
-              <li>&bull; Pitcher-specific expected IP</li>
-              <li>&bull; Platoon split adjustments (batter TB model)</li>
+              <li>&bull; Pitcher Strikeouts (K) &amp; Walks (BB)</li>
+              <li>&bull; Batter Total Bases (TB), Hits (H), Home Runs (HR)</li>
+              <li>&bull; Batter RBIs, Walks (BB), Strikeouts (K), Runs (R)</li>
+              <li>&bull; Park-specific &amp; platoon split adjustments</li>
+              <li>&bull; Umpire &amp; catcher framing factors</li>
             </ul>
           </div>
         </div>
       ) : (
-        <div className="space-y-10">
-          {/* Edge Picks Section */}
-          {withEdge.length > 0 && (
-            <section>
-              <h2 className="text-xl font-semibold text-white mb-4 pb-2 border-b border-emerald-800">
-                Edge Picks
-                <span className="ml-2 text-sm font-normal text-emerald-500">|Edge| &ge; 3% ({withEdge.length})</span>
-              </h2>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {withEdge
-                  .sort((a: any, b: any) => Math.abs(b._edge_pct || 0) - Math.abs(a._edge_pct || 0))
-                  .map((proj: any, i: number) => (
-                    <ProjectionCard key={`edge-${proj.player_name}-${proj.stat_type}-${i}`} proj={proj} />
-                  ))}
-              </div>
-            </section>
-          )}
-
-          {highConf.length > 0 && (
-            <section>
-              <h2 className="text-xl font-semibold text-white mb-4 pb-2 border-b border-green-800">
-                High Confidence
-                <span className="ml-2 text-sm font-normal text-green-500">&ge; 70% ({highConf.length})</span>
-              </h2>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {highConf.map((proj: any, i: number) => (
-                  <ProjectionCard key={`${proj.player_name}-${proj.stat_type}-${i}`} proj={proj} />
-                ))}
-              </div>
-            </section>
-          )}
-
-          {other.length > 0 && (
-            <section>
-              <h2 className="text-xl font-semibold text-white mb-4 pb-2 border-b border-gray-700">
-                All Projections
-                <span className="ml-2 text-sm font-normal text-slate-400">({other.length})</span>
-              </h2>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {other.map((proj: any, i: number) => (
-                  <ProjectionCard key={`${proj.player_name}-${proj.stat_type}-${i}`} proj={proj} />
-                ))}
-              </div>
-            </section>
-          )}
-        </div>
+        <ProjectionsClient projections={projections} />
       )}
     </div>
   )
