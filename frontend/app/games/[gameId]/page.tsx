@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import { Metadata } from 'next'
-import ProjectedBoxScore from './ProjectedBoxScore'
+import GameDetailTabs from './GameDetailTabs'
 
 export const dynamic = 'force-dynamic'
 
@@ -186,8 +186,8 @@ export default async function GameDetailPage({
         )}
       </div>
 
-      {/* Projected Box Score */}
-      <ProjectedBoxScore
+      {/* Game Content Tabs: Overview, Runs Distribution, Innings */}
+      <GameDetailTabs
         game={game}
         lineups={lineups}
         projections={projections}

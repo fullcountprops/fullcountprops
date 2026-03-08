@@ -1,15 +1,22 @@
 #!/usr/bin/env python3
 """
 generate_batter_projections.py -- Baseline MLB
-Glass-box batter total bases projection engine v2.0.
+Glass-box multi-stat batter projection engine v3.0.
 
-Model factors (v2.0):
-  1. Career TB/PA rate, blended with league average (early-season ramp-up)
-  2. Platoon split adjustments (L/R matchups) — NEW in v2.0
-  3. Park TB factors
-  4. Likely starter filtering (position players only, no bench/bullpen) — NEW in v2.0
+Model factors (v3.0):
+  1. Career per-PA rates, blended with league average (early-season ramp-up)
+  2. Platoon split adjustments (L/R matchups)
+  3. Park factors (stat-specific)
+  4. Likely starter filtering (position players only, no bench/bullpen)
 
-Total Bases (TB) = 1B + 2x2B + 3x3B + 4xHR
+Supported stat types (v3.0):
+  - batter_total_bases: TB = 1B + 2x2B + 3x3B + 4xHR
+  - batter_hits: H per game
+  - batter_home_runs: HR per game
+  - batter_rbis: RBI per game
+  - batter_walks: BB per game
+  - batter_strikeouts: K per game
+  - batter_runs: R per game
 """
 import json
 import logging
@@ -36,11 +43,22 @@ if not SUPABASE_URL.startswith("https://") or not SUPABASE_URL.endswith(".supaba
     raise RuntimeError(f"Invalid SUPABASE_URL (length={len(SUPABASE_URL)}, repr={repr(SUPABASE_URL[:30])})")
 
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "").strip()
-MODEL_VERSION = "v2.0-glass-box-tb"
+MODEL_VERSION = "v3.0-glass-box-multi"
 
 # Early-season ramp-up constants
 MLB_AVG_TB_PA = 0.135  # League average (~.400 SLG / 3 PA per AB)
 RAMP_UP_GAMES = 30     # Games until full career rate is trusted
+
+# MLB average per-PA rates for each stat type (2024 MLB averages)
+MLB_AVG_RATES = {
+    "tb_per_pa": 0.135,
+    "h_per_pa": 0.230,    # ~.250 BA * ~0.92 AB/PA
+    "hr_per_pa": 0.030,   # ~3% HR/PA
+    "rbi_per_pa": 0.095,  # ~0.095 RBI/PA
+    "bb_per_pa": 0.085,   # ~8.5% BB rate
+    "k_per_pa": 0.224,    # ~22.4% K rate
+    "r_per_pa": 0.090,    # ~0.09 R/PA
+}
 
 # Platoon split multipliers (based on MLB historical splits)
 # These represent the TB/PA boost or penalty for same/opposite hand matchups
@@ -80,6 +98,40 @@ PARK_TB_FACTORS = {
     "Busch Stadium": -1,
 }
 
+# Park HR factors (% adjustment for home runs)
+PARK_HR_FACTORS = {
+    "Coors Field": 15,
+    "Great American Ball Park": 12,
+    "Yankee Stadium": 10,
+    "Citizens Bank Park": 8,
+    "Fenway Park": 5,
+    "Wrigley Field": 3,
+    "Chase Field": 2,
+    "Globe Life Field": 2,
+    "Minute Maid Park": 1,
+    "Truist Park": 0,
+    "Guaranteed Rate Field": 0,
+    "Angel Stadium": -1,
+    "Dodger Stadium": -2,
+    "PNC Park": -3,
+    "Busch Stadium": -3,
+    "loanDepot park": -5,
+    "T-Mobile Park": -6,
+    "Oracle Park": -8,
+    "Petco Park": -8,
+}
+
+# Park K factors for batters (% adjustment — positive = more Ks, negative = fewer)
+PARK_BATTER_K_FACTORS = {
+    "Oracle Park": 3,
+    "T-Mobile Park": 2,
+    "Petco Park": 2,
+    "Coors Field": -5,       # Coors thinner air = fewer Ks
+    "Fenway Park": -2,
+    "Yankee Stadium": -1,
+    "Great American Ball Park": -2,
+}
+
 
 def sb_headers():
     return {
@@ -110,8 +162,15 @@ def sb_upsert(table, rows):
             log.info(f"  Upserted {len(batch)} rows into {table}")
 
 
-def fetch_batter_tb_rate(mlbam_id):
-    """Fetch career total bases per plate appearance from MLB Stats API."""
+def fetch_batter_career_rates(mlbam_id):
+    """
+    Fetch career per-PA rates for all stat types from MLB Stats API.
+    Returns dict with keys: tb_per_pa, h_per_pa, hr_per_pa, rbi_per_pa,
+    bb_per_pa, k_per_pa, r_per_pa, career_pa.
+    Falls back to MLB averages for missing data.
+    """
+    rates = dict(MLB_AVG_RATES)
+    rates["career_pa"] = 0
     try:
         url = f"https://statsapi.mlb.com/api/v1/people/{mlbam_id}/stats"
         r = requests.get(url, params={"stats": "career", "group": "hitting", "sportId": 1}, timeout=10)
@@ -119,17 +178,36 @@ def fetch_batter_tb_rate(mlbam_id):
         splits = r.json().get("stats", [{}])[0].get("splits", [])
         if splits:
             stat = splits[0].get("stat", {})
-            singles = int(stat.get("hits", 0)) - int(stat.get("doubles", 0)) - int(stat.get("triples", 0)) - int(stat.get("homeRuns", 0))
-            doubles = int(stat.get("doubles", 0))
-            triples = int(stat.get("triples", 0))
-            hrs = int(stat.get("homeRuns", 0))
-            pa = int(stat.get("plateAppearances", 1))
-            tb = singles + (doubles * 2) + (triples * 3) + (hrs * 4)
+            pa = int(stat.get("plateAppearances", 0))
             if pa > 0:
-                return round(tb / pa, 3)
+                hits = int(stat.get("hits", 0))
+                doubles = int(stat.get("doubles", 0))
+                triples = int(stat.get("triples", 0))
+                hrs = int(stat.get("homeRuns", 0))
+                singles = hits - doubles - triples - hrs
+                rbi = int(stat.get("rbi", 0))
+                bb = int(stat.get("baseOnBalls", 0))
+                k = int(stat.get("strikeOuts", 0))
+                runs = int(stat.get("runs", 0))
+                tb = singles + (doubles * 2) + (triples * 3) + (hrs * 4)
+
+                rates["tb_per_pa"] = round(tb / pa, 4)
+                rates["h_per_pa"] = round(hits / pa, 4)
+                rates["hr_per_pa"] = round(hrs / pa, 4)
+                rates["rbi_per_pa"] = round(rbi / pa, 4)
+                rates["bb_per_pa"] = round(bb / pa, 4)
+                rates["k_per_pa"] = round(k / pa, 4)
+                rates["r_per_pa"] = round(runs / pa, 4)
+                rates["career_pa"] = pa
     except Exception as e:
-        log.debug(f"TB rate fetch failed for {mlbam_id}: {e}")
-    return 0.135  # MLB average TB/PA (~.400 SLG / 3)
+        log.debug(f"Career rates fetch failed for {mlbam_id}: {e}")
+    return rates
+
+
+def fetch_batter_tb_rate(mlbam_id):
+    """Fetch career total bases per plate appearance from MLB Stats API."""
+    rates = fetch_batter_career_rates(mlbam_id)
+    return rates["tb_per_pa"]
 
 
 def get_platoon_factor(batter_hand, pitcher_hand):
@@ -177,55 +255,28 @@ def project_batter(mlbam_id, player_name, opponent_pitcher, venue,
                    expected_pa=4.2, games_played=0,
                    batter_hand=None, pitcher_hand=None):
     """
-    Project total bases for a batter using v2.0 multi-factor model.
+    Project multiple stat types for a batter using the v3.0 multi-factor model.
 
-    New in v2.0:
-    - Platoon split adjustments based on batter/pitcher handedness
-    - Filtered to likely starters only (at caller level)
+    Returns a list of projection dicts (one per stat type):
+      batter_total_bases, batter_hits, batter_home_runs,
+      batter_rbis, batter_walks, batter_strikeouts, batter_runs.
     """
-    career_tb_per_pa = fetch_batter_tb_rate(mlbam_id)
+    career = fetch_batter_career_rates(mlbam_id)
+    career_pa = career["career_pa"]
 
     # Early-season ramp-up
     weight = min(games_played / RAMP_UP_GAMES, 1.0) if games_played < RAMP_UP_GAMES else 1.0
-    blended_tb_pa = (1 - weight) * MLB_AVG_TB_PA + weight * career_tb_per_pa
 
-    # Park factor
-    park_adj = PARK_TB_FACTORS.get(venue, 0)
-    park_factor = 1 + park_adj / 100
-
-    # Platoon split adjustment (NEW in v2.0)
+    # Platoon split adjustment
     platoon_factor, matchup_desc = get_platoon_factor(batter_hand, pitcher_hand)
 
-    # Apply all factors
-    adjusted_tb_per_pa = blended_tb_pa * park_factor * platoon_factor
-    projected_tb = adjusted_tb_per_pa * expected_pa
-
     # ------------------------------------------------------------------
-    # Confidence scoring — multi-signal weighted model (v2.0)
-    #
-    # Produces a continuous score in [0.15, 0.95] based on:
-    #   1. Sample size (career PA / games played) — 40% weight
-    #   2. Data recency (games played this season) — 25% weight
-    #   3. Model completeness (platoon, park, etc.) — 20% weight
-    #   4. Projection stability (how much ramp-up is applied) — 15% weight
+    # Confidence scoring — multi-signal weighted model
     # ------------------------------------------------------------------
     confidence_factors = {}
 
-    # --- Signal 1: Sample size (career PA) — 40% weight ---
-    # Fetch career PA for sample depth
-    career_pa = 0
-    try:
-        url = f"https://statsapi.mlb.com/api/v1/people/{mlbam_id}/stats"
-        r = requests.get(url, params={"stats": "career", "group": "hitting", "sportId": 1}, timeout=10)
-        r.raise_for_status()
-        splits = r.json().get("stats", [{}])[0].get("splits", [])
-        if splits:
-            career_pa = int(splits[0].get("stat", {}).get("plateAppearances", 0))
-    except Exception:
-        pass
-
     if career_pa >= 1500:
-        sample_score = 1.0       # 1500+ PA: full confidence
+        sample_score = 1.0
     elif career_pa >= 600:
         sample_score = 0.6 + 0.4 * (career_pa - 600) / 900
     elif career_pa >= 150:
@@ -233,12 +284,11 @@ def project_batter(mlbam_id, player_name, opponent_pitcher, venue,
     elif career_pa > 0:
         sample_score = 0.05 + 0.15 * (career_pa / 150)
     else:
-        sample_score = 0.05      # No career data
+        sample_score = 0.05
     confidence_factors["sample_size"] = round(sample_score, 3)
 
-    # --- Signal 2: Data recency (season games played) — 25% weight ---
     if games_played >= 60:
-        recency_score = 1.0      # Well into the season
+        recency_score = 1.0
     elif games_played >= 30:
         recency_score = 0.6 + 0.4 * (games_played - 30) / 30
     elif games_played >= 10:
@@ -246,29 +296,25 @@ def project_batter(mlbam_id, player_name, opponent_pitcher, venue,
     elif games_played > 0:
         recency_score = 0.1 + 0.2 * (games_played / 10)
     else:
-        recency_score = 0.1      # Opening day / spring training
+        recency_score = 0.1
     confidence_factors["data_recency"] = round(recency_score, 3)
 
-    # --- Signal 3: Model completeness — 20% weight ---
     factor_count = 0
-    factor_total = 4  # career_tb actual data, platoon, park, pitcher known
-    if career_tb_per_pa != MLB_AVG_TB_PA:
-        factor_count += 1  # Have actual career data
+    factor_total = 4
+    if career_pa > 0 and career["tb_per_pa"] != MLB_AVG_RATES["tb_per_pa"]:
+        factor_count += 1
     if batter_hand and pitcher_hand:
-        factor_count += 1  # Have platoon matchup data
+        factor_count += 1
     if venue in PARK_TB_FACTORS:
-        factor_count += 1  # Have park factor
+        factor_count += 1
     if opponent_pitcher:
-        factor_count += 1  # Know the opposing pitcher
+        factor_count += 1
     completeness_score = factor_count / factor_total
     confidence_factors["model_completeness"] = round(completeness_score, 3)
 
-    # --- Signal 4: Projection stability (ramp-up reliance) — 15% weight ---
-    # weight=1.0 means fully trusting career data; weight=0 means all league avg
     stability_score = 0.2 + 0.8 * weight
     confidence_factors["projection_stability"] = round(stability_score, 3)
 
-    # --- Weighted combination ---
     conf = (
         0.40 * sample_score +
         0.25 * recency_score +
@@ -278,36 +324,117 @@ def project_batter(mlbam_id, player_name, opponent_pitcher, venue,
     conf = round(max(0.15, min(conf, 0.95)), 3)
     confidence_factors["overall"] = conf
 
-    features = {
-        "career_tb_per_pa": round(career_tb_per_pa, 3),
-        "games_played": games_played,
-        "rampup_weight": round(weight, 3),
-        "blended_tb_per_pa": round(blended_tb_pa, 3),
-        "park_adjustment": f"{park_adj:+.1f}%",
-        "platoon_factor": round(platoon_factor, 3),
-        "platoon_matchup": matchup_desc,
-        "adjusted_tb_per_pa": round(adjusted_tb_per_pa, 3),
-        "expected_pa": expected_pa,
-        "opponent_pitcher": opponent_pitcher,
-        "venue": venue,
-        # Confidence breakdown
-        "confidence_factors": confidence_factors,
-    }
-    return {
-        "mlbam_id": mlbam_id,
-        "player_name": player_name,
-        "stat_type": "batter_total_bases",
-        "projection": round(projected_tb, 2),
-        "confidence": conf,
-        "model_version": MODEL_VERSION,
-        "features": json.dumps(features),
-    }
+    # ------------------------------------------------------------------
+    # Per-stat projections
+    # ------------------------------------------------------------------
+    STAT_CONFIGS = [
+        {
+            "stat_type": "batter_total_bases",
+            "rate_key": "tb_per_pa",
+            "park_factors": PARK_TB_FACTORS,
+            "platoon_apply": True,
+        },
+        {
+            "stat_type": "batter_hits",
+            "rate_key": "h_per_pa",
+            "park_factors": PARK_TB_FACTORS,   # hits correlate with TB park factors
+            "park_scale": 0.5,                 # dampen: hits less affected than TB
+            "platoon_apply": True,
+        },
+        {
+            "stat_type": "batter_home_runs",
+            "rate_key": "hr_per_pa",
+            "park_factors": PARK_HR_FACTORS,
+            "platoon_apply": True,
+        },
+        {
+            "stat_type": "batter_rbis",
+            "rate_key": "rbi_per_pa",
+            "park_factors": PARK_TB_FACTORS,
+            "park_scale": 0.4,
+            "platoon_apply": True,
+        },
+        {
+            "stat_type": "batter_walks",
+            "rate_key": "bb_per_pa",
+            "park_factors": {},                # walks not park-dependent
+            "platoon_apply": False,            # walks not platoon-dependent
+        },
+        {
+            "stat_type": "batter_strikeouts",
+            "rate_key": "k_per_pa",
+            "park_factors": PARK_BATTER_K_FACTORS,
+            "platoon_apply": False,
+        },
+        {
+            "stat_type": "batter_runs",
+            "rate_key": "r_per_pa",
+            "park_factors": PARK_TB_FACTORS,
+            "park_scale": 0.5,
+            "platoon_apply": False,
+        },
+    ]
+
+    projections = []
+    for cfg in STAT_CONFIGS:
+        rate_key = cfg["rate_key"]
+        career_rate = career[rate_key]
+        mlb_avg = MLB_AVG_RATES[rate_key]
+
+        # Blend with league average during ramp-up
+        blended_rate = (1 - weight) * mlb_avg + weight * career_rate
+
+        # Park factor
+        park_map = cfg["park_factors"]
+        park_scale = cfg.get("park_scale", 1.0)
+        raw_park_adj = park_map.get(venue, 0)
+        park_adj = raw_park_adj * park_scale
+        park_factor = 1 + park_adj / 100
+
+        # Platoon factor (only for stats where it applies)
+        pf = platoon_factor if cfg["platoon_apply"] else 1.0
+
+        # Final projection
+        adjusted_rate = blended_rate * park_factor * pf
+        projected_value = adjusted_rate * expected_pa
+
+        # Stat-specific confidence discount for less predictable stats
+        stat_conf = conf
+        if cfg["stat_type"] in ("batter_home_runs", "batter_rbis", "batter_runs"):
+            stat_conf = round(conf * 0.90, 3)  # more variance in counting stats
+
+        features = {
+            f"career_{rate_key}": round(career_rate, 4),
+            "career_pa": career_pa,
+            "games_played": games_played,
+            "rampup_weight": round(weight, 3),
+            f"blended_{rate_key}": round(blended_rate, 4),
+            "park_adjustment": f"{park_adj:+.1f}%",
+            "platoon_factor": round(pf, 3),
+            "platoon_matchup": matchup_desc if cfg["platoon_apply"] else "n/a",
+            "expected_pa": expected_pa,
+            "opponent_pitcher": opponent_pitcher,
+            "venue": venue,
+            "confidence_factors": confidence_factors,
+        }
+
+        projections.append({
+            "mlbam_id": mlbam_id,
+            "player_name": player_name,
+            "stat_type": cfg["stat_type"],
+            "projection": round(projected_value, 2),
+            "confidence": stat_conf,
+            "model_version": MODEL_VERSION,
+            "features": json.dumps(features),
+        })
+
+    return projections
 
 
 def run_projections(game_date=None):
     if game_date is None:
         game_date = date.today().isoformat()
-    log.info(f"=== Generating v2.0 batter TB projections for {game_date} ===")
+    log.info(f"=== Generating v3.0 multi-stat batter projections for {game_date} ===")
 
     games = sb_get("games", {
         "game_date": f"eq.{game_date}",
@@ -362,15 +489,16 @@ def run_projections(game_date=None):
             projected.add(b_id)
             log.info(f"  Projecting {b_name} ({home_team}, {b_hand or '?'}HB) vs {away_pitcher_name} ({away_pitcher_hand or '?'}HP) @ {venue}")
             try:
-                proj = project_batter(
+                projs = project_batter(
                     b_id, b_name, away_pitcher_name, venue,
                     games_played=b_games,
                     batter_hand=b_hand,
                     pitcher_hand=away_pitcher_hand,
                 )
-                proj["game_pk"] = game_pk
-                proj["game_date"] = game_date
-                projection_rows.append(proj)
+                for proj in projs:
+                    proj["game_pk"] = game_pk
+                    proj["game_date"] = game_date
+                    projection_rows.append(proj)
             except Exception as e:
                 log.warning(f"  Failed to project {b_name}: {e}")
 
@@ -386,19 +514,20 @@ def run_projections(game_date=None):
             projected.add(b_id)
             log.info(f"  Projecting {b_name} ({away_team}, {b_hand or '?'}HB) vs {home_pitcher_name} ({home_pitcher_hand or '?'}HP) @ {venue}")
             try:
-                proj = project_batter(
+                projs = project_batter(
                     b_id, b_name, home_pitcher_name, venue,
                     games_played=b_games,
                     batter_hand=b_hand,
                     pitcher_hand=home_pitcher_hand,
                 )
-                proj["game_pk"] = game_pk
-                proj["game_date"] = game_date
-                projection_rows.append(proj)
+                for proj in projs:
+                    proj["game_pk"] = game_pk
+                    proj["game_date"] = game_date
+                    projection_rows.append(proj)
             except Exception as e:
                 log.warning(f"  Failed to project {b_name}: {e}")
 
-    log.info(f"Generated {len(projection_rows)} batter TB projections")
+    log.info(f"Generated {len(projection_rows)} batter multi-stat projections")
     sb_upsert("projections", projection_rows)
     log.info("=== Done ===")
 
