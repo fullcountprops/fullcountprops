@@ -154,6 +154,18 @@ export default function RootLayout({
                 Edges
               </Link>
               <Link
+                href="/most-likely"
+                className="text-slate-400 hover:text-slate-100 transition-colors hidden sm:inline"
+              >
+                Most Likely
+              </Link>
+              <Link
+                href="/trends"
+                className="text-slate-400 hover:text-slate-100 transition-colors hidden sm:inline"
+              >
+                Trends
+              </Link>
+              <Link
                 href="/park-factors"
                 className="text-slate-400 hover:text-slate-100 transition-colors hidden sm:inline"
               >
@@ -236,6 +248,16 @@ export default function RootLayout({
                   <li>
                     <Link href="/players" className="text-slate-500 hover:text-slate-300 transition-colors">
                       Players
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/most-likely" className="text-slate-500 hover:text-slate-300 transition-colors">
+                      Most Likely
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/trends" className="text-slate-500 hover:text-slate-300 transition-colors">
+                      Trends
                     </Link>
                   </li>
                   <li>

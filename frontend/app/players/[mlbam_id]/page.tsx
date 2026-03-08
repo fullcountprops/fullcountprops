@@ -151,6 +151,8 @@ export default async function PlayerDetailPage({
         rollingStats={rollingStats}
         statLabels={STAT_LABELS}
         isPitcher={['SP', 'RP', 'P'].includes(player.position || '')}
+        mlbamId={player.mlbam_id}
+        playerName={player.full_name}
       />
 
       {/* Model Version */}

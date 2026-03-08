@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import ProjectedBoxScore from './ProjectedBoxScore'
 import ProbabilityTable from './ProbabilityTable'
+import PlayByPlay from './PlayByPlay'
 
 interface GameDetailTabsProps {
   game: any
@@ -11,12 +12,13 @@ interface GameDetailTabsProps {
   props: any[]
 }
 
-type TabId = 'overview' | 'runs' | 'innings'
+type TabId = 'overview' | 'runs' | 'innings' | 'play-by-play'
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'runs', label: 'Runs Distribution' },
   { id: 'innings', label: 'Innings' },
+  { id: 'play-by-play', label: 'Play-by-Play' },
 ]
 
 // Build projection lookup from array
@@ -333,6 +335,10 @@ export default function GameDetailTabs({
 
       {activeTab === 'innings' && (
         <InningsTab game={game} lineups={lineups} projMap={projMap} />
+      )}
+
+      {activeTab === 'play-by-play' && (
+        <PlayByPlay game={game} lineups={lineups} />
       )}
     </div>
   )
