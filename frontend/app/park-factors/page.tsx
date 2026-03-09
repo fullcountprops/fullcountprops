@@ -300,11 +300,13 @@ export default async function ParkFactorsPage() {
                       {game.away_team} @ {game.home_team}
                     </div>
                     <div className="text-xs text-slate-500">
-                      {new Date(game.game_time).toLocaleTimeString('en-US', {
-                        hour: 'numeric',
-                        minute: '2-digit',
-                        timeZone: 'America/New_York',
-                      })} ET
+                      {game.game_time && !isNaN(new Date(game.game_time).getTime())
+                        ? new Date(game.game_time).toLocaleTimeString('en-US', {
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            timeZone: 'America/New_York',
+                          }) + ' ET'
+                        : 'TBD'}
                     </div>
                   </div>
 
