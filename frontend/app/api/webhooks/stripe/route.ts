@@ -1,12 +1,18 @@
 // frontend/app/api/webhooks/stripe/route.ts
 // ============================================================
-// FullCountProps — Stripe Webhook (Issue #8: 4-tier system)
+// FullCountProps — Stripe Webhook
 //
-// Maps Stripe price IDs → new tier names and updates
-// user_metadata.subscription_tier in Supabase on:
-//   - checkout.session.completed
-//   - customer.subscription.updated
-//   - customer.subscription.deleted
+// Handles Stripe subscription lifecycle events and syncs both:
+//   1. Supabase auth user_metadata (subscription_tier)
+//   2. Supabase subscriptions table (for middleware/API lookups)
+//
+// Stripe product name → Website tier mapping:
+//   Stripe "Double-A"  → double_a  ($7.99)
+//   Stripe "Pro"       → triple_a  ($29.00)
+//   Stripe "Premium"   → the_show  ($49.00)
+//
+// Webhook endpoint: https://www.fullcountprops.com/api/webhooks/stripe
+// Webhook destination ID: we_1T7Tx5CHMWdtVF7LllHgGYyd
 // ============================================================
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -23,6 +29,7 @@ function getStripe(): Stripe {
   }
   return _stripe;
 }
+
 let _supabaseAdmin: ReturnType<typeof createClient> | null = null;
 function getSupabaseAdmin() {
   if (!_supabaseAdmin) {
@@ -37,10 +44,64 @@ function getSupabaseAdmin() {
 function getWebhookSecret() {
   return process.env.STRIPE_WEBHOOK_SECRET!;
 }
+
 /** Resolve a Stripe price ID to a FullCountProps tier name. */
 function tierFromPriceId(priceId: string): TierName {
   const priceToTier = buildPriceToTierMap();
   return priceToTier[priceId] ?? 'single_a';
+}
+
+/**
+ * Upsert a row in the subscriptions table to keep it in sync with Stripe.
+ * Uses stripe_customer_id as the lookup key; falls back to email.
+ */
+async function syncSubscriptionsTable(params: {
+  email?: string;
+  userId?: string;
+  stripeCustomerId: string;
+  stripeSubscriptionId?: string;
+  stripeProductId?: string;
+  tier: TierName;
+  status: 'active' | 'canceled' | 'past_due';
+  currentPeriodStart?: string;
+  currentPeriodEnd?: string;
+}) {
+  const db = getSupabaseAdmin();
+
+  // Check if row exists by stripe_customer_id
+  const { data: existing } = await db
+    .from('subscriptions')
+    .select('id, email')
+    .eq('stripe_customer_id', params.stripeCustomerId)
+    .maybeSingle();
+
+  const row = {
+    stripe_customer_id: params.stripeCustomerId,
+    stripe_subscription_id: params.stripeSubscriptionId,
+    stripe_product_id: params.stripeProductId,
+    tier: params.tier,
+    status: params.status,
+    user_id: params.userId,
+    current_period_start: params.currentPeriodStart,
+    current_period_end: params.currentPeriodEnd,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (existing) {
+    const { error } = await db
+      .from('subscriptions')
+      .update(row)
+      .eq('id', existing.id);
+    if (error) console.error('Failed to update subscriptions row:', error);
+  } else if (params.email) {
+    const { error } = await db
+      .from('subscriptions')
+      .upsert(
+        { ...row, email: params.email, created_at: new Date().toISOString() },
+        { onConflict: 'email' }
+      );
+    if (error) console.error('Failed to insert subscriptions row:', error);
+  }
 }
 
 /** Update the user's subscription_tier in Supabase auth metadata. */
@@ -49,13 +110,12 @@ async function updateUserTier(
   tier: TierName,
   stripeSubscriptionId?: string
 ) {
-  // Look up user by stripe_customer_id in user_metadata
   const { data: users, error: listError } =
     await getSupabaseAdmin().auth.admin.listUsers({ perPage: 1000 });
 
   if (listError) {
     console.error('Failed to list users:', listError);
-    return;
+    return null;
   }
 
   const user = users.users.find(
@@ -64,14 +124,15 @@ async function updateUserTier(
 
   if (!user) {
     console.error(`No user found with stripe_customer_id: ${customerId}`);
-    return;
+    return null;
   }
 
   const { error: updateError } =
     await getSupabaseAdmin().auth.admin.updateUserById(user.id, {
       user_metadata: {
         subscription_tier: tier,
-        stripe_subscription_id: stripeSubscriptionId ?? user.user_metadata?.stripe_subscription_id,
+        stripe_subscription_id:
+          stripeSubscriptionId ?? user.user_metadata?.stripe_subscription_id,
         tier_updated_at: new Date().toISOString(),
       },
     });
@@ -81,6 +142,8 @@ async function updateUserTier(
   } else {
     console.log(`Updated user ${user.id} to tier: ${tier}`);
   }
+
+  return user;
 }
 
 export async function POST(request: NextRequest) {
@@ -116,15 +179,61 @@ export async function POST(request: NextRequest) {
         const subscriptionId = session.subscription as string;
 
         if (subscriptionId) {
-          // Fetch the subscription to get the price ID
           const subscription =
-            await stripe.subscriptions.retrieve(subscriptionId);
+            await getStripe().subscriptions.retrieve(subscriptionId);
           const priceId = subscription.items.data[0]?.price.id;
+          const productId = subscription.items.data[0]?.price.product as string;
 
           if (priceId) {
             const tier = tierFromPriceId(priceId);
-            await updateUserTier(customerId, tier, subscriptionId);
+            const user = await updateUserTier(customerId, tier, subscriptionId);
+
+            await syncSubscriptionsTable({
+              email: user?.email ?? (session.customer_email as string),
+              userId: user?.id,
+              stripeCustomerId: customerId,
+              stripeSubscriptionId: subscriptionId,
+              stripeProductId: productId,
+              tier,
+              status: 'active',
+              currentPeriodStart: new Date(
+                subscription.current_period_start * 1000
+              ).toISOString(),
+              currentPeriodEnd: new Date(
+                subscription.current_period_end * 1000
+              ).toISOString(),
+            });
           }
+        }
+        break;
+      }
+
+      // ---- Subscription created ----
+      case 'customer.subscription.created': {
+        const subscription = event.data.object as Stripe.Subscription;
+        const customerId = subscription.customer as string;
+        const priceId = subscription.items.data[0]?.price.id;
+        const productId = subscription.items.data[0]?.price.product as string;
+
+        if (priceId) {
+          const tier = tierFromPriceId(priceId);
+          const user = await updateUserTier(customerId, tier, subscription.id);
+
+          await syncSubscriptionsTable({
+            email: user?.email,
+            userId: user?.id,
+            stripeCustomerId: customerId,
+            stripeSubscriptionId: subscription.id,
+            stripeProductId: productId,
+            tier,
+            status: 'active',
+            currentPeriodStart: new Date(
+              subscription.current_period_start * 1000
+            ).toISOString(),
+            currentPeriodEnd: new Date(
+              subscription.current_period_end * 1000
+            ).toISOString(),
+          });
         }
         break;
       }
@@ -134,10 +243,27 @@ export async function POST(request: NextRequest) {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
         const priceId = subscription.items.data[0]?.price.id;
+        const productId = subscription.items.data[0]?.price.product as string;
 
         if (priceId && subscription.status === 'active') {
           const tier = tierFromPriceId(priceId);
-          await updateUserTier(customerId, tier, subscription.id);
+          const user = await updateUserTier(customerId, tier, subscription.id);
+
+          await syncSubscriptionsTable({
+            email: user?.email,
+            userId: user?.id,
+            stripeCustomerId: customerId,
+            stripeSubscriptionId: subscription.id,
+            stripeProductId: productId,
+            tier,
+            status: 'active',
+            currentPeriodStart: new Date(
+              subscription.current_period_start * 1000
+            ).toISOString(),
+            currentPeriodEnd: new Date(
+              subscription.current_period_end * 1000
+            ).toISOString(),
+          });
         }
         break;
       }
@@ -147,8 +273,16 @@ export async function POST(request: NextRequest) {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
 
-        // Downgrade to free tier
-        await updateUserTier(customerId, 'single_a');
+        const user = await updateUserTier(customerId, 'single_a');
+
+        await syncSubscriptionsTable({
+          email: user?.email,
+          userId: user?.id,
+          stripeCustomerId: customerId,
+          stripeSubscriptionId: subscription.id,
+          tier: 'single_a',
+          status: 'canceled',
+        });
         break;
       }
 
@@ -165,7 +299,6 @@ export async function POST(request: NextRequest) {
       }
 
       default:
-        // Unhandled event type — log and acknowledge
         console.log(`Unhandled event type: ${event.type}`);
     }
   } catch (err) {
