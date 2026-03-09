@@ -796,7 +796,7 @@ def run_game_pipeline(
         calc = PropCalculator()
         try:
             props = calc.fetch_todays_props(game.game_date, [game.game_pk])
-        except RuntimeError as exc:
+        except Exception as exc:  # noqa: BLE001
             logger.warning("  Props fetch failed: %s — skipping prop edges.", exc)
             props = []
         edges = calc.calculate_prop_edges(summary, props) if props else []
