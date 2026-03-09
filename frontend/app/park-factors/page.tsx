@@ -284,9 +284,10 @@ export default async function ParkFactorsPage() {
           </h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {todaysGames.map(game => {
-              const k = PARK_K[game.venue] ?? 0
-              const hr = PARK_HR[game.venue] ?? 0
-              const tb = PARK_TB[game.venue] ?? 0
+              const isKnownVenue = game.venue in PARK_K
+              const k = PARK_K[game.venue] ?? null
+              const hr = PARK_HR[game.venue] ?? null
+              const tb = PARK_TB[game.venue] ?? null
               const isDome = DOME_STADIUMS.has(game.venue)
               const impact = weatherImpactLabel(game.temperature_f, game.wind_speed_mph, game.wind_direction)
 
@@ -300,43 +301,52 @@ export default async function ParkFactorsPage() {
                       {game.away_team} @ {game.home_team}
                     </div>
                     <div className="text-xs text-slate-500">
-                      {new Date(game.game_time).toLocaleTimeString('en-US', {
-                        hour: 'numeric',
-                        minute: '2-digit',
-                        timeZone: 'America/New_York',
-                      })} ET
+                      {game.game_time && !isNaN(new Date(game.game_time).getTime())
+                        ? new Date(game.game_time).toLocaleTimeString('en-US', {
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            timeZone: 'America/New_York',
+                          }) + ' ET'
+                        : 'TBD'}
                     </div>
                   </div>
 
                   <div className="text-xs text-slate-400 mb-3">
                     {game.venue}
                     {isDome && <span className="text-blue-400 ml-1">⌂</span>}
+                    {!isKnownVenue && <span className="text-yellow-500 ml-1">(Spring Training venue)</span>}
                   </div>
 
                   {/* Factor chips */}
+                  {isKnownVenue ? (
                   <div className="flex gap-2 mb-3">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${
-                      k > 0 ? 'bg-emerald-900/50 border-emerald-700 text-emerald-300' :
-                      k < 0 ? 'bg-red-900/50 border-red-700 text-red-300' :
+                      (k ?? 0) > 0 ? 'bg-emerald-900/50 border-emerald-700 text-emerald-300' :
+                      (k ?? 0) < 0 ? 'bg-red-900/50 border-red-700 text-red-300' :
                       'bg-slate-800 border-slate-700 text-slate-400'
                     }`}>
-                      K {k > 0 ? '+' : ''}{k}%
+                      K {(k ?? 0) > 0 ? '+' : ''}{k ?? 0}%
                     </span>
                     <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${
-                      hr > 0 ? 'bg-emerald-900/50 border-emerald-700 text-emerald-300' :
-                      hr < 0 ? 'bg-red-900/50 border-red-700 text-red-300' :
+                      (hr ?? 0) > 0 ? 'bg-emerald-900/50 border-emerald-700 text-emerald-300' :
+                      (hr ?? 0) < 0 ? 'bg-red-900/50 border-red-700 text-red-300' :
                       'bg-slate-800 border-slate-700 text-slate-400'
                     }`}>
-                      HR {hr > 0 ? '+' : ''}{hr}%
+                      HR {(hr ?? 0) > 0 ? '+' : ''}{hr ?? 0}%
                     </span>
                     <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${
-                      tb > 0 ? 'bg-emerald-900/50 border-emerald-700 text-emerald-300' :
-                      tb < 0 ? 'bg-red-900/50 border-red-700 text-red-300' :
+                      (tb ?? 0) > 0 ? 'bg-emerald-900/50 border-emerald-700 text-emerald-300' :
+                      (tb ?? 0) < 0 ? 'bg-red-900/50 border-red-700 text-red-300' :
                       'bg-slate-800 border-slate-700 text-slate-400'
                     }`}>
-                      TB {tb > 0 ? '+' : ''}{tb}%
+                      TB {(tb ?? 0) > 0 ? '+' : ''}{tb ?? 0}%
                     </span>
                   </div>
+                  ) : (
+                  <div className="mb-3 text-xs text-slate-500 italic">
+                    Park factors not available for Spring Training venues
+                  </div>
+                  )}
 
                   {/* Weather */}
                   {(game.temperature_f != null || game.wind_speed_mph != null) && (

@@ -36,14 +36,20 @@ async function getTodaysGames() {
   return data || []
 }
 
+function formatGameTime(gameTime: string | null): string {
+  if (!gameTime) return 'TBD'
+  const d = new Date(gameTime)
+  if (isNaN(d.getTime())) {
+    // Try prepending a date in case game_time is just "HH:MM:SS"
+    const d2 = new Date(`2000-01-01T${gameTime}`)
+    if (isNaN(d2.getTime())) return 'TBD'
+    return d2.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }) + ' ET'
+  }
+  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }) + ' ET'
+}
+
 function GameCard({ game }: { game: any }) {
-  const gameTime = game.game_time
-    ? new Date(`2000-01-01T${game.game_time}`).toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        timeZone: 'America/New_York',
-      }) + ' ET'
-    : 'TBD'
+  const gameTime = formatGameTime(game.game_time)
   return (
     <Link href={`/games/${game.game_pk}`} className="game-card block hover:border-gray-500 transition-colors">
       <div className="flex items-center justify-between mb-3">
