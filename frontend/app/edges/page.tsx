@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { headers } from 'next/headers'
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 
@@ -199,6 +200,87 @@ function EdgeCard({ proj }: { proj: any }) {
   )
 }
 
+const FREE_EDGES_LIMIT = 3
+
+function BlurredEdgeCard() {
+  return (
+    <div className="bg-slate-900 border border-slate-700 rounded-2xl overflow-hidden relative select-none">
+      <div className="blur-sm pointer-events-none">
+        <div className="px-5 py-3 border-b border-slate-700 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-xs px-2 py-0.5 rounded border font-bold bg-green-900 text-green-300 border-green-700">HIGH</span>
+            <span className="text-xs text-slate-500">Strikeouts</span>
+          </div>
+          <span className="text-xs text-green-400 font-mono font-bold">78% conf</span>
+        </div>
+        <div className="px-5 py-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="min-w-0 flex-1">
+              <span className="font-semibold text-white truncate block">Player Name</span>
+              <div className="text-xs text-slate-500 mt-0.5">Venue vs Opponent</div>
+            </div>
+            <div className="text-right ml-3">
+              <div className="text-white font-bold text-lg">7.2</div>
+              <div className="text-xs text-slate-500">Projected</div>
+            </div>
+          </div>
+          <div className="mt-3 pt-3 border-t border-slate-800 space-y-1.5">
+            <div className="text-xs text-slate-500 uppercase tracking-wider mb-2">Factor Breakdown</div>
+            <div className="flex justify-between text-xs">
+              <span className="text-slate-400">Park factor</span>
+              <span className="text-slate-300">+2.3%</span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span className="text-slate-400">Opp K%</span>
+              <span className="text-slate-300">24.1%</span>
+            </div>
+          </div>
+        </div>
+        <div className="px-5 py-2.5 bg-slate-800/50 border-t border-slate-700">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-slate-500">Model v2.0</span>
+            <span className="text-slate-500">ID: ------</span>
+          </div>
+        </div>
+      </div>
+      <div className="absolute inset-0 flex items-center justify-center bg-slate-900/40">
+        <div className="text-center">
+          <svg className="w-6 h-6 mx-auto mb-1 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+          <span className="text-xs text-slate-400 font-medium">Double-A+</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function UpgradeBanner({ totalCount, visibleCount }: { totalCount: number; visibleCount: number }) {
+  const hiddenCount = totalCount - visibleCount
+  if (hiddenCount <= 0) return null
+
+  return (
+    <div className="mt-8 p-6 bg-gradient-to-r from-emerald-950/40 via-emerald-900/20 to-emerald-950/40 border border-emerald-700/40 rounded-xl text-center">
+      <h3 className="text-lg font-semibold text-white mb-2">
+        {hiddenCount} more edge{hiddenCount !== 1 ? 's' : ''} available today
+      </h3>
+      <p className="text-slate-400 text-sm mb-4 max-w-lg mx-auto">
+        Free accounts see the top {visibleCount} edges. Upgrade to Double-A ($7.99/mo) for full access
+        to every edge, factor breakdown, and daily email digest.
+      </p>
+      <Link
+        href="/pricing"
+        className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-medium bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors"
+      >
+        Unlock All Edges
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+        </svg>
+      </Link>
+    </div>
+  )
+}
+
 export default async function EdgesPage({
   searchParams,
 }: {
@@ -207,6 +289,11 @@ export default async function EdgesPage({
   const params = await searchParams
   const selectedDate = params.date || new Date().toISOString().split('T')[0]
   const selectedStatType = params.stat_type || ''
+
+  // Read subscription tier from middleware header
+  const headersList = await headers()
+  const subscriptionTier = headersList.get('x-subscription-tier') || 'single_a'
+  const hasFullAccess = subscriptionTier !== 'single_a'
 
   const projections = await getProjections(selectedDate, selectedStatType)
 
@@ -349,57 +436,54 @@ export default async function EdgesPage({
                   <span className="text-green-400">{high.length} high confidence</span>
                 </div>
               )}
+              {!hasFullAccess && (
+                <div className="px-4 py-2 bg-amber-900/30 border border-amber-700/40 rounded-lg">
+                  <span className="text-amber-400">Showing top {FREE_EDGES_LIMIT} &mdash; <Link href="/pricing" className="underline hover:text-amber-300">upgrade for all</Link></span>
+                </div>
+              )}
             </div>
 
-            {/* High Confidence */}
-            {high.length > 0 && (
-              <section>
-                <h2 className="text-xl font-semibold text-white mb-4 pb-2 border-b border-green-800">
-                  High Confidence
-                  <span className="ml-2 text-sm font-normal text-green-500">
-                    70%+ ({high.length})
-                  </span>
-                </h2>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {high.map((proj: any, i: number) => (
-                    <EdgeCard key={`high-${proj.player_name}-${proj.stat_type}-${i}`} proj={proj} />
-                  ))}
-                </div>
-              </section>
-            )}
+            {/* Render edges with free-tier gating */}
+            {(() => {
+              // For free tier: show first FREE_EDGES_LIMIT cards, blur the rest
+              let visibleCount = 0
+              const allSections = [
+                { items: high, label: 'High Confidence', detail: '70%+', borderColor: 'border-green-800', detailColor: 'text-green-500' },
+                { items: medium, label: 'Medium Confidence', detail: '50\u201369%', borderColor: 'border-blue-800', detailColor: 'text-blue-400' },
+                { items: low, label: 'Low Confidence', detail: '<50%', borderColor: 'border-gray-700', detailColor: 'text-slate-400' },
+              ]
 
-            {/* Medium Confidence */}
-            {medium.length > 0 && (
-              <section>
-                <h2 className="text-xl font-semibold text-white mb-4 pb-2 border-b border-blue-800">
-                  Medium Confidence
-                  <span className="ml-2 text-sm font-normal text-blue-400">
-                    50&ndash;69% ({medium.length})
-                  </span>
-                </h2>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {medium.map((proj: any, i: number) => (
-                    <EdgeCard key={`med-${proj.player_name}-${proj.stat_type}-${i}`} proj={proj} />
-                  ))}
-                </div>
-              </section>
-            )}
+              return allSections.map((section) => {
+                if (section.items.length === 0) return null
 
-            {/* Low Confidence */}
-            {low.length > 0 && (
-              <section>
-                <h2 className="text-xl font-semibold text-white mb-4 pb-2 border-b border-gray-700">
-                  Low Confidence
-                  <span className="ml-2 text-sm font-normal text-slate-400">
-                    &lt;50% ({low.length})
-                  </span>
-                </h2>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {low.map((proj: any, i: number) => (
-                    <EdgeCard key={`low-${proj.player_name}-${proj.stat_type}-${i}`} proj={proj} />
-                  ))}
-                </div>
-              </section>
+                return (
+                  <section key={section.label}>
+                    <h2 className="text-xl font-semibold text-white mb-4 pb-2 border-b {section.borderColor}">
+                      {section.label}
+                      <span className={`ml-2 text-sm font-normal ${section.detailColor}`}>
+                        {section.detail} ({section.items.length})
+                      </span>
+                    </h2>
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                      {section.items.map((proj: any, i: number) => {
+                        const isVisible = hasFullAccess || visibleCount < FREE_EDGES_LIMIT
+                        if (isVisible) visibleCount++
+
+                        return isVisible ? (
+                          <EdgeCard key={`${section.label}-${proj.player_name}-${proj.stat_type}-${i}`} proj={proj} />
+                        ) : (
+                          <BlurredEdgeCard key={`blur-${section.label}-${i}`} />
+                        )
+                      })}
+                    </div>
+                  </section>
+                )
+              })
+            })()}
+
+            {/* Upgrade banner for free tier */}
+            {!hasFullAccess && projections.length > FREE_EDGES_LIMIT && (
+              <UpgradeBanner totalCount={projections.length} visibleCount={FREE_EDGES_LIMIT} />
             )}
           </div>
         )}
