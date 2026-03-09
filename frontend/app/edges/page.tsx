@@ -458,7 +458,7 @@ export default async function EdgesPage({
 
                 return (
                   <section key={section.label}>
-                    <h2 className="text-xl font-semibold text-white mb-4 pb-2 border-b {section.borderColor}">
+                    <h2 className={`text-xl font-semibold text-white mb-4 pb-2 border-b ${section.borderColor}`}>
                       {section.label}
                       <span className={`ml-2 text-sm font-normal ${section.detailColor}`}>
                         {section.detail} ({section.items.length})
