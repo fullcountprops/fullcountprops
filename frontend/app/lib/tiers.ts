@@ -156,15 +156,32 @@ export const TIER_FEATURES: Record<TierName, TierFeatures> = {
   },
 };
 
-// ---- Stripe price ID mapping ----
-// These map Stripe price IDs → tier names for the webhook handler.
-// Env vars are read at runtime so the values here are the env-var *names*.
-export const STRIPE_PRICE_ENV_KEYS: Record<string, TierName> = {};
+// ---- Stripe product & price ID mapping ----
+// Stripe uses different product names than the website:
+//   Stripe "Double-A"  → double_a  (prod_U5hv04WNsX9goP / price_1T7WVcCHMWdtVF7LGT9iNi4C — $7.99)
+//   Stripe "Pro"       → triple_a  (prod_U5etCntbuRQDdH / price_1T7TZjCHMWdtVF7LPK79esVb — $29.00)
+//   Stripe "Premium"   → the_show  (prod_U5f9VI7Q1iJMkT / price_1T7TosCHMWdtVF7LowXBxhaW — $49.00)
 
-/** Build the price→tier map from process.env at runtime. */
+/** Hard-coded Stripe product ID → tier mapping (LIVE keys). */
+export const STRIPE_PRODUCT_TO_TIER: Record<string, TierName> = {
+  'prod_U5hv04WNsX9goP': 'double_a',  // Stripe "Double-A" → Double-A
+  'prod_U5etCntbuRQDdH': 'triple_a',  // Stripe "Pro"      → Triple-A
+  'prod_U5f9VI7Q1iJMkT': 'the_show',  // Stripe "Premium"  → The Show
+};
+
+/** Hard-coded Stripe price ID → tier mapping (LIVE keys). */
+export const STRIPE_PRICE_TO_TIER: Record<string, TierName> = {
+  'price_1T7WVcCHMWdtVF7LGT9iNi4C': 'double_a',  // Double-A monthly $7.99
+  'price_1T7TZjCHMWdtVF7LPK79esVb': 'triple_a',  // Triple-A monthly $29.00
+  'price_1T7TosCHMWdtVF7LowXBxhaW': 'the_show',   // The Show monthly $49.00
+};
+
+/** Build the price→tier map from process.env at runtime (with hard-coded fallback). */
 export function buildPriceToTierMap(): Record<string, TierName> {
-  const map: Record<string, TierName> = {};
+  // Start with hard-coded LIVE price mappings
+  const map: Record<string, TierName> = { ...STRIPE_PRICE_TO_TIER };
 
+  // Also honor env-var overrides (e.g. for test mode)
   const doubleA = process.env.STRIPE_DOUBLE_A_MONTHLY_PRICE_ID;
   const tripleA = process.env.STRIPE_PRO_MONTHLY_PRICE_ID;
   const tripleAAnnual = process.env.STRIPE_PRO_ANNUAL_PRICE_ID;
@@ -178,6 +195,11 @@ export function buildPriceToTierMap(): Record<string, TierName> {
   if (theShowAnnual) map[theShowAnnual] = 'the_show';
 
   return map;
+}
+
+/** Resolve a Stripe product ID to a tier name. */
+export function tierFromProductId(productId: string): TierName {
+  return STRIPE_PRODUCT_TO_TIER[productId] ?? 'single_a';
 }
 
 // ---- Display helpers for the pricing page ----
