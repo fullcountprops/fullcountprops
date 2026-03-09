@@ -473,7 +473,7 @@ class PlateAppearance:
 # ---------------------------------------------------------------------------
 
 
-def _advance_runners(
+def _advance_runners_8outcome(
     runners: list[int],
     outcome: str,
     score_side: int,
@@ -810,7 +810,7 @@ class GameSimulator:
                     else:
                         # Advance runners; check which runner IDs scored
                         prev_score = score[score_side]
-                        runners, rbis = _advance_runners(
+                        runners, rbis = _advance_runners_8outcome(
                             runners, pa_result.outcome, score_side, score
                         )
                         b_rbi[batter_id][sim_idx] += rbis
