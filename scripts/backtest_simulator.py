@@ -299,9 +299,10 @@ class _StubSimulator:
 def _load_simulator(n_sims: int) -> Any:
     """Return real GameSimulator if importable, else stub."""
     try:
-        from simulator.monte_carlo_engine import GameSimulator  # type: ignore
+        from simulator.monte_carlo_engine import GameSimulator, SimulationConfig  # type: ignore
         logger.info("Using real GameSimulator")
-        return GameSimulator(n_sims=n_sims)
+        config = SimulationConfig(n_simulations=n_sims)
+        return GameSimulator(config=config)
     except ImportError:
         logger.warning("simulator.monte_carlo_engine not found – using stub")
         return _StubSimulator(n_sims=n_sims)
