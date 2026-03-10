@@ -97,25 +97,29 @@ function EdgeCard({ proj }: { proj: any }) {
   if (features.recent_k9) {
     factors.push({ label: '14-day K/9', value: String(features.recent_k9), highlight: false })
   }
-  if (features.park_adjustment && features.park_adjustment !== 1.0) {
+  if (features.park_adjustment != null && !isNaN(Number(features.park_adjustment)) && Number(features.park_adjustment) !== 1.0) {
+    const parkAdj = Number(features.park_adjustment)
     factors.push({
       label: 'Park factor',
-      value: `${Number(features.park_adjustment) > 1 ? '+' : ''}${((Number(features.park_adjustment) - 1) * 100).toFixed(1)}%`,
-      highlight: Number(features.park_adjustment) !== 1,
+      value: `${parkAdj > 1 ? '+' : ''}${((parkAdj - 1) * 100).toFixed(1)}%`,
+      highlight: parkAdj !== 1,
     })
+  } else if (features.park_adjustment != null && isNaN(Number(features.park_adjustment))) {
+    factors.push({ label: 'Park factor', value: '--', highlight: false })
   }
-  if (features.umpire_factor && features.umpire_factor !== 1.0) {
+  if (features.umpire_factor != null && !isNaN(Number(features.umpire_factor)) && Number(features.umpire_factor) !== 1.0) {
+    const umpAdj = Number(features.umpire_factor)
     factors.push({
       label: 'Umpire tendency',
-      value: `${Number(features.umpire_factor) > 1 ? '+' : ''}${((Number(features.umpire_factor) - 1) * 100).toFixed(1)}%`,
+      value: `${umpAdj > 1 ? '+' : ''}${((umpAdj - 1) * 100).toFixed(1)}%`,
       highlight: true,
     })
   }
   if (features.umpire_name) {
     factors.push({ label: 'Umpire', value: features.umpire_name, highlight: false })
   }
-  if (features.opp_k_pct) {
-    factors.push({ label: 'Opp K%', value: `${(features.opp_k_pct * 100).toFixed(1)}%`, highlight: false })
+  if (features.opp_k_pct != null && !isNaN(Number(features.opp_k_pct))) {
+    factors.push({ label: 'Opp K%', value: `${(Number(features.opp_k_pct) * 100).toFixed(1)}%`, highlight: false })
   }
   if (features.expected_innings) {
     factors.push({ label: 'Expected IP', value: String(features.expected_innings), highlight: false })
