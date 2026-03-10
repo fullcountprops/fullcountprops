@@ -9,13 +9,13 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        'baseline-bg': '#0a0e1a',
-        'baseline-card': '#111827',
-        'baseline-border': '#1f2937',
-        'baseline-accent': '#3b82f6',
-        'baseline-green': '#10b981',
-        'baseline-red': '#ef4444',
-        'baseline-yellow': '#f59e0b',
+        'fcp-bg': '#0a0e1a',
+        'fcp-card': '#111827',
+        'fcp-border': '#1f2937',
+        'fcp-accent': '#3b82f6',
+        'fcp-green': '#10b981',
+        'fcp-red': '#ef4444',
+        'fcp-yellow': '#f59e0b',
       },
     },
   },

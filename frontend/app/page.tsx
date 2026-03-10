@@ -64,10 +64,10 @@ function GameCard({ game }: { game: any }) {
         <div className="px-4 text-center">
           <div className="text-slate-500 font-medium">@</div>
           {game.status === 'Final' && (
-            <div className="text-xs text-baseline-green mt-1">Final</div>
+            <div className="text-xs text-fcp-green mt-1">Final</div>
           )}
           {game.status === 'In Progress' && (
-            <div className="text-xs text-baseline-yellow mt-1 animate-pulse">Live</div>
+            <div className="text-xs text-fcp-yellow mt-1 animate-pulse">Live</div>
           )}
         </div>
         <div className="flex-1 text-right">
