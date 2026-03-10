@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-fetch_statcast_historical.py — Baseline MLB
+fetch_statcast_historical.py — Full Count Props
 Download full Statcast pitch-by-pitch data from Baseball Savant for
 seasons 2020–2025. Aggregate pitch-level rows into plate-appearance
 features suitable for training the Monte Carlo matchup model.

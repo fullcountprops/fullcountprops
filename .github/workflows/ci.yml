@@ -1,5 +1,5 @@
 # =============================================================================
-# ci.yml — Baseline MLB
+# ci.yml — Full Count Props
 # Continuous Integration: runs on every pull request
 #
 # Checks: Python lint (Ruff), Pytest, Next.js build, migration validation

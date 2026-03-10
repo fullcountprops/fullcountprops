@@ -1,5 +1,5 @@
 -- ============================================================
--- Baseline MLB — Migration: Statcast Historical Pipeline Tables
+-- Full Count Props — Migration: Statcast Historical Pipeline Tables
 -- Run after the base schema.sql
 -- ============================================================
 

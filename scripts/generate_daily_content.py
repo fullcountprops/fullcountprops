@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-generate_daily_content.py — Baseline MLB
+generate_daily_content.py — Full Count Props
 Daily content automation: formats today's projections into
 Twitter-ready and email-ready text using the glass-box template.
 
@@ -343,14 +343,14 @@ def format_email_entry(enriched: dict) -> str:
 def format_email(enriched_list: list, game_date: str) -> str:
     """Format all projections as a complete email/newsletter."""
     header = f"## Today's Top Projections — {game_date}\n\n"
-    header += "*Every factor visible. Every number explained. That's the Baseline MLB glass-box model.*\n\n"
+    header += "*Every factor visible. Every number explained. That's the Full Count Props glass-box model.*\n\n"
     header += "---\n\n"
 
     entries = [format_email_entry(e) for e in enriched_list]
     body = "\n---\n\n".join(entries)
 
     footer = "\n\n---\n\n"
-    footer += "*Projections by Baseline MLB | fullcountprops.com | @fullcountprops*\n"
+    footer += "*Projections by Full Count Props | fullcountprops.com | @fullcountprops*\n"
 
     return header + body + footer
 
@@ -371,7 +371,7 @@ def format_thread(enriched_list: list, game_date: str) -> list:
     count = len(enriched_list)
     high_conf = sum(1 for e in enriched_list if e.get("confidence_tier") == "HIGH")
     hook = (
-        f"⚾ Baseline MLB Projections — {game_date}\n\n"
+        f"⚾ Full Count Props Projections — {game_date}\n\n"
         f"{count} pitcher K projections today"
     )
     if high_conf > 0:
@@ -483,7 +483,7 @@ def run(game_date: str, fmt: str = "all", top_n: int = 10):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Generate daily content from Baseline MLB projections"
+        description="Generate daily content from Full Count Props projections"
     )
     parser.add_argument(
         "--date", type=str, default=None,

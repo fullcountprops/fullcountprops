@@ -1,5 +1,5 @@
 # =============================================================================
-# model_retrain.yml — Baseline MLB
+# model_retrain.yml — Full Count Props
 # Monthly XGBoost matchup model retraining pipeline
 #
 # Schedule: 1st of each month at 4:00 AM ET (08:00 UTC during EDT)

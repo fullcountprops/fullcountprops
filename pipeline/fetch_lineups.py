@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-fetch_lineups.py — Baseline MLB
+fetch_lineups.py — Full Count Props
 Fetch confirmed starting lineups from the MLB Stats API for today's games
 (or a specified date). Required so the Monte Carlo simulator only models
 batters who are actually in the lineup.

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-backtest_projections.py — Baseline MLB
+backtest_projections.py — Full Count Props
 Historical backtesting engine: generates projections for past games
 using the same glass-box model, then grades them against actuals.
 
@@ -428,7 +428,7 @@ def aggregate_results(all_picks: list) -> dict:
 def print_report(summary: dict):
     """Print a formatted backtest report to stdout."""
     print("\n" + "=" * 65)
-    print("  BASELINE MLB — BACKTEST RESULTS")
+    print("  FULL COUNT PROPS — BACKTEST RESULTS")
     print("  Model: v1.0-glass-box")
     print("=" * 65)
 
@@ -637,7 +637,7 @@ def run_backtest(start_date: str, end_date: str, dry_run: bool = False, upload: 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Backtest Baseline MLB projections against historical data"
+        description="Backtest Full Count Props projections against historical data"
     )
     parser.add_argument(
         "--start", type=str, required=True,

@@ -1,8 +1,8 @@
-# BASELINE MLB — WEEK 1 ACTION PLAN
+# FULL COUNT PROPS — WEEK 1 ACTION PLAN
 
 ## February 25 – March 3, 2026
 
-**Purpose:** Get every pipeline tested, post your first public content, and set up the frontend development environment. By the end of this week, Baseline MLB is a verified, functioning system with a public presence.
+**Purpose:** Get every pipeline tested, post your first public content, and set up the frontend development environment. By the end of this week, Full Count Props is a verified, functioning system with a public presence.
 
 ---
 
@@ -408,7 +408,7 @@ Your first tweets should communicate three things:
 ## Option A: The Manifesto (best for establishing brand identity)
 
 ```
-⚾ Introducing Baseline MLB.
+⚾ Introducing Full Count Props.
 
 Most betting tools tell you WHAT to bet.
 We show you WHY.
@@ -435,13 +435,13 @@ Tired of spending 45 minutes every morning checking:
 Building a tool that puts it all on one screen — and
 shows you exactly why each projection says what it does.
 
-Baseline MLB. Launching summer 2026. ⚾
+Full Count Props. Launching summer 2026. ⚾
 ```
 
 ## Option C: The Transparency Pledge (best for differentiation)
 
 ```
-Here's what Baseline MLB will do that no other tool does:
+Here's what Full Count Props will do that no other tool does:
 
 Every projection we publish will show the exact factors
 that drive it — pitcher K rate, umpire zone tendency,
@@ -466,13 +466,13 @@ an extra 0.3 strikeouts per game for elite framers?
 We're building a tool that accounts for ALL of this
 — and shows you every factor behind every number.
 
-Baseline MLB. Summer 2026. ⚾
+Full Count Props. Summer 2026. ⚾
 ```
 
 ## Option E: Short and Direct (best if you want to keep it simple)
 
 ```
-⚾ Baseline MLB
+⚾ Full Count Props
 
 MLB prop analytics with full transparency.
 Every factor visible. Every result graded publicly.
@@ -487,8 +487,8 @@ fullcountprops.com
 1. **Post Option A or B** (the two strongest standalone options)
 2. **Pin it** to your profile immediately
 3. **Bio should read:** "MLB prop analytics. Every factor visible. Every result graded. Launching summer 2026. Built by @[your personal handle]"
-4. **Profile image:** Use a clean baseball-themed graphic or the Baseline MLB wordmark (you can create a simple one on Canva in 10 minutes — dark background, white text, baseball accent)
-5. **Header image:** Dark gradient with "Baseline MLB — Every factor. No secrets." text overlay
+4. **Profile image:** Use a clean baseball-themed graphic or the Full Count Props wordmark (you can create a simple one on Canva in 10 minutes — dark background, white text, baseball accent)
+5. **Header image:** Dark gradient with "Full Count Props — Every factor. No secrets." text overlay
 6. **Follow 50-100 accounts:** BallparkPal, MLB betting analysts, Statcast-related accounts, sports betting media. This seeds your timeline and makes your account look active.
 
 ## Follow-Up Tweets (Days 2-7):
@@ -502,14 +502,14 @@ across 2 appearances. Whiff rate on his slider: 42%.
 Last year's season average: 31%.
 
 Small sample — but the kind of thing we'll be tracking
-daily once Baseline MLB launches. The early signals
+daily once Full Count Props launches. The early signals
 are the edge.
 ```
 
 **Day 3:** Explain a feature
 
 ```
-One thing we're building into Baseline MLB that nobody
+One thing we're building into Full Count Props that nobody
 else does: umpire + catcher framing composites.
 
 The HP umpire's zone tendencies + the catcher's framing
@@ -522,7 +522,7 @@ That matters for K props.
 **Day 4:** Engage with existing content
 - Quote-tweet a BallparkPal park factor post and add umpire context
 - Reply to MLB betting tweets with Statcast-backed analysis
-- Don't promote Baseline MLB in every interaction — just be helpful and data-driven
+- Don't promote Full Count Props in every interaction — just be helpful and data-driven
 
 **Day 5-7:** Post your first manual prop breakdown using Template A from the launch playbook (if spring training games are available with prop lines)
 
@@ -708,7 +708,7 @@ That matters for K props.
 
 - [ ] Replace the default Next.js homepage with a dark-themed layout:
   - Set up the dark color palette from the frontend spec (background: #0a0a0f)
-  - Add the navigation bar: BASELINE MLB | Today's Slate | Props | Accuracy | About
+  - Add the navigation bar: FULL COUNT PROPS | Today's Slate | Props | Accuracy | About
   - Use Tailwind classes: `bg-[#0a0a0f] text-[#e4e4e7]`
 - [ ] Create a basic page that fetches from Supabase and displays results:
   ```typescript
@@ -725,7 +725,7 @@ That matters for K props.
 
     return (
       <main className="min-h-screen bg-[#0a0a0f] text-[#e4e4e7] p-6">
-        <h1 className="text-2xl font-bold mb-6">Baseline MLB — Today's Slate</h1>
+        <h1 className="text-2xl font-bold mb-6">Full Count Props — Today's Slate</h1>
         {games && games.length > 0 ? (
           games.map((game) => (
             <div key={game.game_pk} className="bg-[#141418] border border-[#2a2a30] rounded-lg p-4 mb-4">

@@ -1,5 +1,5 @@
 """
-grade_accuracy.py — Baseline MLB
+grade_accuracy.py — Full Count Props
 Nightly grading script: compares projections to actual results,
 populates `picks` and `accuracy_summary` tables in Supabase.
 
@@ -310,7 +310,7 @@ def run_grading(date_str: str):
     log.info(f"=== Grading complete for {date_str} ===")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Grade Baseline MLB projections")
+    parser = argparse.ArgumentParser(description="Grade Full Count Props projections")
     parser.add_argument("--date", type=str, default=None, help="Date to grade (YYYY-MM-DD). Defaults to yesterday.")
     parser.add_argument("--backfill", type=int, default=None, help="Grade the last N days")
     args = parser.parse_args()

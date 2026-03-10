@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-generate_batter_projections.py -- Baseline MLB
+generate_batter_projections.py -- Full Count Props
 Glass-box multi-stat batter projection engine v3.0.
 
 Model factors (v3.0):

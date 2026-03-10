@@ -1,5 +1,5 @@
 # =============================================================================
-# Makefile — Baseline MLB
+# Makefile — Full Count Props
 # Common commands for local development and CI
 # =============================================================================
 
@@ -23,7 +23,7 @@ RESET := \033[0m
 
 help: ## Show available commands
 	@echo ""
-	@echo "$(CYAN)Baseline MLB — Development Commands$(RESET)"
+	@echo "$(CYAN)Full Count Props — Development Commands$(RESET)"
 	@echo ""
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-24s$(RESET) %s\n", $$1, $$2}'

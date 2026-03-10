@@ -1,5 +1,5 @@
 ================================================================
-BASELINE MLB - FULL 2025 SEASON BACKTEST RESULTS
+FULL COUNT PROPS - FULL 2025 SEASON BACKTEST RESULTS
 ================================================================
 Generated: 2026-03-01
 Run by: GitHub Actions (backtest-test.yml #5)

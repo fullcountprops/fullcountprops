@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-build_training_dataset.py — Baseline MLB
+build_training_dataset.py — Full Count Props
 Transform the Statcast PA-level parquet into the exact feature matrix
 (X) and label vector (y) required for training the matchup probability
 model (XGBoost / LightGBM).

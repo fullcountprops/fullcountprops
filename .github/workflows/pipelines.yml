@@ -1,5 +1,5 @@
 # .github/workflows/pipelines.yml
-# Automated daily MLB data pipelines for Baseline MLB
+# Automated daily MLB data pipelines for Full Count Props
 #
 # v3.0 Changes (Cycle #4):
 #   - Merged morning_data_refresh.yml into this workflow (was a duplicate)
