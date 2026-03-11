@@ -1,127 +1,120 @@
+#!/usr/bin/env python3
+"""
+fetch_players.py - Baseline MLB
+Fetch active MLB players via BallDontLie licensed API.
+Replaces previous statsapi.mlb.com roster scraping for legal compliance.
+
+Data source: https://api.balldontlie.io/mlb/v1/players/active
+Requires: BDL_API_KEY environment variable
+"""
 import os
 
 import requests
-from dotenv import load_dotenv
-
 from supabase import Client, create_client
 
-load_dotenv()
-
-# ── Clients ─────────────────────────────────────────────────────────────────────────────
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
+# -- Clients --
+SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip()
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "").strip()
 
 if not all([SUPABASE_URL, SUPABASE_KEY]):
     raise EnvironmentError("Missing SUPABASE_URL or SUPABASE_SERVICE_KEY in .env")
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# ── Config ─────────────────────────────────────────────────────────────────────────────
-BASE_URL = "https://statsapi.mlb.com/api/v1"
-SPORT_ID = 1   # MLB
+# -- BallDontLie API Config --
+BDL_BASE = "https://api.balldontlie.io/mlb/v1"
+BDL_API_KEY = os.getenv("BDL_API_KEY", "").strip()
+if not BDL_API_KEY:
+    raise EnvironmentError("Missing BDL_API_KEY in environment")
+
+BDL_HEADERS = {"Authorization": BDL_API_KEY}
 
 # Positions we care about for prop betting
 PROP_POSITIONS = {
-    "P", "SP", "RP",           # pitchers
-    "C",                       # catchers (framing)
-    "1B", "2B", "3B", "SS",   # infield
-    "LF", "CF", "RF",         # outfield
-    "DH",                      # designated hitter
-    "OF", "IF",                # generic
+    "Starting Pitcher", "Relief Pitcher", "Pitcher",
+    "Catcher",
+    "First Baseman", "Second Baseman", "Third Baseman", "Shortstop",
+    "Left Fielder", "Center Fielder", "Right Fielder",
+    "Designated Hitter", "Outfielder", "Infielder",
+}
+
+# Short-code mapping for Supabase schema compatibility
+POSITION_ABBREV = {
+    "Starting Pitcher": "SP", "Relief Pitcher": "RP", "Pitcher": "P",
+    "Catcher": "C",
+    "First Baseman": "1B", "Second Baseman": "2B",
+    "Third Baseman": "3B", "Shortstop": "SS",
+    "Left Fielder": "LF", "Center Fielder": "CF",
+    "Right Fielder": "RF", "Designated Hitter": "DH",
+    "Outfielder": "OF", "Infielder": "IF",
 }
 
 
-def fetch_active_rosters() -> list[dict]:
+def fetch_active_players() -> list[dict]:
     """
-    Pull the active 40-man roster for every MLB team.
-    Uses hydrate=person so batSide/pitchHand are included inline.
-    Returns a flat list of player dicts from the Stats API.
+    Pull all active MLB players from BallDontLie API.
+    Handles pagination automatically.
     """
-    # Get all MLB teams first
-    teams_url = f"{BASE_URL}/teams"
-    r = requests.get(teams_url, params={"sportId": SPORT_ID}, timeout=15)
-    r.raise_for_status()
-    teams = r.json().get("teams", [])
-    print(f"  Found {len(teams)} MLB teams.")
-
     all_players = []
-    for team in teams:
-        team_id   = team["id"]
-        team_name = team["name"]
-        roster_url = f"{BASE_URL}/teams/{team_id}/roster"
-        try:
-            rr = requests.get(
-                roster_url,
-                params={
-                    "rosterType": "40Man",
-                    "hydrate": "person",   # <-- pulls batSide, pitchHand, birthDate, etc.
-                },
-                timeout=15,
-            )
-            rr.raise_for_status()
-            roster = rr.json().get("roster", [])
-            for entry in roster:
-                entry["_team_name"] = team_name
-            all_players.extend(roster)
-        except Exception as e:
-            print(f"  WARNING: Could not fetch roster for {team_name}: {e}")
+    cursor = None
+
+    while True:
+        params = {"per_page": 100}
+        if cursor:
+            params["cursor"] = cursor
+
+        r = requests.get(
+            f"{BDL_BASE}/players/active",
+            params=params,
+            headers=BDL_HEADERS,
+            timeout=15,
+        )
+        r.raise_for_status()
+        data = r.json()
+        all_players.extend(data.get("data", []))
+
+        next_cursor = data.get("meta", {}).get("next_cursor")
+        if not next_cursor:
+            break
+        cursor = next_cursor
 
     return all_players
 
 
-def fetch_player_detail(mlbam_id: int) -> dict:
+def parse_player(player: dict) -> dict | None:
     """
-    Fetch full bio for a single player to get bat/throw hand.
-    Only called as a fallback if the roster hydration lacks that data.
+    Map a BallDontLie player object to our players table schema.
+    Returns None if id is missing or position is not prop-relevant.
     """
-    url = f"{BASE_URL}/people/{mlbam_id}"
-    r = requests.get(url, timeout=10)
-    r.raise_for_status()
-    people = r.json().get("people", [])
-    return people[0] if people else {}
-
-
-def parse_player(entry: dict) -> dict | None:
-    """
-    Map a roster entry to our players table schema.
-    Returns None if mlbam_id is missing.
-    """
-    person    = entry.get("person", {})
-    mlbam_id  = person.get("id")
-    if not mlbam_id:
+    player_id = player.get("id")
+    if not player_id:
         return None
 
-    full_name = person.get("fullName", "Unknown")
-    team      = entry.get("_team_name", "")
-    pos_obj   = entry.get("position", {})
-    position  = pos_obj.get("abbreviation", pos_obj.get("name", ""))
+    full_name = player.get("full_name", "Unknown")
+    position = player.get("position", "")
+    team_obj = player.get("team", {})
+    team_name = team_obj.get("display_name", "") if team_obj else ""
 
-    # Skip non-prop-relevant positions (e.g. two-way, coach rows)
-    # Allow through if position is blank (Stats API sometimes omits it)
+    # Filter to prop-relevant positions
     if position and position not in PROP_POSITIONS:
         return None
 
-    # Bat/throw hand — populated by hydrate=person on the roster call
-    bat_side   = person.get("batSide",   {}).get("code")
-    pitch_hand = person.get("pitchHand", {}).get("code")
+    pos_abbrev = POSITION_ABBREV.get(position, position)
 
-    # Fallback: individual player endpoint if hydration missed the data
-    if not bat_side or not pitch_hand:
-        try:
-            detail    = fetch_player_detail(mlbam_id)
-            bat_side   = bat_side   or detail.get("batSide",   {}).get("code")
-            pitch_hand = pitch_hand or detail.get("pitchHand", {}).get("code")
-        except Exception:
-            pass  # Non-fatal; we'll store NULL and fill on next run
+    # BDL provides bats_throws as "Right/Right" format
+    bats_throws = player.get("bats_throws", "")
+    parts = bats_throws.split("/") if bats_throws else []
+    bat_side = parts[0][0] if len(parts) >= 1 and parts[0] else None  # R, L, S
+    pitch_hand = parts[1][0] if len(parts) >= 2 and parts[1] else None
 
     return {
-        "mlbam_id":  mlbam_id,
+        "mlbam_id": player_id,
         "full_name": full_name,
-        "team":      team,
-        "position":  position or None,
-        "bats":      bat_side,
-        "throws":    pitch_hand,
-        "active":    True,
+        "team": team_name,
+        "position": pos_abbrev or None,
+        "bats": bat_side,
+        "throws": pitch_hand,
+        "active": True,
     }
 
 
@@ -137,11 +130,13 @@ def upsert_players(rows: list[dict]) -> None:
 
 
 def main():
-    print("Fetching MLB active rosters ...")
-    raw  = fetch_active_rosters()
-    print(f"  Total roster entries: {len(raw)}")
-    rows = [r for entry in raw if (r := parse_player(entry)) is not None]
+    print("Fetching MLB active players via BallDontLie ...")
+    raw = fetch_active_players()
+    print(f"  Total players returned: {len(raw)}")
+
+    rows = [r for p in raw if (r := parse_player(p)) is not None]
     print(f"  Parsed {len(rows)} prop-relevant players.")
+
     upsert_players(rows)
     print("Done.")
 
