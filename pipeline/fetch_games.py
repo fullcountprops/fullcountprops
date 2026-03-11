@@ -1,19 +1,22 @@
+#!/usr/bin/env python3
+"""
+fetch_games.py - Baseline MLB
+Fetch MLB game schedule via BallDontLie licensed API.
+Replaces previous statsapi.mlb.com integration for legal compliance.
+
+Data source: https://api.balldontlie.io/mlb/v1/games
+Requires: BDL_API_KEY environment variable
+"""
 import os
 from datetime import date, timedelta
 
 import requests
-
 from supabase import Client, create_client
 
-# from dotenv import load_dotenv  # DISABLED - GitHub Actions provides env vars
-
-# load_dotenv()
-
-# ── Clients ───────────────────────────────────────────────────────────────────
+# -- Clients --
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip()
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "").strip()
 
-# Fail fast with a clear error instead of cryptic HTTP 400
 if not SUPABASE_URL.startswith("https://") or not SUPABASE_URL.endswith(".supabase.co"):
     raise RuntimeError(f"Invalid SUPABASE_URL (length={len(SUPABASE_URL)}, repr={repr(SUPABASE_URL[:30])})")
 
@@ -22,83 +25,95 @@ if not all([SUPABASE_URL, SUPABASE_KEY]):
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# ── Config ──────────────────────────────────────────────────────────────────
-BASE_URL = "https://statsapi.mlb.com/api/v1"
-SPORT_ID = 1  # MLB
+# -- BallDontLie API Config --
+BDL_BASE = "https://api.balldontlie.io/mlb/v1"
+BDL_API_KEY = os.getenv("BDL_API_KEY", "").strip()
+if not BDL_API_KEY:
+    raise EnvironmentError("Missing BDL_API_KEY in environment")
+
+BDL_HEADERS = {"Authorization": BDL_API_KEY}
 
 
 def fetch_schedule(target_date: date, days_ahead: int = 6) -> list[dict]:
     """
-    Pull the schedule from the MLB Stats API for a date window.
+    Pull the game schedule from BallDontLie for a date window.
     Default: today through the next 6 days (a full week).
     Returns a flat list of game dicts.
     """
-    start = target_date.strftime("%Y-%m-%d")
-    end = (target_date + timedelta(days=days_ahead)).strftime("%Y-%m-%d")
+    all_games = []
+    dates = []
+    for i in range(days_ahead + 1):
+        d = target_date + timedelta(days=i)
+        dates.append(d.strftime("%Y-%m-%d"))
 
-    url = f"{BASE_URL}/schedule"
-    params = {
-        "sportId": SPORT_ID,
-        "startDate": start,
-        "endDate": end,
-        "hydrate": "venue,probablePitcher,linescore,flags,decisions,game(content(summary))",
-    }
+    # BDL games endpoint accepts dates[] array
+    params = [("dates[]", d) for d in dates]
+    params.append(("per_page", "100"))
 
-    r = requests.get(url, params=params, timeout=15)
-    r.raise_for_status()
-    data = r.json()
+    cursor = None
+    while True:
+        page_params = list(params)
+        if cursor:
+            page_params.append(("cursor", str(cursor)))
 
-    games = []
-    for day in data.get("dates", []):
-        for game in day.get("games", []):
-            games.append(game)
+        r = requests.get(
+            f"{BDL_BASE}/games",
+            params=page_params,
+            headers=BDL_HEADERS,
+            timeout=15,
+        )
+        r.raise_for_status()
+        data = r.json()
+        all_games.extend(data.get("data", []))
 
-    return games
+        next_cursor = data.get("meta", {}).get("next_cursor")
+        if not next_cursor:
+            break
+        cursor = next_cursor
+
+    return all_games
 
 
 def parse_game(game: dict) -> dict | None:
     """
-    Map an MLB Stats API game object to our games table schema.
+    Map a BallDontLie game object to our games table schema.
     Returns None if the game is missing essential fields.
-    Includes probable pitcher IDs and names.
     """
-    game_pk = game.get("gamePk")
-    if not game_pk:
+    game_id = game.get("id")
+    if not game_id:
         return None
 
-    game_date_str = game.get("officialDate") or game.get("gameDate", "")[:10]
+    game_date_str = game.get("date", "")[:10]
+    home_team_obj = game.get("home_team", {})
+    away_team_obj = game.get("away_team", {})
 
-    teams = game.get("teams", {})
-    home = teams.get("home", {})
-    away = teams.get("away", {})
+    home_team = home_team_obj.get("display_name", "Unknown")
+    away_team = away_team_obj.get("display_name", "Unknown")
 
-    home_team = home.get("team", {}).get("name", "Unknown")
-    away_team = away.get("team", {}).get("name", "Unknown")
+    # BDL game data fields
+    home_data = game.get("home_team_data", {})
+    away_data = game.get("away_team_data", {})
+    venue = game.get("venue", {}).get("name") if isinstance(game.get("venue"), dict) else game.get("venue")
+    status = game.get("status")
 
-    venue = game.get("venue", {}).get("name")
-    status = game.get("status", {}).get("detailedState")
+    home_score = home_data.get("runs") if home_data else None
+    away_score = away_data.get("runs") if away_data else None
 
-    # Scores (only present after game starts)
-    linescore = game.get("linescore", {})
-    home_score = linescore.get("teams", {}).get("home", {}).get("runs")
-    away_score = linescore.get("teams", {}).get("away", {}).get("runs")
+    # Probable pitchers from BDL
+    home_pp = game.get("home_pitcher", {})
+    away_pp = game.get("away_pitcher", {})
 
-    # Probable pitchers (present once announced)
-    home_pp = home.get("probablePitcher", {})
-    away_pp = away.get("probablePitcher", {})
+    home_probable_pitcher_id = home_pp.get("id") if home_pp else None
+    home_probable_pitcher_name = home_pp.get("full_name") if home_pp else None
+    away_probable_pitcher_id = away_pp.get("id") if away_pp else None
+    away_probable_pitcher_name = away_pp.get("full_name") if away_pp else None
 
-    home_probable_pitcher_id = home_pp.get("id")
-    home_probable_pitcher_name = home_pp.get("fullName")
-
-    away_probable_pitcher_id = away_pp.get("id")
-    away_probable_pitcher_name = away_pp.get("fullName")
-
-    # Game time (UTC ISO string truncated to HH:MM)
-    game_time_raw = game.get("gameDate", "")
+    # Game time
+    game_time_raw = game.get("date", "")
     game_time = game_time_raw[11:16] if len(game_time_raw) >= 16 else None
 
     return {
-        "game_pk": game_pk,
+        "game_pk": game_id,
         "game_date": game_date_str,
         "home_team": home_team,
         "away_team": away_team,
@@ -117,29 +132,28 @@ def parse_game(game: dict) -> dict | None:
 def upsert_games(rows: list[dict]) -> None:
     """Upsert game rows into Supabase; conflict key is game_pk."""
     if not rows:
-        print(" No game rows to upsert.")
+        print("  No game rows to upsert.")
         return
-
     for i in range(0, len(rows), 200):
         batch = rows[i : i + 200]
         supabase.table("games").upsert(batch, on_conflict="game_pk").execute()
-
-    print(f" Upserted {len(rows)} game rows.")
+    print(f"  Upserted {len(rows)} game rows.")
 
 
 def main(days_ahead: int = 6):
     today = date.today()
-    print(f"Fetching MLB schedule: {today} through {today + timedelta(days=days_ahead)} ...")
-
+    print(f"Fetching MLB schedule via BallDontLie: {today} through {today + timedelta(days=days_ahead)} ...")
     raw_games = fetch_schedule(today, days_ahead=days_ahead)
-    print(f" API returned {len(raw_games)} raw games.")
+    print(f"  API returned {len(raw_games)} raw games.")
 
     rows = [r for g in raw_games if (r := parse_game(g)) is not None]
-    print(f" Parsed {len(rows)} valid game rows.")
+    print(f"  Parsed {len(rows)} valid game rows.")
 
-    # Count how many have probable pitchers
-    with_pitchers = sum(1 for r in rows if r.get("home_probable_pitcher_id") or r.get("away_probable_pitcher_id"))
-    print(f" {with_pitchers} games have at least one probable pitcher announced.")
+    with_pitchers = sum(
+        1 for r in rows
+        if r.get("home_probable_pitcher_id") or r.get("away_probable_pitcher_id")
+    )
+    print(f"  {with_pitchers} games have at least one probable pitcher announced.")
 
     upsert_games(rows)
     print("Done.")
