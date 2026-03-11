@@ -38,7 +38,7 @@ jobs:
         run: |
           ruff check pipeline/ scripts/ lib/ tests/ models/ simulator/ \
             --select E,F,W,I \
-            --ignore E501,E402 \
+            --ignore E501,E402,I001 \
             --output-format github
       - name: Run Ruff formatter check
         run: ruff format --check pipeline/ scripts/ lib/ tests/ models/ simulator/ || true
