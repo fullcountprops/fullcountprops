@@ -15,25 +15,33 @@ CREATE TABLE IF NOT EXISTS ai_logs (
   output_tokens INTEGER NOT NULL DEFAULT 0,
   cost_usd NUMERIC(10, 6) NOT NULL DEFAULT 0,
   latency_ms INTEGER NOT NULL DEFAULT 0,
-  user_id UUID REFERENCES auth.users(id),
+  user_id UUID,
   success BOOLEAN NOT NULL DEFAULT true,
   error_message TEXT
 );
 
 -- Indexes for analytics queries
-CREATE INDEX idx_ai_logs_created ON ai_logs (created_at DESC);
-CREATE INDEX idx_ai_logs_model ON ai_logs (model, created_at DESC);
-CREATE INDEX idx_ai_logs_prompt ON ai_logs (prompt_id, created_at DESC);
-CREATE INDEX idx_ai_logs_task ON ai_logs (task_type, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_ai_logs_created ON ai_logs (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_ai_logs_model ON ai_logs (model, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_ai_logs_prompt ON ai_logs (prompt_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_ai_logs_task ON ai_logs (task_type, created_at DESC);
 
 -- RLS: service role can insert, authenticated users can read their own
 ALTER TABLE ai_logs ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Service role full access" ON ai_logs
-  FOR ALL USING (auth.role() = 'service_role');
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Service role full access' AND tablename = 'ai_logs') THEN
+    CREATE POLICY "Service role full access" ON ai_logs
+      FOR ALL USING ((SELECT auth.role()) = 'service_role');
+  END IF;
+END $$;
 
-CREATE POLICY "Users read own logs" ON ai_logs
-  FOR SELECT USING (auth.uid() = user_id);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users read own logs' AND tablename = 'ai_logs') THEN
+    CREATE POLICY "Users read own logs" ON ai_logs
+      FOR SELECT USING ((SELECT auth.uid()) = user_id);
+  END IF;
+END $$;
 
 -- ============================================
 -- 2. AI Prompt Registry (optional DB-backed)
@@ -52,18 +60,26 @@ CREATE TABLE IF NOT EXISTS ai_prompts (
 
 ALTER TABLE ai_prompts ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Service role manages prompts" ON ai_prompts
-  FOR ALL USING (auth.role() = 'service_role');
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Service role manages prompts' AND tablename = 'ai_prompts') THEN
+    CREATE POLICY "Service role manages prompts" ON ai_prompts
+      FOR ALL USING ((SELECT auth.role()) = 'service_role');
+  END IF;
+END $$;
 
-CREATE POLICY "Public read active prompts" ON ai_prompts
-  FOR SELECT USING (is_active = true);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public read active prompts' AND tablename = 'ai_prompts') THEN
+    CREATE POLICY "Public read active prompts" ON ai_prompts
+      FOR SELECT USING (is_active = true);
+  END IF;
+END $$;
 
 -- ============================================
 -- 3. Useful views for monitoring
 -- ============================================
 CREATE OR REPLACE VIEW ai_daily_costs AS
 SELECT
-  DATE(created_at) AS day,
+  created_at::date AS day,
   model,
   COUNT(*) AS calls,
   SUM(input_tokens) AS total_input_tokens,
@@ -72,7 +88,7 @@ SELECT
   AVG(latency_ms)::INTEGER AS avg_latency_ms
 FROM ai_logs
 WHERE success = true
-GROUP BY DATE(created_at), model
+GROUP BY created_at::date, model
 ORDER BY day DESC, model;
 
 CREATE OR REPLACE VIEW ai_prompt_performance AS
