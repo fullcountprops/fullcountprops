@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
+import Image from 'next/image'
 import Link from 'next/link'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -141,8 +142,18 @@ export default function RootLayout({
           <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
 
             {/* Logo */}
-            <Link href="/" className="font-bold text-lg tracking-tight hover:text-white transition-colors">
-              ⚾ FullCountProps
+            <Link href="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity">
+              <Image
+                src="/logo-icon.png"
+                alt="FullCountProps"
+                width={32}
+                height={32}
+                className="w-8 h-8"
+              />
+              <span className="font-bold text-lg tracking-tight hidden sm:inline">
+                <span className="text-white">FULL COUNT </span>
+                <span className="text-green-500">PROPS</span>
+              </span>
             </Link>
 
             {/* Nav Links */}
@@ -222,7 +233,19 @@ export default function RootLayout({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
               {/* Brand */}
               <div>
-                <div className="font-bold text-lg mb-3">⚾ FullCountProps</div>
+                <div className="font-bold text-lg mb-3 flex items-center gap-2">
+                  <Image
+                    src="/logo-icon.png"
+                    alt="FullCountProps"
+                    width={28}
+                    height={28}
+                    className="w-7 h-7"
+                  />
+                  <span>
+                    <span className="text-white">FULL COUNT </span>
+                    <span className="text-green-500">PROPS</span>
+                  </span>
+                </div>
                 <p className="text-slate-500 text-sm leading-relaxed">
                   Monte Carlo MLB prop analytics with glass-box transparency.
                   Every factor visible. Every result graded publicly.
