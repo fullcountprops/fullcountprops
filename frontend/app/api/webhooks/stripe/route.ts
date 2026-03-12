@@ -20,11 +20,23 @@ import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 import { buildPriceToTierMap, type TierName } from '@/app/lib/tiers';
 
+/** Validate required environment variables. Returns missing var names or null if all present. */
+function validateEnvVars(): string[] | null {
+  const required = [
+    'STRIPE_SECRET_KEY',
+    'STRIPE_WEBHOOK_SECRET',
+    'NEXT_PUBLIC_SUPABASE_URL',
+    'SUPABASE_SERVICE_ROLE_KEY',
+  ];
+  const missing = required.filter((key) => !process.env[key]);
+  return missing.length > 0 ? missing : null;
+}
+
 let _stripe: Stripe | null = null;
 function getStripe(): Stripe {
   if (!_stripe) {
-    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-      apiVersion: '2024-12-18.acacia',
+    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
+      apiVersion: '2025-02-24.acacia',
     });
   }
   return _stripe;
@@ -34,15 +46,15 @@ let _supabaseAdmin: ReturnType<typeof createClient> | null = null;
 function getSupabaseAdmin() {
   if (!_supabaseAdmin) {
     _supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
+      process.env.NEXT_PUBLIC_SUPABASE_URL as string,
+      process.env.SUPABASE_SERVICE_ROLE_KEY as string
     );
   }
   return _supabaseAdmin;
 }
 
 function getWebhookSecret() {
-  return process.env.STRIPE_WEBHOOK_SECRET!;
+  return process.env.STRIPE_WEBHOOK_SECRET as string;
 }
 
 /** Resolve a Stripe price ID to a FullCountProps tier name. */
@@ -118,7 +130,7 @@ async function updateUserTier(
     return null;
   }
 
-  const user = users.users.find(
+  const user = (users as { users: Array<{ id: string; email?: string; user_metadata?: Record<string, unknown> }> }).users.find(
     (u) => u.user_metadata?.stripe_customer_id === customerId
   );
 
@@ -147,6 +159,16 @@ async function updateUserTier(
 }
 
 export async function POST(request: NextRequest) {
+  // Validate environment variables before processing
+  const missingVars = validateEnvVars();
+  if (missingVars) {
+    console.error(`Stripe webhook missing env vars: ${missingVars.join(', ')}`);
+    return NextResponse.json(
+      { error: `Server configuration error: missing ${missingVars.join(', ')}` },
+      { status: 500 }
+    );
+  }
+
   const body = await request.text();
   const sig = request.headers.get('stripe-signature');
 
