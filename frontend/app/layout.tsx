@@ -2,10 +2,13 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import Link from 'next/link'
+import { Analytics } from '@vercel/analytics/react'
+import { SpeedInsights } from '@vercel/speed-insights/next'
+import { GoogleAnalytics } from './components/GoogleAnalytics'
 
 const inter = Inter({ subsets: ['latin'] })
 
-const siteUrl = 'https://fullcountprops.vercel.app'
+const siteUrl = 'https://www.fullcountprops.com'
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -383,9 +386,10 @@ export default function RootLayout({
             </div>
           </div>
                 </footer>
+                  <Analytics />
+          <SpeedInsights />
+          <GoogleAnalytics />
   
 
       </body>
     </html>
-  )
-}
