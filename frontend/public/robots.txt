@@ -1,0 +1,9 @@
+# https://www.fullcountprops.com/robots.txt
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /auth/
+Disallow: /gate/
+
+Sitemap: https://www.fullcountprops.com/sitemap.xml
