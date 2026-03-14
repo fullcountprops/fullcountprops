@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
+import { OpeningDaySignup } from '../components/OpeningDaySignup';
 
 export const dynamic = 'force-dynamic'
 
@@ -424,6 +425,13 @@ export default async function EdgesPage({
                 View backtest results &rarr;
               </Link>
             </div>
+
+                          <div className="mt-6 mx-auto max-w-md">
+                <p className="mb-2 text-center text-sm text-slate-400">
+                  Want to know the moment picks go live?
+                </p>
+                <OpeningDaySignup source="edges_empty" />
+              </div>
           </div>
         ) : (
           <div className="space-y-10">
