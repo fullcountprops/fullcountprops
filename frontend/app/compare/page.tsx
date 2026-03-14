@@ -161,8 +161,9 @@ export default function ComparePage() {
               href="/subscribe"
               className="bg-green-600 hover:bg-green-500 text-white px-8 py-3 rounded-lg font-semibold text-lg transition-colors"
             >
-              Get Started — $7.99/mo
+              Start Free — 3 Picks Daily
             </Link>
+                            <p className="text-xs text-slate-500 mt-2">Pro plan: $7.99/mo for all picks + full analytics</p>
             <Link
               href="/accuracy"
               className="border border-slate-700 hover:border-slate-500 text-slate-300 hover:text-white px-8 py-3 rounded-lg font-medium transition-colors"
