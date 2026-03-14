@@ -356,7 +356,7 @@ export default async function AccuracyPage() {
         )}
       </div>
       <p className="text-slate-400 mb-8">
-        Glass-box prop analytics &mdash; public accuracy tracking across 4 prop types
+        Glass-box prop analytics &mdash; public accuracy tracking covering 4 graded prop types (K, H, TB, HR). BB and RBI grading coming in 2026 season
       </p>
 
       {/* ── Fallback banner ── */}
@@ -422,9 +422,9 @@ export default async function AccuracyPage() {
           highlight={Number(overallROI) > 0}
         />
         <StatCard
-          label="PROP TYPES"
-          value={propSummaries.length > 0 ? String(propSummaries.length) : '--'}
-          sub="K, H, TB, HR"
+          label="GRADED TYPES"
+          value={propSummaries.length > 0 ? `${propSummaries.length} of 6` : '--'}
+          sub="Backtest covers 4 prop types (K, H, TB, HR). BB and RBI grading coming in 2026 season."
         />
         <StatCard
           label="GAME DAYS"
