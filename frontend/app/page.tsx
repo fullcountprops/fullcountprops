@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
+import { HeroPickCard } from './components/HeroPickCard';
 // HeroSignup removed — subscriptions are live
 
 export const dynamic = 'force-dynamic'
@@ -208,7 +209,7 @@ export default async function HomePage() {
 
             {/* Right: Sample pick card */}
             <div className="flex justify-center lg:justify-end">
-              <SamplePickCard />
+              <HeroPickCard />
             </div>
           </div>
         </div>
