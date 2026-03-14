@@ -189,6 +189,12 @@ export default function RootLayout({
               >
                 Matchups
               </Link>
+                          <Link
+              href="/accuracy"
+              className="text-slate-400 hover:text-slate-100 transition-colors hidden sm:inline"
+            >
+              Accuracy
+            </Link>
               <Link
                 href="/compare"
                 className="text-slate-400 hover:text-slate-100 transition-colors hidden sm:inline"
