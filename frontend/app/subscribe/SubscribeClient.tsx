@@ -5,7 +5,7 @@
 // ============================================================
 
 import { useState } from 'react'
-
+import Link from 'next/link'
 import { TIER_DISPLAY } from '../lib/tiers'
 
 interface PricingTier {
@@ -19,7 +19,7 @@ interface PricingTier {
 }
 
 // Map from canonical tiers.ts to subscribe page format
-const TIERS: PricingTier[] = TIER_DISPLAY.filter(t => t.id !== 'single_a').map(t => ({
+const TIERS: PricingTier[] = TIER_DISPLAY.map(t => ({
   name: t.name,
   price: t.price,
   description: t.tagline,
@@ -31,40 +31,25 @@ const TIERS: PricingTier[] = TIER_DISPLAY.filter(t => t.id !== 'single_a').map(t
 
 export default function SubscribeClient() {
   const [loading, setLoading] = useState<string | null>(null)
-  const [email, setEmail] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   async function handleCheckout(tier: string) {
-    if (!email.trim()) {
-      setError('Please enter your email address')
-      return
-    }
-    if (!/^[^@]+@[^@]+\.[^@]+$/.test(email)) {
-      setError('Please enter a valid email address')
-      return
-    }
-
     setError(null)
     setLoading(tier)
-
     try {
       const res = await fetch('/api/v1/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tier,
-          email,
           successUrl: `${window.location.origin}/subscribe/success?session_id={CHECKOUT_SESSION_ID}`,
           cancelUrl: `${window.location.origin}/subscribe`,
         }),
       })
-
       const data = await res.json()
-
       if (!res.ok || !data.url) {
         throw new Error(data.error || 'Failed to create checkout session')
       }
-
       window.location.href = data.url
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Something went wrong'
@@ -86,27 +71,18 @@ export default function SubscribeClient() {
         </p>
       </div>
 
-      {/* Email Input */}
-      <div className="max-w-md mx-auto px-4 mb-10">
-        <label className="block text-sm text-slate-400 mb-2">Email address</label>
-        <input
-          type="email"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          placeholder="you@example.com"
-          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        {error && (
-          <p className="mt-2 text-sm text-red-400">{error}</p>
-        )}
-      </div>
+      {error && (
+        <div className="max-w-5xl mx-auto px-4 mb-6">
+          <p className="text-sm text-red-400 text-center">{error}</p>
+        </div>
+      )}
 
       {/* Pricing Cards */}
-      <div className="max-w-5xl mx-auto px-4 pb-20 grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="max-w-6xl mx-auto px-4 pb-20 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
         {TIERS.map(tier => (
           <div
             key={tier.tier}
-            className={`rounded-2xl p-6 border ${
+            className={`rounded-2xl p-6 border flex flex-col ${
               tier.highlighted
                 ? 'border-blue-500 bg-blue-950/30 ring-1 ring-blue-500'
                 : 'border-slate-700 bg-slate-900'
@@ -117,7 +93,6 @@ export default function SubscribeClient() {
                 Most Popular
               </div>
             )}
-
             <h2 className="text-2xl font-bold">{tier.name}</h2>
             <div className="mt-2 mb-4">
               {tier.price === 0 ? (
@@ -129,10 +104,8 @@ export default function SubscribeClient() {
                 </>
               )}
             </div>
-
             <p className="text-slate-400 text-sm mb-6">{tier.description}</p>
-
-            <ul className="space-y-2 mb-8">
+            <ul className="space-y-2 mb-8 flex-1">
               {tier.features.map((f, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm">
                   <span className="text-green-400 mt-0.5">✓</span>
@@ -140,14 +113,13 @@ export default function SubscribeClient() {
                 </li>
               ))}
             </ul>
-
             {tier.price === 0 ? (
-              <button
-                disabled
-                className="w-full py-3 rounded-lg bg-slate-700 text-slate-400 font-medium cursor-not-allowed"
+              <Link
+                href="/edges"
+                className="w-full py-3 rounded-lg border border-slate-700 text-center font-medium text-white transition-colors hover:border-slate-500 hover:bg-slate-800 block"
               >
-                Current Plan
-              </button>
+                Browse Free Picks
+              </Link>
             ) : (
               <button
                 onClick={() => handleCheckout(tier.tier)}
