@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { OpeningDaySignup } from '../components/OpeningDaySignup';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
@@ -131,6 +132,13 @@ export default async function PropsPage() {
             </ul>
           </div>
         </div>
+
+                    <div className="mt-6 mx-auto max-w-md">
+                <p className="mb-2 text-center text-sm text-slate-400">
+                  Get notified when prop lines start flowing:
+                </p>
+                <OpeningDaySignup source="props_empty" />
+              </div>
       ) : (
         <div className="space-y-8">
           {Object.entries(byMarket).map(([market, marketProps]: [string, any]) => (
