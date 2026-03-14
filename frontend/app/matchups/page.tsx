@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import { Metadata } from 'next'
 import MatchupsClient from './MatchupsClient'
+import PreSeasonBanner from '../components/PreSeasonBanner'
 
 export const dynamic = 'force-dynamic'
 
@@ -75,6 +76,7 @@ export default async function MatchupsPage() {
           &bull; Powered by the v3.0 multi-stat projection engine
         </p>
       </div>
+            <PreSeasonBanner />
 
       {batters.length === 0 && pitchers.length === 0 ? (
         <div className="text-center py-16">
