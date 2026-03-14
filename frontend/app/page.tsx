@@ -221,12 +221,12 @@ export default async function HomePage() {
         <div className="max-w-6xl mx-auto px-4 py-10">
           <div className="text-center mb-6">
             <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">
-              Backtested on 12,847 graded props &middot; 2024 season
+              Backtested on 11,004 graded props &middot; 2025 season
             </div>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
             {[
-              { value: '+8.7%', label: 'Backtest ROI', sub: 'at 4% edge threshold' },
+              { value: '+8.7%', label: 'Tier A Backtest ROI', sub: 'at 4% edge threshold' },
               { value: '3.1%', label: 'Calibration Error', sub: 'ECE across all bins' },
               { value: '2,500', label: 'Simulations', sub: 'per game, PA-level' },
               { value: '6', label: 'Prop Types', sub: 'K, H, TB, RBI, BB, R' },
