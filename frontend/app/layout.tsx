@@ -70,6 +70,9 @@ export const metadata: Metadata = {
   alternates: {
     canonical: siteUrl,
   },
+    verification: {
+    google: 'hgzJkuaQ1QYPCW9iCHfTVydU7iOuR0tz-zsQTU2Bcjc',
+  },
 }
 
 function JsonLd() {
