@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import MostLikelyClient from './MostLikelyClient'
+import { OpeningDaySignup } from '../components/OpeningDaySignup';
 
 export const dynamic = 'force-dynamic'
 
@@ -149,6 +150,13 @@ export default async function MostLikelyPage({
             >
               View Edges page &rarr;
             </Link>
+
+                          <div className="mt-6 mx-auto max-w-md">
+                <p className="mb-2 text-center text-sm text-slate-400">
+                  Want to know the moment rankings go live?
+                </p>
+                <OpeningDaySignup source="most_likely_empty" />
+              </div>
           </div>
         ) : (
           <MostLikelyClient projections={projections} props={props} />
