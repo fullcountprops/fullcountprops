@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import { Metadata } from 'next'
 import PitcherPreviewClient from './PitcherPreviewClient'
+import PreSeasonBanner from '../../components/PreSeasonBanner'
 
 export const dynamic = 'force-dynamic'
 
@@ -169,6 +170,7 @@ export default async function PitcherPreviewPage() {
           {dateDisplay} &bull; Per-batter matchup grades for daily starting pitchers
         </p>
       </div>
+            <PreSeasonBanner />
 
       {games.length === 0 ? (
         <div className="text-center py-16">
