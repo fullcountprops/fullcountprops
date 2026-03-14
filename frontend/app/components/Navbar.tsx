@@ -11,6 +11,7 @@ const NAV_LINKS = [
   { href: '/park-factors', label: 'Park Factors' },
   { href: '/pitchers/preview', label: 'Pitchers' },
   { href: '/matchups', label: 'Matchups' },
+    { href: '/accuracy', label: 'Accuracy' },
   { href: '/compare', label: 'Compare' },
   { href: '/methodology', label: 'Methodology' },
   { href: '/faq', label: 'FAQ' },
@@ -51,7 +52,7 @@ export function Navbar() {
         </Link>
 
         {/* Desktop links */}
-        <div className="hidden lg:flex items-center gap-6 text-sm">
+        <div className="hidden xl:flex items-center gap-6 text-sm">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
@@ -75,7 +76,7 @@ export function Navbar() {
 
         {/* Mobile hamburger */}
         <button
-          className="lg:hidden p-2 text-slate-400 hover:text-white"
+          className="xl:hidden p-2 text-slate-400 hover:text-white"
           onClick={() => setIsOpen(!isOpen)}
           aria-label="Toggle menu"
         >
@@ -91,7 +92,7 @@ export function Navbar() {
 
       {/* Mobile slide-in */}
       {isOpen && (
-        <div className="fixed inset-0 top-14 z-40 bg-black/50 lg:hidden">
+        <div className="fixed inset-0 top-14 z-40 bg-black/50 xl:hidden">
           <div
             ref={menuRef}
             className="absolute right-0 top-0 h-full w-72 bg-slate-950 border-l border-slate-800 p-6 overflow-y-auto"
