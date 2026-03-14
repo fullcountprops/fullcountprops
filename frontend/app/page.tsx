@@ -229,7 +229,7 @@ export default async function HomePage() {
               { value: '+8.7%', label: 'Tier A Backtest ROI', sub: 'at 4% edge threshold' },
               { value: '3.1%', label: 'Calibration Error', sub: 'ECE across all bins' },
               { value: '2,500', label: 'Simulations', sub: 'per game, PA-level' },
-              { value: '6', label: 'Prop Types', sub: 'K, H, TB, RBI, BB, R' },
+              { value: '6', label: 'Prop Types', sub: 'K, H, TB, HR, BB, RBI' },
             ].map((stat) => (
               <div key={stat.label} className="text-center">
                 <div className="text-2xl sm:text-3xl font-bold text-green-400">
