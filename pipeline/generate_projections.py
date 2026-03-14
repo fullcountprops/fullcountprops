@@ -151,6 +151,35 @@ def fetch_pitcher_bb9(mlbam_id):
 
 
 # ---------------------------------------------------------------------------
+# Fetch additional career rate stats (H/9, HR/9, ERA) for box score projections
+# ---------------------------------------------------------------------------
+
+def fetch_pitcher_career_rates(mlbam_id):
+    """Fetch career H/9, HR/9, and ERA from MLB Stats API."""
+    defaults = {"career_h9": 8.5, "career_hr9": 1.2, "career_era": 4.20}
+    try:
+        url = f"https://statsapi.mlb.com/api/v1/people/{mlbam_id}/stats"
+        r = requests.get(url, params={"stats": "career", "group": "pitching", "sportId": 1}, timeout=10)
+        r.raise_for_status()
+        splits = r.json().get("stats", [{}])[0].get("splits", [])
+        if splits:
+            stat = splits[0].get("stat", {})
+            ip_str = str(stat.get("inningsPitched", "0.0"))
+            parts = ip_str.split(".")
+            ip = int(parts[0]) + (int(parts[1]) / 3 if len(parts) > 1 and parts[1] else 0)
+            career_era = float(stat.get("era", "4.20"))
+            if ip > 0:
+                hits = float(stat.get("hits", 0))
+                home_runs = float(stat.get("homeRuns", 0))
+                career_h9 = round((hits / ip) * 9, 2)
+                career_hr9 = round((home_runs / ip) * 9, 2)
+                return {"career_h9": career_h9, "career_hr9": career_hr9, "career_era": career_era}
+    except Exception as e:
+        log.debug(f"Career rates fetch failed for {mlbam_id}: {e}")
+    return defaults
+
+
+# ---------------------------------------------------------------------------
 # Factor 2: Recent form (14-day K/9) — NEW in v2.0
 # ---------------------------------------------------------------------------
 
@@ -352,6 +381,10 @@ def project_pitcher(mlbam_id, player_name, opponent, venue, game_pk=None):
     # Factor 1: Career K/9 and BB/9
     career_k9 = fetch_pitcher_k9(mlbam_id)
     career_bb9 = fetch_pitcher_bb9(mlbam_id)
+        career_rates = fetch_pitcher_career_rates(mlbam_id)
+    career_h9 = career_rates["career_h9"]
+    career_hr9 = career_rates["career_hr9"]
+    career_era = career_rates["career_era"]
 
     # Factor 2: Recent form (14-day K/9)
     recent_k9, recent_starts = fetch_recent_k9(mlbam_id)
@@ -412,6 +445,15 @@ def project_pitcher(mlbam_id, player_name, opponent, venue, game_pk=None):
     # Walk projection (inverse framing factors)
     # ------------------------------------------------------------------
     projected_bb = (career_bb9 / 9) * expected_ip * umpire_bb_factor * catcher_bb_factor
+
+        # ------------------------------------------------------------------
+    # New projections: IP, H, HR, ER, R (box score stats)
+    # ------------------------------------------------------------------
+    projected_ip = expected_ip
+    projected_h = (career_h9 / 9) * expected_ip
+    projected_hr = (career_hr9 / 9) * expected_ip
+    projected_er = (career_era / 9) * expected_ip
+    projected_r = projected_er * 1.1  # Unearned runs ~10% of earned
 
     # ------------------------------------------------------------------
     # Confidence scoring — multi-signal weighted model (v2.1)
@@ -564,7 +606,57 @@ def project_pitcher(mlbam_id, player_name, opponent, venue, game_pk=None):
         }),
     }
 
-    return [k_proj, bb_proj]
+        ip_proj = {
+        "mlbam_id": mlbam_id,
+        "player_name": player_name,
+        "stat_type": "pitcher_innings",
+        "projection": round(projected_ip, 2),
+        "confidence": round(conf * 0.85, 3),
+        "model_version": MODEL_VERSION,
+        "features": json.dumps({"expected_innings": expected_ip}),
+    }
+
+    h_proj = {
+        "mlbam_id": mlbam_id,
+        "player_name": player_name,
+        "stat_type": "pitcher_hits_allowed",
+        "projection": round(projected_h, 2),
+        "confidence": round(conf * 0.8, 3),
+        "model_version": MODEL_VERSION,
+        "features": json.dumps({"career_h9": career_h9, "expected_innings": expected_ip}),
+    }
+
+    hr_proj = {
+        "mlbam_id": mlbam_id,
+        "player_name": player_name,
+        "stat_type": "pitcher_home_runs",
+        "projection": round(projected_hr, 2),
+        "confidence": round(conf * 0.75, 3),
+        "model_version": MODEL_VERSION,
+        "features": json.dumps({"career_hr9": career_hr9, "expected_innings": expected_ip}),
+    }
+
+    er_proj = {
+        "mlbam_id": mlbam_id,
+        "player_name": player_name,
+        "stat_type": "pitcher_earned_runs",
+        "projection": round(projected_er, 2),
+        "confidence": round(conf * 0.8, 3),
+        "model_version": MODEL_VERSION,
+        "features": json.dumps({"career_era": career_era, "expected_innings": expected_ip}),
+    }
+
+    r_proj = {
+        "mlbam_id": mlbam_id,
+        "player_name": player_name,
+        "stat_type": "pitcher_runs",
+        "projection": round(projected_r, 2),
+        "confidence": round(conf * 0.75, 3),
+        "model_version": MODEL_VERSION,
+        "features": json.dumps({"projected_er": round(projected_er, 2), "expected_innings": expected_ip}),
+    }
+
+    return [k_proj, bb_proj, ip_proj, h_proj, hr_proj, er_proj, r_proj]
 
 
 # ---------------------------------------------------------------------------
