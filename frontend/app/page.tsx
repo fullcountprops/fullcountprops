@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
-import HeroSignup from './HeroSignup'
+// HeroSignup removed — subscriptions are live
 
 export const dynamic = 'force-dynamic'
 
@@ -203,7 +203,7 @@ export default async function HomePage() {
               </p>
 
               {/* CTA */}
-              <HeroSignup />
+              <div className="flex flex-col sm:flex-row items-center gap-3">                   <Link href="/subscribe" className="rounded-lg bg-green-600 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-green-500">Start Free — 3 Picks Daily</Link>                   <Link href="/subscribe" className="rounded-lg border border-slate-700 px-6 py-3 text-base font-medium text-slate-300 transition-colors hover:border-slate-500 hover:text-white">View Pro Plans</Link>                 </div>                 <p className="mt-3 text-sm text-slate-500">Free tier includes top 3 daily edges. No credit card required.</p>
             </div>
 
             {/* Right: Sample pick card */}
@@ -248,6 +248,22 @@ export default async function HomePage() {
       {/* ════════════════════════════════════════════════
           HOW IT WORKS
           ════════════════════════════════════════════════ */}
+      
+        {/* FREE TIER CALLOUT */}
+        <div className="max-w-2xl mx-auto mt-0 px-4 -mb-8">
+          <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-4">
+            <div className="flex items-start gap-3">
+              <span className="mt-0.5 text-lg">⚾</span>
+              <div>
+                <div className="font-medium text-white">Free tier — no signup required</div>
+                <div className="mt-1 text-sm text-slate-400">
+                  See the top 3 daily edges with full factor breakdowns.
+                  Upgrade to Pro for the complete slate, CSV export, and SHAP explanations.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       <section className="max-w-6xl mx-auto px-4 py-20">
         <div className="text-center mb-12">
           <h2 className="text-2xl font-bold text-white mb-3">
@@ -366,10 +382,15 @@ export default async function HomePage() {
             Today&apos;s Slate
           </h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {games.map((game: any) => (
+            {games.slice(0, 6).map((game: any) => (
               <GameCard key={game.game_pk} game={game} />
             ))}
           </div>
+                      {games.length > 6 && (
+              <Link href="/props" className="mt-4 flex items-center justify-center gap-2 rounded-lg border border-slate-800 bg-slate-900/30 p-4 text-sm font-medium text-slate-400 transition-colors hover:border-slate-700 hover:text-white">
+                View full slate — {games.length - 6} more games today
+              </Link>
+            )}
         </section>
       )}
 
@@ -420,15 +441,15 @@ export default async function HomePage() {
             Ready to find your edge?
           </h2>
           <p className="text-slate-400 mb-6 max-w-md mx-auto">
-            Join the waitlist for free daily prop picks, or upgrade to Pro for
-            the full slate with SHAP explanations.
+            Start with 3 free picks daily, or upgrade to Pro for the full slate
+            with SHAP explanations and CSV export.
           </p>
           <div className="flex items-center justify-center gap-4 flex-wrap">
             <Link
               href="/subscribe"
               className="px-6 py-3 bg-green-600 hover:bg-green-500 text-white font-semibold rounded-xl transition-colors"
             >
-              View Plans
+              Start Free — 3 Picks Daily
             </Link>
             <Link
               href="/methodology"
