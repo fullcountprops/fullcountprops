@@ -115,7 +115,7 @@ export default function SubscribeClient() {
             </ul>
             {tier.price === 0 ? (
               <Link
-                href="/edges"
+                href="/projections"
                 className="w-full py-3 rounded-lg border border-slate-700 text-center font-medium text-white transition-colors hover:border-slate-500 hover:bg-slate-800 block"
               >
                 Browse Free Picks
