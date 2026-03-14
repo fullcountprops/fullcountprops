@@ -22,6 +22,11 @@ const BATTER_STAT_COLS = [
 const PITCHER_STAT_COLS = [
   { key: 'pitcher_strikeouts', label: 'Strikeouts', short: 'K' },
   { key: 'pitcher_walks', label: 'Walks', short: 'BB' },
+    { key: 'pitcher_innings', label: 'Innings', short: 'IP' },
+  { key: 'pitcher_hits_allowed', label: 'Hits Allowed', short: 'H' },
+  { key: 'pitcher_home_runs', label: 'Home Runs', short: 'HR' },
+  { key: 'pitcher_earned_runs', label: 'Earned Runs', short: 'ER' },
+  { key: 'pitcher_runs', label: 'Runs', short: 'R' },
 ]
 
 // Heat map: green for good, red for bad, relative to the range
