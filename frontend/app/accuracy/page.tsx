@@ -356,7 +356,7 @@ export default async function AccuracyPage() {
         )}
       </div>
       <p className="text-slate-400 mb-8">
-        Glass-box prop analytics &mdash; public accuracy tracking across 6 prop types
+        Glass-box prop analytics &mdash; public accuracy tracking across 4 prop types
       </p>
 
       {/* ── Fallback banner ── */}
@@ -424,7 +424,7 @@ export default async function AccuracyPage() {
         <StatCard
           label="PROP TYPES"
           value={propSummaries.length > 0 ? String(propSummaries.length) : '--'}
-          sub="K, H, TB, HR, BB, RBI"
+          sub="K, H, TB, HR"
         />
         <StatCard
           label="GAME DAYS"
