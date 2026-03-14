@@ -203,7 +203,7 @@ const FAQ_SECTIONS: { title: string; items: FAQItem[] }[] = [
         ),
       },
       {
-        question: 'What does the Pro plan ($29/mo) add?',
+        question: 'What does the Double-A plan ($7.99/mo) add?',
         answer: (
           <ul className="list-disc list-outside ml-5 space-y-1">
             <li>All edges — full slate every day, not just the top 3</li>
@@ -217,10 +217,10 @@ const FAQ_SECTIONS: { title: string; items: FAQItem[] }[] = [
         ),
       },
       {
-        question: 'What does the Premium plan ($49/mo) add?',
+        question: 'What does The Show plan ($49.99/mo) add?',
         answer: (
           <ul className="list-disc list-outside ml-5 space-y-1">
-            <li>Everything in Pro</li>
+            <li>Everything in Triple-A</li>
             <li>REST API access (1,000 requests per hour)</li>
             <li>API key management dashboard</li>
             <li>CSV export of all edges and projections</li>
