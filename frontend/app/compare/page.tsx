@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Data                                                               */
+/* Data                                                                */
 /* ------------------------------------------------------------------ */
 
 type Platform = {
@@ -45,20 +45,20 @@ const platforms: Platform[] = [
 
 type FeatureRow = {
   feature: string
-  values: boolean[]          // one per platform, same order as `platforms`
+  values: boolean[] // one per platform, same order as `platforms`
 }
 
 const features: FeatureRow[] = [
-  { feature: 'Monte Carlo Simulation',              values: [true,  true,  false, false, false, true ] },
-  { feature: 'Transparent Methodology',              values: [true,  false, false, false, true,  false] },
-  { feature: 'Player Props with Edge %',             values: [true,  true,  true,  true,  false, true ] },
-  { feature: 'Kelly Criterion Sizing',               values: [true,  false, true,  false, false, false] },
-  { feature: 'Best Bets with Confidence Grades',     values: [true,  true,  false, true,  false, true ] },
-  { feature: 'Public Accuracy Tracking',             values: [true,  false, false, false, false, false] },
-  { feature: 'Backtest Results',                     values: [true,  false, false, false, false, false] },
-  { feature: 'Real-time Odds Comparison',            values: [true,  true,  true,  true,  false, true ] },
-  { feature: 'Park Factor Adjustments',              values: [true,  true,  false, false, true,  false] },
-  { feature: 'Free Tier Available',                  values: [true,  true,  false, true,  true,  false] },
+  { feature: 'Monte Carlo Simulation', values: [true, true, false, false, false, true ] },
+  { feature: 'Transparent Methodology', values: [true, false, false, false, true, false] },
+  { feature: 'Player Props with Edge %', values: [true, true, true, true, false, true ] },
+  { feature: 'Kelly Criterion Sizing', values: [true, false, true, false, false, false] },
+  { feature: 'Best Bets with Confidence Grades', values: [true, true, false, true, false, true ] },
+  { feature: 'Public Accuracy Tracking', values: [true, false, false, false, false, false] },
+  { feature: 'Backtest Results', values: [true, false, false, false, false, false] },
+  { feature: 'Real-time Odds Comparison', values: [true, true, true, true, false, true ] },
+  { feature: 'Park Factor Adjustments', values: [true, true, false, false, true, false] },
+  { feature: 'Free Tier Available', values: [true, true, false, true, true, false] },
 ]
 
 const differentiators = [
@@ -110,9 +110,8 @@ const differentiators = [
 ]
 
 /* ------------------------------------------------------------------ */
-/*  Check / X icons                                                    */
+/* Check / X icons                                                     */
 /* ------------------------------------------------------------------ */
-
 function Check() {
   return (
     <svg className="w-5 h-5 text-green-400 mx-auto" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
@@ -130,9 +129,8 @@ function Cross() {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Page                                                               */
+/* Page                                                                */
 /* ------------------------------------------------------------------ */
-
 export default function ComparePage() {
   return (
     <div className="min-h-screen">
@@ -252,25 +250,27 @@ export default function ComparePage() {
           ))}
         </div>
 
-        {/* Score summary */}
-        <div className="mt-8 rounded-xl border border-slate-800 bg-slate-900/40 p-6">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 text-center">
-            {platforms.map((p, i) => {
-              const score = features.reduce((sum, f) => sum + (f.values[i] ? 1 : 0), 0)
-              return (
-                <div key={p.name} className={`rounded-lg p-3 ${i === 0 ? 'bg-green-950/30 border border-green-900/40' : 'bg-slate-800/30'}`}>
-                  <div className={`text-2xl font-bold ${i === 0 ? 'text-green-400' : 'text-slate-300'}`}>
-                    {score}/{features.length}
-                  </div>
-                  <div className={`text-xs mt-1 ${i === 0 ? 'text-green-400/70' : 'text-slate-500'}`}>
-                    {p.name}
-                  </div>
-                  <div className={`text-xs ${i === 0 ? 'text-green-400/50' : 'text-slate-600'}`}>
-                    {p.price}
-                  </div>
-                </div>
-              )
-            })}
+        {/* Pricing CTA - replaces old score summary */}
+        <div className="mt-12 rounded-lg border border-slate-800 bg-slate-900/50 p-6 text-center">
+          <h3 className="text-lg font-medium text-white">Full transparency at the lowest price point</h3>
+          <p className="mx-auto mt-2 max-w-lg text-sm text-slate-400">
+            FullCountProps Pro starts at $7.99/mo — less than any competitor listed
+            above — with Monte Carlo simulation, public accuracy tracking, and
+            full factor breakdowns included.
+          </p>
+          <div className="mt-4 flex items-center justify-center gap-3">
+            <Link
+              href="/subscribe"
+              className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
+            >
+              Start Free
+            </Link>
+            <Link
+              href="/accuracy"
+              className="rounded-lg border border-slate-700 px-5 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:border-slate-500 hover:text-white"
+            >
+              View Our Track Record
+            </Link>
           </div>
         </div>
       </section>
@@ -326,7 +326,7 @@ export default function ComparePage() {
               href="/methodology"
               className="text-slate-400 hover:text-slate-200 font-medium transition-colors"
             >
-              Read Our Methodology &rarr;
+              Read Our Methodology →
             </Link>
           </div>
         </div>
