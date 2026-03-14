@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { OpeningDaySignup } from './OpeningDaySignup';
 
 const OPENING_DAY = new Date('2026-03-27T00:00:00-04:00')
 
@@ -44,6 +45,9 @@ export function PreSeasonBanner({
           </div>
         </div>
       </div>
+              <div className="mt-3 max-w-md">
+          <OpeningDaySignup source="pre_season_banner" />
+        </div>
     </div>
   )
 }
