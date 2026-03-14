@@ -113,7 +113,7 @@ export default async function PropsPage() {
         </p>
       </div>
 
-      {props.length === 0 ? (
+      {props.length === 0 ? (<>
         <div className="text-center py-16">
           <div className="text-4xl mb-4">&#x1F4CA;</div>
           <h2 className="text-xl font-semibold text-slate-300 mb-2">No props data yet</h2>
@@ -139,7 +139,7 @@ export default async function PropsPage() {
                 </p>
                 <OpeningDaySignup source="props_empty" />
               </div>
-      ) : (
+    </>  ) : (
         <div className="space-y-8">
           {Object.entries(byMarket).map(([market, marketProps]: [string, any]) => (
             <section key={market}>
