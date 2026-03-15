@@ -3,6 +3,8 @@ import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import MostLikelyClient from './MostLikelyClient'
 import { OpeningDaySignup } from '../components/OpeningDaySignup';
+import { checkDataFreshness } from '../lib/dataFreshness'
+import StaleDataBanner from '../components/StaleDataBanner'
 
 export const dynamic = 'force-dynamic'
 
@@ -52,6 +54,10 @@ export default async function MostLikelyPage({
 
   const { projections, props } = await getDailyProjections(selectedDate)
 
+  const todayET = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' })
+  const freshnessSupabase = createClient(supabaseUrl, supabaseAnonKey)
+  const freshness = await checkDataFreshness(freshnessSupabase, todayET)
+
   const daysUntil = (() => {
     const now = new Date()
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -87,6 +93,8 @@ export default async function MostLikelyPage({
           </p>
         </div>
       </section>
+
+      <StaleDataBanner status={freshness.status} lastUpdated={freshness.lastUpdated} />
 
       {/* Pre-season banner */}
       {isPreSeason && (

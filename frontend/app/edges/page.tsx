@@ -3,6 +3,8 @@ import { headers } from 'next/headers'
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import { OpeningDaySignup } from '../components/OpeningDaySignup';
+import { checkDataFreshness } from '../lib/dataFreshness'
+import StaleDataBanner from '../components/StaleDataBanner'
 
 export const dynamic = 'force-dynamic'
 
@@ -302,6 +304,10 @@ export default async function EdgesPage({
 
   const projections = await getProjections(selectedDate, selectedStatType)
 
+  const todayET = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' })
+  const freshnessSupabase = createClient(supabaseUrl, supabaseAnonKey)
+  const freshness = await checkDataFreshness(freshnessSupabase, todayET)
+
   const daysUntil = (() => { const now = new Date(); const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()); const target = new Date(2026, 2, 26); return Math.max(0, Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))); })()
   const isPreSeason = daysUntil > 0
 
@@ -337,6 +343,8 @@ export default async function EdgesPage({
           </p>
         </div>
       </section>
+
+      <StaleDataBanner status={freshness.status} lastUpdated={freshness.lastUpdated} />
 
       {/* Pre-season banner */}
       {isPreSeason && (

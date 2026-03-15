@@ -1,5 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import ProjectionsClient from './ProjectionsClient'
+import { checkDataFreshness } from '../lib/dataFreshness'
+import StaleDataBanner from '../components/StaleDataBanner'
 
 export const dynamic = 'force-dynamic'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
@@ -262,6 +264,10 @@ function ProjectionCard({ proj }: { proj: any }) {
 export default async function ProjectionsPage() {
   const projections = await getProjections()
 
+  const todayET = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' })
+  const freshnessSupabase = createClient(supabaseUrl, supabaseAnonKey)
+  const freshness = await checkDataFreshness(freshnessSupabase, todayET)
+
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
@@ -277,6 +283,8 @@ export default async function ProjectionsPage() {
           {today} &bull; v3.0 Multi-Stat Model &bull; {projections.length} projections
         </p>
       </div>
+
+      <StaleDataBanner status={freshness.status} lastUpdated={freshness.lastUpdated} />
 
       {projections.length === 0 ? (
         <div className="text-center py-16">
