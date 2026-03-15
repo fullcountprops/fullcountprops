@@ -212,6 +212,7 @@ const FAQ_SECTIONS: { title: string; items: FAQItem[] }[] = [
                 <li>Basic SHAP explanations (top 3 factors)</li>
                 <li>Player pages with recent history</li>
                 <li>Daily email digest delivered at 11am ET</li>
+                        </ul>
         ),
       },
                     {
