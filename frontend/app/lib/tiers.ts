@@ -3,16 +3,13 @@
 // FullCountProps — Tier Constants (Single Source of Truth)
 // Issue #8: 4-tier MiLB structure
 // ============================================================
-
 export const TIERS = {
   SINGLE_A: 'single_a',
   DOUBLE_A: 'double_a',
   TRIPLE_A: 'triple_a',
   THE_SHOW: 'the_show',
 } as const;
-
 export type TierName = (typeof TIERS)[keyof typeof TIERS];
-
 // Ordered lowest → highest for comparison
 export const TIER_HIERARCHY: TierName[] = [
   'single_a',
@@ -20,12 +17,10 @@ export const TIER_HIERARCHY: TierName[] = [
   'triple_a',
   'the_show',
 ];
-
 /** Returns true when the user's tier is >= the required tier. */
 export function hasAccess(userTier: TierName, requiredTier: TierName): boolean {
   return TIER_HIERARCHY.indexOf(userTier) >= TIER_HIERARCHY.indexOf(requiredTier);
 }
-
 /** Map legacy tier strings to new values (backward compat during migration). */
 export function normalizeTier(raw: string | undefined | null): TierName {
   if (!raw) return TIERS.SINGLE_A;
@@ -38,7 +33,6 @@ export function normalizeTier(raw: string | undefined | null): TierName {
   if (TIER_HIERARCHY.includes(lower as TierName)) return lower as TierName;
   return TIERS.SINGLE_A;
 }
-
 // ---- CSV Export limits per tier ----
 export interface ExportLimits {
   max_per_week: number | null; // null = unlimited
@@ -47,14 +41,12 @@ export interface ExportLimits {
   include_probability: boolean;
   include_kelly: boolean;
 }
-
 export type ExportType =
   | 'best_bets'
   | 'edges'
   | 'projections'
   | 'players'
   | 'historical';
-
 export const EXPORT_LIMITS: Record<TierName, ExportLimits> = {
   single_a: {
     max_per_week: 0,
@@ -85,7 +77,6 @@ export const EXPORT_LIMITS: Record<TierName, ExportLimits> = {
     include_kelly: true,
   },
 };
-
 // ---- Feature flags per tier (for content gating) ----
 export interface TierFeatures {
   bestBetsLimit: number | null; // null = all
@@ -100,7 +91,6 @@ export interface TierFeatures {
   customAlerts: boolean;
   prioritySupport: boolean;
 }
-
 export const TIER_FEATURES: Record<TierName, TierFeatures> = {
   single_a: {
     bestBetsLimit: 3,
@@ -155,58 +145,58 @@ export const TIER_FEATURES: Record<TierName, TierFeatures> = {
     prioritySupport: true,
   },
 };
-
 // ---- Stripe product & price ID mapping ----
-// Stripe uses different product names than the website:
-//   Stripe "Double-A"  → double_a  (prod_U5hv04WNsX9goP / price_1T7WVcCHMWdtVF7LGT9iNi4C — $7.99)
-//   Stripe "Pro"       → triple_a  (prod_U5etCntbuRQDdH / price_1T7TZjCHMWdtVF7LPK79esVb — $29.00)
-//   Stripe "Premium"   → the_show  (prod_U5f9VI7Q1iJMkT / price_1T7TosCHMWdtVF7LowXBxhaW — $49.00)
-
+// Stripe product names map to internal tier names:
+// Stripe "FullCountProps Double-A" → double_a (prod_U5hv04WNsX9goP)
+// Stripe "FullCountProps Triple-A" → triple_a (prod_U5etCntbuRQDdH)
+// Stripe "FullCountProps The Show" → the_show (prod_U5f9VI7Q1iJMkT)
 /** Hard-coded Stripe product ID → tier mapping (LIVE keys). */
 export const STRIPE_PRODUCT_TO_TIER: Record<string, TierName> = {
-  'prod_U5hv04WNsX9goP': 'double_a',  // Stripe "Double-A" → Double-A
-  'prod_U5etCntbuRQDdH': 'triple_a',  // Stripe "Pro"      → Triple-A
-  'prod_U5f9VI7Q1iJMkT': 'the_show',  // Stripe "Premium"  → The Show
+  'prod_U5hv04WNsX9goP': 'double_a', // FullCountProps Double-A
+  'prod_U5etCntbuRQDdH': 'triple_a', // FullCountProps Triple-A
+  'prod_U5f9VI7Q1iJMkT': 'the_show', // FullCountProps The Show
 };
-
 /** Maximum founding member slots for Double-A */
 export const FOUNDING_MEMBER_CAP = 100;
-
-/** Hard-coded Stripe price ID → tier mapping (LIVE keys). */
+/** Hard-coded Stripe price ID → tier mapping (LIVE keys).
+ *  Includes all active + archived prices for backward compatibility.
+ */
 export const STRIPE_PRICE_TO_TIER: Record<string, TierName> = {
-  'price_1T7WVcCHMWdtVF7LGT9iNi4C': 'double_a',  // Double-A monthly $7.99
-  'price_1T7TZjCHMWdtVF7LPK79esVb': 'triple_a',  // Triple-A monthly $29.00
-  'price_1T7TosCHMWdtVF7LowXBxhaW': 'the_show',   // The Show monthly $49.00
+  // Double-A prices
+  'price_1T7WVcCHMWdtVF7LGT9iNi4C': 'double_a', // Double-A monthly $7.99 (original default)
+  'price_1TB8vOCHMWdtVF7LZY7ThWrX': 'double_a', // Double-A Founding Member $4.99/mo
+  // Triple-A prices
+  'price_1TBHXMCHMWdtVF7L6cLerQ6q': 'triple_a', // Triple-A monthly $29.99 (current default)
+  'price_1TBHSVCHMWdtVF7LfmebGKhC': 'triple_a', // Triple-A monthly $19.00 (archived)
+  'price_1T7TZjCHMWdtVF7LPK79esVb': 'triple_a', // Triple-A monthly $29.00 (archived)
+  // The Show prices
+  'price_1TBHaACHMWdtVF7LgKr1muuZ': 'the_show', // The Show monthly $49.99 (current default)
+  'price_1TBHUHCHMWdtVF7LrME2uBAk': 'the_show', // The Show monthly $39.00 (archived)
+  'price_1T7TosCHMWdtVF7LowXBxhaW': 'the_show', // The Show monthly $49.00 (archived)
 };
-
 /** Build the price→tier map from process.env at runtime (with hard-coded fallback). */
 export function buildPriceToTierMap(): Record<string, TierName> {
   // Start with hard-coded LIVE price mappings
   const map: Record<string, TierName> = { ...STRIPE_PRICE_TO_TIER };
-
   // Also honor env-var overrides (e.g. for test mode)
   const doubleA = process.env.STRIPE_DOUBLE_A_MONTHLY_PRICE_ID;
+  const foundingDoubleA = process.env.STRIPE_FOUNDING_DOUBLE_A_PRICE_ID;
   const tripleA = process.env.STRIPE_PRO_MONTHLY_PRICE_ID;
   const tripleAAnnual = process.env.STRIPE_PRO_ANNUAL_PRICE_ID;
   const theShow = process.env.STRIPE_PREMIUM_MONTHLY_PRICE_ID;
   const theShowAnnual = process.env.STRIPE_PREMIUM_ANNUAL_PRICE_ID;
-
   if (doubleA) map[doubleA] = 'double_a';
-  const foundingDoubleA = process.env.STRIPE_FOUNDING_DOUBLE_A_PRICE_ID;
   if (foundingDoubleA) map[foundingDoubleA] = 'double_a';
   if (tripleA) map[tripleA] = 'triple_a';
   if (tripleAAnnual) map[tripleAAnnual] = 'triple_a';
   if (theShow) map[theShow] = 'the_show';
   if (theShowAnnual) map[theShowAnnual] = 'the_show';
-
   return map;
 }
-
 /** Resolve a Stripe product ID to a tier name. */
 export function tierFromProductId(productId: string): TierName {
   return STRIPE_PRODUCT_TO_TIER[productId] ?? 'single_a';
 }
-
 // ---- Display helpers for the pricing page ----
 export interface TierDisplay {
   id: TierName;
@@ -219,7 +209,6 @@ export interface TierDisplay {
   features: string[];
   csvLine: string;
 }
-
 export const TIER_DISPLAY: TierDisplay[] = [
   {
     id: 'single_a',
