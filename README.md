@@ -13,7 +13,7 @@
 
 FullCountProps is an open-source platform that simulates every MLB game 3,000 times — one plate appearance at a time — to generate probability distributions over player prop outcomes (strikeouts, hits, total bases, RBIs, walks, and more).
 
-The simulation uses an XGBoost matchup model trained on ~6 million historical plate appearances from Statcast data. Outputs are cross-referenced against live sportsbook lines to identify edges, ranked by a fractional Kelly criterion for stake sizing, and surfaced daily on a Next.js frontend.
+The simulation uses an LightGBM matchup model trained on ~6 million historical plate appearances from Statcast data. Outputs are cross-referenced against live sportsbook lines to identify edges, ranked by a fractional Kelly criterion for stake sizing, and surfaced daily on a Next.js frontend.
 
 **No black boxes.** Every step of the methodology is documented in [`docs/MONTE_CARLO_METHODOLOGY.md`](docs/MONTE_CARLO_METHODOLOGY.md).
 
@@ -22,7 +22,7 @@ The simulation uses an XGBoost matchup model trained on ~6 million historical pl
 | Capability | Details |
 |-----------|---------|
 | **Simulation depth** | 3,000 iterations per game; full nine-inning game state |
-| **Model basis** | XGBoost multiclass, 24 features, ~6M training PA |
+| **Model basis** | LightGBM multiclass, 24 features, ~6M training PA |
 | **Prop types covered** | Strikeouts, hits, total bases, RBIs, walks, runs scored |
 | **Context adjustments** | Park factors, weather, umpire tendencies, catcher framing |
 | **Edge detection** | No-vig implied probability vs. simulated probability |
@@ -35,10 +35,10 @@ The simulation uses an XGBoost matchup model trained on ~6 million historical pl
 
 ## Architecture Overview
 
-The system flows from four external APIs through a data ingestion pipeline, into Supabase, through an XGBoost matchup model and Monte Carlo engine, and out to the frontend via prop edge calculations.
+The system flows from four external APIs through a data ingestion pipeline, into Supabase, through an LightGBM matchup model and Monte Carlo engine, and out to the frontend via prop edge calculations.
 
 ```
-External APIs → Supabase → XGBoost Model → Monte Carlo Engine → Prop Calculator → Frontend
+External APIs → Supabase → LightGBM Model → Monte Carlo Engine → Prop Calculator → Frontend
 ```
 
 For the full architecture with ASCII data flow diagram, component descriptions, dependency map, database schema, and local dev guide, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
@@ -91,7 +91,7 @@ supabase db push
 # Build training dataset from Statcast data (~20 min first time)
 python models/build_training_dataset.py
 
-# Train XGBoost model (~10 min on a modern laptop)
+# Train LightGBM model (~10 min on a modern laptop)
 python models/train_model.py
 ```
 
@@ -125,7 +125,7 @@ npm run dev
 
 FullCountProps's core is a **plate-appearance-level Monte Carlo simulator**. Rather than using a career average rate multiplied by estimated innings (which gives one number, not a distribution), we simulate each PA individually:
 
-1. **For each PA**, the XGBoost matchup model outputs a probability distribution over 8 outcome types: `K, BB, 1B, 2B, 3B, HR, HBP, OUT`
+1. **For each PA**, the LightGBM matchup model outputs a probability distribution over 8 outcome types: `K, BB, 1B, 2B, 3B, HR, HBP, OUT`
 2. **Adjustments** are applied: park factors, weather, umpire tendencies, catcher framing, pitcher fatigue
 3. **One outcome is sampled** from the adjusted distribution
 4. **Game state advances**: runners move, outs recorded, score updated
@@ -139,7 +139,7 @@ This runs 3,000 times per game. The resulting distribution lets us compute:
 ### The Matchup Model
 
 - **Training data:** ~6 million plate appearances (2022–2024 Statcast)
-- **Algorithm:** XGBoost multiclass classifier (`multi:softprob`)
+- **Algorithm:** LightGBM multiclass classifier (`multi:softprob`)
 - **Features:** 24 features across 4 categories — pitcher rates, batter rates, head-to-head matchup history, and game context (park, weather, umpire)
 - **Inference speed:** < 1ms per PA (enables ~1.6M inference calls on a 15-game day)
 - **Backtested calibration error (ECE):** 0.031 — predictions within ~3 percentage points of actual frequency
@@ -160,7 +160,7 @@ fullcountprops/
 │   ├── fetch_statcast_historical.py  # pybaseball: Statcast backfill
 │   └── grade_props.py          #   Post-game prop grading
 │
-├── models/                     # XGBoost matchup model
+├── models/                     # LightGBM matchup model
 │   ├── build_training_dataset.py
 │   ├── train_model.py
 │   ├── evaluate_model.py
@@ -208,7 +208,7 @@ fullcountprops/
 │
 ├── data/                       # Training data + model artifacts (gitignored)
 │   ├── training_set.parquet
-│   ├── xgboost_model.json
+│   ├── LightGBM_model.json
 │   └── backtest_results/
 │
 ├── docs/                       # Documentation
