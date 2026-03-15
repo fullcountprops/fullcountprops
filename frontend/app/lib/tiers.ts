@@ -242,8 +242,8 @@ export const TIER_DISPLAY: TierDisplay[] = [
     id: 'double_a',
     name: 'Double-A',
     tagline: 'See the full slate',
-    price: 7.99,
-    priceLabel: '$7.99/mo',
+    price: 9,
+    priceLabel: '$9/mo',
     badge: 'Most Popular',
     cta: 'Start Double-A',
     features: [
@@ -260,8 +260,8 @@ export const TIER_DISPLAY: TierDisplay[] = [
     id: 'triple_a',
     name: 'Triple-A',
     tagline: 'Full scouting report',
-    price: 29.99,
-    priceLabel: '$29.99/mo',
+    price: 19,
+    priceLabel: '$19/mo',
     cta: 'Start Triple-A',
     features: [
       'Everything in Double-A',
@@ -279,8 +279,8 @@ export const TIER_DISPLAY: TierDisplay[] = [
     id: 'the_show',
     name: 'The Show',
     tagline: 'Big league analytics',
-    price: 49.99,
-    priceLabel: '$49.99/mo',
+    price: 39,
+    priceLabel: '$39/mo',
     cta: 'Go to The Show',
     features: [
       'Everything in Triple-A',
