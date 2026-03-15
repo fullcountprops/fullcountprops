@@ -244,7 +244,7 @@ export default function ParkFactorsGuide() {
             </p>
 
             <p>
-              These factors are applied at the plate-appearance level inside our 3,000 Monte Carlo
+              These factors are applied at the plate-appearance level inside our 5,000 Monte Carlo
               simulations. When the model generates a batted-ball outcome in a given simulation,
               the park factor shifts the probability of that ball leaving the yard — rather than
               being applied as a post-hoc correction to the final projection.

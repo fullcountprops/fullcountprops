@@ -49,7 +49,7 @@ class SimulationConfig:
     # ------------------------------------------------------------------
     # Simulation controls
     # ------------------------------------------------------------------
-    NUM_SIMULATIONS: int = 2500
+    NUM_SIMULATIONS: int = 5000
     """Number of Monte Carlo trials per game."""
 
     RANDOM_SEED: Optional[int] = None
@@ -516,5 +516,5 @@ A ready-to-use ``SimulationConfig`` with production defaults.
 Import and use directly::
 
     from simulation.config import DEFAULT_CONFIG
-    n = DEFAULT_CONFIG.NUM_SIMULATIONS  # 2500
+    n = DEFAULT_CONFIG.NUM_SIMULATIONS  # 5000
 """

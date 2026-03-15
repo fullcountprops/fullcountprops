@@ -45,10 +45,10 @@ const posts: {
   },
   {
     slug: 'monte-carlo-simulation-sports-betting',
-    title: 'Monte Carlo Simulation in Sports Betting: How 3,000 Simulations Beat Point Estimates',
+    title: 'Monte Carlo Simulation in Sports Betting: How 5,000 Simulations Beat Point Estimates',
     date: 'March 15, 2026',
     excerpt:
-      "A single projected strikeout number tells you little. Run 3,000 simulations of the same plate appearance and you get a full probability distribution — which is exactly what sportsbooks use. Here's how to think the same way.",
+      "A single projected strikeout number tells you little. Run 5,000 simulations of the same plate appearance and you get a full probability distribution — which is exactly what sportsbooks use. Here's how to think the same way.",
     tag: 'Methodology',
     tagColor: 'bg-purple-950/50 text-purple-400 border border-purple-800/50',
     readTime: '8 min read',

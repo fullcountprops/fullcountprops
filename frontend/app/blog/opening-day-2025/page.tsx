@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   description: 'Monte Carlo simulation results for every Opening Day matchup. 3 highest-confidence MLB player prop edges with full SHAP factor breakdowns.',
   openGraph: {
     title: 'Opening Day 2026: Top MLB Prop Edges',
-    description: '2,500 simulations per game. Here are the 3 picks our model likes most for March 26.',
+    description: '5,000 simulations per game. Here are the 3 picks our model likes most for March 26.',
   },
   keywords: [
     'MLB opening day props 2026',
@@ -50,7 +50,7 @@ export default function OpeningDayPost() {
           Our Model&apos;s Top Prop Edges for March 26
         </h1>
         <p className="text-slate-400 text-lg leading-relaxed">
-          We ran 2,500 Monte Carlo simulations on every Opening Day game.
+          We ran 5,000 Monte Carlo simulations on every Opening Day game.
           Here are the three picks where the model sees the biggest mathematical edge
           over the sportsbooks &mdash; and exactly why.
         </p>
@@ -205,7 +205,7 @@ export default function OpeningDayPost() {
             is pricing.
           </li>
           <li>
-            <strong>Sim Mean</strong> is the average result across 2,500 full-game simulations.
+            <strong>Sim Mean</strong> is the average result across 5,000 full-game simulations.
             If we sim 6.8 Ks, that&apos;s the central tendency — but the distribution matters more
             than the average.
           </li>

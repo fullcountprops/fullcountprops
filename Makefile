@@ -11,7 +11,7 @@
 PYTHON ?= python3
 PIP ?= pip
 NPM ?= npm
-NUM_SIMS ?= 10000
+NUM_SIMS ?= 5000
 
 # Data pipeline year range (override on command line: make backfill-statcast START_YEAR=2023)
 START_YEAR ?= 2020

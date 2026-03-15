@@ -153,7 +153,7 @@ class TestConfig:
     def test_default_config_valid(self):
         """SimulationConfig() creates a valid config with no errors."""
         cfg = SimulationConfig()
-        assert cfg.NUM_SIMULATIONS == 2500
+        assert cfg.NUM_SIMULATIONS == 5000
         assert cfg.RANDOM_SEED is None
         assert isinstance(cfg.MODEL_PATH, str)
 

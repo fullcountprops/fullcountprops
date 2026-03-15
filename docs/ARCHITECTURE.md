@@ -22,7 +22,7 @@
 
 ## 1. Project Overview
 
-**FullCountProps** is a production-grade MLB player prop analytics platform built around a plate-appearance-level Monte Carlo simulation engine. The system ingests real-time game, player, and Statcast pitch data, trains an LightGBM matchup model on ~6 million historical plate appearances, and simulates each game 3,000 times to generate probability distributions over every meaningful player outcome (strikeouts, hits, total bases, RBIs, walks, etc.).
+**FullCountProps** is a production-grade MLB player prop analytics platform built around a plate-appearance-level Monte Carlo simulation engine. The system ingests real-time game, player, and Statcast pitch data, trains an LightGBM matchup model on ~6 million historical plate appearances, and simulates each game 5,000 times to generate probability distributions over every meaningful player outcome (strikeouts, hits, total bases, RBIs, walks, etc.).
 
 The simulation output is cross-referenced against live sportsbook lines from The Odds API to identify edges — situations where the model's estimated probability of a prop outcome meaningfully exceeds the no-vig implied probability embedded in the market. Edges are ranked using a fractional Kelly criterion for stake sizing and surfaced to users via a Next.js frontend deployed on Vercel.
 
@@ -32,7 +32,7 @@ The simulation output is cross-referenced against live sportsbook lines from The
 |-----------|----------------|
 | **Glass-box transparency** | Full methodology exposed in docs; no black-box outputs |
 | **Plate-appearance granularity** | Each PA simulated individually, not regressed at the game level |
-| **Real game state** | Inning, outs, baserunners, and score tracked across all 3,000 simulations |
+| **Real game state** | Inning, outs, baserunners, and score tracked across all 5,000 simulations |
 | **Honest uncertainty** | Confidence scores via bootstrap resampling; limitations clearly documented |
 | **Automated pipeline** | Four GitHub Actions cron jobs cover full daily data lifecycle |
 | **Open source** | MIT license; all code, schema, and methodology public |
@@ -94,7 +94,7 @@ The simulator is the core intellectual contribution of FullCountProps v2.0. It o
 
 | File | Purpose |
 |------|---------|
-| `monte_carlo_engine.py` | Main simulation loop: 3,000 iterations per game, full nine-inning game state tracking |
+| `monte_carlo_engine.py` | Main simulation loop: 5,000 iterations per game, full nine-inning game state tracking |
 | `game_state.py` | Dataclass representing inning, outs, baserunner positions, and score |
 | `pitcher_fatigue.py` | Applies K-rate decay after 25 batters faced; models fatigue curve empirically |
 | `runner_advancement.py` | Advances runners on all PA outcome types (1B/2B/3B/HR/FC/wild pitch/etc.) |
@@ -294,7 +294,7 @@ FullCountProps uses Supabase (PostgreSQL) with 20 core tables.
 | `statcast_pitches` | ~700K/season | Pitch-level Statcast data for model training | Overnight |
 | `props` | ~8K/game day | Live sportsbook lines from The Odds API | Midday + afternoon |
 | `projections` | ~300/game day | PA outcome probability distributions per player | Midday |
-| `sim_results` | ~300/game day | Full simulation output (all 3,000 runs summarized) | Midday |
+| `sim_results` | ~300/game day | Full simulation output (all 5,000 runs summarized) | Midday |
 | `graded_props` | ~8K/game day | Final prop outcomes (WIN/LOSS/PUSH) | Overnight |
 | `park_factors` | 30 static | Per-stadium HR/fly ball/strikeout factors | Seeded once |
 | `weather_snapshots` | ~50/game day | Game-time weather conditions per venue | Midday + afternoon |
@@ -393,7 +393,7 @@ python models/train_model.py
 # Step 5: Run projections
 python scripts/generate_projections.py --date today
 
-# Step 6: Run simulations (runs 3,000 sims per game; ~2-3 min per game)
+# Step 6: Run simulations (runs 5,000 sims per game; ~2-3 min per game)
 python simulator/monte_carlo_engine.py --date today
 
 # Step 7: Calculate prop edges
@@ -434,7 +434,7 @@ MLB_STATS_API_BASE=https://statsapi.mlb.com/api/v1
 
 # Model Configuration
 MODEL_VERSION=2.0
-N_SIMULATIONS=3000
+N_SIMULATIONS=5000
 MIN_EDGE_THRESHOLD=0.04            # Minimum edge % to surface a pick (default: 4%)
 KELLY_FRACTION=0.25                # Fractional Kelly (default: quarter Kelly)
 

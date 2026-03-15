@@ -412,7 +412,7 @@ export default async function SimulatorPage() {
         </p>
         <p className="text-xs text-slate-600 mt-1">
           {hasSimData
-            ? '3,000 game simulations per matchup. Each at-bat resolved against pitcher/batter probability distributions.'
+            ? '5,000 game simulations per matchup. Each at-bat resolved against pitcher/batter probability distributions.'
             : 'Monte Carlo simulation data populates once the engine is running. Showing point-estimate projections as preview.'}
         </p>
       </div>
@@ -434,7 +434,7 @@ export default async function SimulatorPage() {
         <div className="bg-gray-900/60 border border-gray-800 rounded-lg p-3">
           <div className="text-[10px] uppercase tracking-wider text-slate-500 mb-1">Simulations</div>
           <div className="text-2xl font-bold text-purple-400">
-            {hasSimData ? `${(games.length * 3000).toLocaleString()}` : '--'}
+            {hasSimData ? `${(games.length * 5000).toLocaleString()}` : '--'}
           </div>
         </div>
       </div>
@@ -460,7 +460,7 @@ export default async function SimulatorPage() {
           <p className="text-slate-500 max-w-md mx-auto text-sm">
             {!supabaseUrl
               ? 'Configure Supabase environment variables to load simulation data.'
-              : 'The Monte Carlo simulator runs daily starting Opening Day 2026. Each game is simulated 3,000 times to produce full probability distributions for every player prop.'}
+              : 'The Monte Carlo simulator runs daily starting Opening Day 2026. Each game is simulated 5,000 times to produce full probability distributions for every player prop.'}
           </p>
           <div className="mt-8 p-4 bg-gray-900/60 rounded-xl border border-gray-800 max-w-lg mx-auto text-sm text-left">
             <p className="font-medium text-slate-300 mb-3">How it works:</p>
@@ -475,7 +475,7 @@ export default async function SimulatorPage() {
               </li>
               <li className="flex gap-2">
                 <span className="text-purple-400 font-bold">3.</span>
-                <span>3,000 iterations per game produce probability distributions for K, H, TB, HR</span>
+                <span>5,000 iterations per game produce probability distributions for K, H, TB, HR</span>
               </li>
               <li className="flex gap-2">
                 <span className="text-purple-400 font-bold">4.</span>

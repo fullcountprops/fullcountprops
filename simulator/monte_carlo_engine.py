@@ -80,7 +80,7 @@ class SimulationConfig:
         Maximum extra-inning half-frames to simulate before forcing a tie result.
     """
 
-    n_simulations: int = 3_000
+    n_simulations: int = 5_000
     innings: int = 9
     dh_rule: bool = True
     lineup_size: int = 9
@@ -942,7 +942,7 @@ if __name__ == "__main__":
         description="Run a demo Monte Carlo MLB game simulation."
     )
     parser.add_argument(
-        "--n-sims", type=int, default=3_000, help="Number of simulations (default: 3000)"
+        "--n-sims", type=int, default=5_000, help="Number of simulations (default: 5000)"
     )
     parser.add_argument(
         "--seed", type=int, default=42, help="Random seed (default: 42)"
@@ -1836,7 +1836,7 @@ def _credit_runs_advanced(
 
 def simulate_game(
     matchup: GameMatchup,
-    n_sims: int = 3000,
+    n_sims: int = 5000,
     seed: int | None = None,
 ) -> GameSimResults:
     """Simulate *n_sims* full games for a given matchup.
@@ -1910,7 +1910,7 @@ def simulate_game(
 
 def simulate_game_with_pitcher_ks(
     matchup: GameMatchup,
-    n_sims: int = 3000,
+    n_sims: int = 5000,
     seed: int | None = None,
 ) -> tuple[GameSimResults, np.ndarray]:
     """Simulate *n_sims* games and additionally return pitcher K array.

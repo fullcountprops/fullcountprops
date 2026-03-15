@@ -3,7 +3,7 @@ import { Metadata } from 'next'
 export const metadata: Metadata = {
   title: 'Methodology',
   description:
-    'How FullCountProps works: LightGBM matchup model trained on 6M+ Statcast plate appearances, 3,000 PA-level Monte Carlo simulations per game, umpire and catcher framing adjustments, SHAP explanations.',
+    'How FullCountProps works: LightGBM matchup model trained on 6M+ Statcast plate appearances, 5,000 PA-level Monte Carlo simulations per game, umpire and catcher framing adjustments, SHAP explanations.',
   openGraph: {
     title: 'Methodology — FullCountProps',
     description:
@@ -92,7 +92,7 @@ export default function MethodologyPage() {
 
           {/* Stats row */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-16">
-            <StatBox value="3,000" label="Simulations / Game" />
+            <StatBox value="5,000" label="Simulations / Game" />
             <StatBox value="33" label="Model Features" />
             <StatBox value="6M+" label="Training PAs" />
             <StatBox value="8" label="Outcome Classes" />
@@ -108,7 +108,7 @@ export default function MethodologyPage() {
             <p>
               Monte Carlo simulation takes a different approach. Instead of one
               answer, you simulate the full game thousands of times, introducing
-              realistic randomness at every plate appearance. After 3,000 runs,
+              realistic randomness at every plate appearance. After 5,000 runs,
               you have a complete distribution &mdash; not just &quot;he&apos;ll
               probably get 6 Ks&quot; but &quot;there&apos;s a 61% chance he gets
               7 or more.&quot;
@@ -139,7 +139,7 @@ export default function MethodologyPage() {
                 <span className="text-green-400">Layer 2:</span> MONTE CARLO ENGINE
               </div>
               <div className="pl-4 text-slate-400 mb-1">
-                Runs 3,000 full-game simulations with real game state
+                Runs 5,000 full-game simulations with real game state
               </div>
               <div className="pl-4 text-slate-400">
                 Output: probability distribution for every player stat
@@ -256,7 +256,7 @@ export default function MethodologyPage() {
           {/* Section 4 */}
           <SectionCard number="04" title="The Simulation">
             <p>
-              Each of the 3,000 simulations plays out a complete baseball game,
+              Each of the 5,000 simulations plays out a complete baseball game,
               plate appearance by plate appearance:
             </p>
             <ol className="list-decimal list-outside ml-5 space-y-2 mt-3">
@@ -287,8 +287,8 @@ export default function MethodologyPage() {
               <li>Repeat through 9 innings (or extras if tied)</li>
             </ol>
             <p className="mt-4">
-              After 3,000 full games, each player has a frequency distribution of
-              outcomes. &quot;Corbin Burnes recorded 7+ Ks in 1,530 of 3,000 sims&quot;
+              After 5,000 full games, each player has a frequency distribution of
+              outcomes. &quot;Corbin Burnes recorded 7+ Ks in 2,550 of 5,000 sims&quot;
               gives us P(Over 6.5 Ks) = 61.2%.
             </p>
           </SectionCard>

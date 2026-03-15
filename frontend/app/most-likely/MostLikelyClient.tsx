@@ -473,7 +473,7 @@ export default function MostLikelyClient({ projections, props }: MostLikelyClien
       <div className="mt-8 p-4 bg-slate-900/50 rounded-lg border border-slate-800 text-xs text-slate-500">
         <p>
           Probabilities are derived from Poisson distribution using per-game projection rates from the
-          v3.0 multi-stat projection engine (2,500 PA-level Monte Carlo simulations per game).
+          v3.0 multi-stat projection engine (5,000 PA-level Monte Carlo simulations per game).
           Edge is calculated as (Projected - Line) / Line vs sportsbook odds when available.
           Confidence reflects model certainty across sample size, data freshness, and feature completeness.
         </p>

@@ -4,7 +4,7 @@ game_engine.py — FullCountProps Monte Carlo Game Simulation Engine
 Simulates complete MLB games plate-appearance by plate-appearance, tracking all
 game state and collecting full probability distributions for every player stat.
 
-Designed to run ~2,500 simulations per game with 60-80 PAs per simulated game.
+Designed to run ~5,000 simulations per game with 60-80 PAs per simulated game.
 
 Imports:
     simulation.config   -> SimulationConfig, GameData
@@ -860,7 +860,7 @@ class GameSimulator:
         self.config = config
 
         # Pull commonly used config values once
-        self._num_sims: int = getattr(config, "NUM_SIMULATIONS", 2500)
+        self._num_sims: int = getattr(config, "NUM_SIMULATIONS", 5000)
         self._pc_mean: float = getattr(config, "pitcher_pc_mean", DEFAULT_PC_MEAN)
         self._pc_std: float = getattr(config, "pitcher_pc_std", DEFAULT_PC_STD)
         self._gdp_rate: float = getattr(config, "gdp_rate", DEFAULT_GDP_RATE)

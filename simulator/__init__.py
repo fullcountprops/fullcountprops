@@ -54,7 +54,7 @@ Typical usage
 -------------
 Run the full daily pipeline from the command line::
 
-    python -m simulator.run_daily --date 2026-04-01 --n-sims 3000
+    python -m simulator.run_daily --date 2026-04-01 --n-sims 5000
 
 Or exercise only the engine in a notebook::
 
@@ -73,7 +73,7 @@ DEFAULT_N_SIMS : int
 """
 
 VERSION: str = "1.0.0"
-DEFAULT_N_SIMS: int = 3_000
+DEFAULT_N_SIMS: int = 5_000
 
 __all__ = [
     "VERSION",

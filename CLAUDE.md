@@ -7,7 +7,7 @@
 
 ## Product Overview
 
-FullCountProps is an MLB prop betting SaaS that uses MLB Statcast data to generate prediction-driven prop recommendations. Predictions are powered by **3,000 Monte Carlo simulations**, a **LightGBM matchup model**, and **24 Statcast features**.
+FullCountProps is an MLB prop betting SaaS that uses MLB Statcast data to generate prediction-driven prop recommendations. Predictions are powered by **5,000 Monte Carlo simulations**, a **LightGBM matchup model**, and **24 Statcast features**.
 
 ### Subscription Tiers
 
@@ -22,7 +22,7 @@ FullCountProps is an MLB prop betting SaaS that uses MLB Statcast data to genera
 
 These values are authoritative. Any conflicting values elsewhere in the repo are incorrect.
 
-- **Monte Carlo simulations:** 3,000
+- **Monte Carlo simulations:** 5,000
 - **ML model:** LightGBM (matchup model)
 - **Statcast features:** 24
 - **Subscription price (paid tier):** $9/month
@@ -161,6 +161,6 @@ Tests should cover:
 ## Notes for AI Assistants
 
 - Read this file first before making any changes to the codebase.
-- The canonical product specs (3,000 sims, LightGBM, 24 features, $9/month paid tier) are defined here and override any other documentation.
+- The canonical product specs (5,000 sims, LightGBM, 24 features, $9/month paid tier) are defined here and override any other documentation.
 - When in doubt, ask the founder before proceeding.
 - Keep PRs small and focused — one task per branch.

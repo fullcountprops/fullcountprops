@@ -11,7 +11,7 @@
 
 ## What Is FullCountProps?
 
-FullCountProps is an open-source platform that simulates every MLB game 3,000 times — one plate appearance at a time — to generate probability distributions over player prop outcomes (strikeouts, hits, total bases, RBIs, walks, and more).
+FullCountProps is an open-source platform that simulates every MLB game 5,000 times — one plate appearance at a time — to generate probability distributions over player prop outcomes (strikeouts, hits, total bases, RBIs, walks, and more).
 
 The simulation uses an LightGBM matchup model trained on ~6 million historical plate appearances from Statcast data. Outputs are cross-referenced against live sportsbook lines to identify edges, ranked by a fractional Kelly criterion for stake sizing, and surfaced daily on a Next.js frontend.
 
@@ -21,7 +21,7 @@ The simulation uses an LightGBM matchup model trained on ~6 million historical p
 
 | Capability | Details |
 |-----------|---------|
-| **Simulation depth** | 3,000 iterations per game; full nine-inning game state |
+| **Simulation depth** | 5,000 iterations per game; full nine-inning game state |
 | **Model basis** | LightGBM multiclass, 24 features, ~6M training PA |
 | **Prop types covered** | Strikeouts, hits, total bases, RBIs, walks, runs scored |
 | **Context adjustments** | Park factors, weather, umpire tendencies, catcher framing |
@@ -167,7 +167,7 @@ fullcountprops/
 │   └── feature_registry.py     # Single source of truth for 24 features
 │
 ├── simulator/                  # Monte Carlo engine
-│   ├── monte_carlo_engine.py   #   Main 3,000-sim loop
+│   ├── monte_carlo_engine.py   #   Main 5,000-sim loop
 │   ├── game_state.py           #   Inning/outs/runners dataclass
 │   ├── pitcher_fatigue.py      #   K/BB rate decay curve
 │   ├── runner_advancement.py   #   Empirical runner advance probs
@@ -229,7 +229,7 @@ fullcountprops/
 | Time (ET) | Workflow | What Runs |
 |-----------|----------|-----------|
 | **8:00 AM** | Morning | Fetch games + players; confirm lineups |
-| **10:30 AM** | Midday | Fetch props + weather → Monte Carlo (3,000 sims/game) → edge finder → **picks live on frontend** |
+| **10:30 AM** | Midday | Fetch props + weather → Monte Carlo (5,000 sims/game) → edge finder → **picks live on frontend** |
 | **4:30 PM** | Afternoon | Line refresh + re-simulation with updated weather |
 | **2:00 AM** | Overnight | Statcast backfill (previous day) + prop grading + calibration check |
 
@@ -252,7 +252,7 @@ OPENWEATHER_API_KEY=...
 
 # Simulator configuration
 MODEL_VERSION=2.0
-N_SIMULATIONS=3000
+N_SIMULATIONS=5000
 MIN_EDGE_THRESHOLD=0.04             # Minimum edge % to surface a pick
 KELLY_FRACTION=0.25                 # Fractional Kelly multiplier
 

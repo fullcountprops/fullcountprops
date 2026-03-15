@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     template: '%s | FullCountProps',
   },
   description:
-    'MLB player prop edges powered by 3,000 PA-level Monte Carlo simulations per game. LightGBM matchup model trained on 6M+ Statcast plate appearances. Glass-box transparency — every factor visible.',
+    'MLB player prop edges powered by 5,000 PA-level Monte Carlo simulations per game. LightGBM matchup model trained on 6M+ Statcast plate appearances. Glass-box transparency — every factor visible.',
   keywords: [
     'MLB props',
     'baseball prop bets',
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
     siteName: 'FullCountProps',
     title: 'FullCountProps — Monte Carlo MLB Prop Analytics',
     description:
-      'MLB player prop edges powered by 3,000 PA-level Monte Carlo simulations per game. Glass-box transparency.',
+      'MLB player prop edges powered by 5,000 PA-level Monte Carlo simulations per game. Glass-box transparency.',
     images: [
       {
         url: '/og-image.png',
@@ -53,7 +53,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'FullCountProps — Monte Carlo MLB Prop Analytics',
     description:
-      'MLB player prop edges powered by 3,000 PA-level Monte Carlo simulations. Glass-box transparency.',
+      'MLB player prop edges powered by 5,000 PA-level Monte Carlo simulations. Glass-box transparency.',
     images: ['/og-image.png'],
     creator: '@fullcountprops',
   },
@@ -83,7 +83,7 @@ function JsonLd() {
     name: 'FullCountProps',
     url: siteUrl,
     description:
-      'MLB player prop analytics powered by Monte Carlo simulation. 3,000 PA-level simulations per game with glass-box transparency.',
+      'MLB player prop analytics powered by Monte Carlo simulation. 5,000 PA-level simulations per game with glass-box transparency.',
     applicationCategory: 'SportsApplication',
     operatingSystem: 'Web',
     offers: [

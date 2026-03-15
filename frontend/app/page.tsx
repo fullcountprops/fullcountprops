@@ -124,7 +124,7 @@ export default async function HomePage() {
               </h1>
 
               <p className="text-slate-400 text-lg leading-relaxed mb-8 max-w-lg">
-                3,000 Monte Carlo simulations per game. 33 engineered features.
+                5,000 Monte Carlo simulations per game. 33 engineered features.
                 Glass-box factor breakdowns on every pick. See exactly why we like
                 each bet &mdash; not just that we do.
               </p>
@@ -163,7 +163,7 @@ export default async function HomePage() {
             {[
               { value: '+8.7%', label: 'Tier A Backtest ROI', sub: 'at 4% edge threshold' },
               { value: '3.1%', label: 'Calibration Error', sub: 'ECE across all bins' },
-              { value: '3,000', label: 'Simulations', sub: 'per game, PA-level' },
+              { value: '5,000', label: 'Simulations', sub: 'per game, PA-level' },
               { value: '6', label: 'Prop Types', sub: 'K, H, TB, HR, BB, RBI' },
             ].map((stat) => (
               <div key={stat.label} className="text-center">
@@ -220,7 +220,7 @@ export default async function HomePage() {
             {
               step: '02',
               title: 'Monte Carlo Simulation',
-              desc: 'Each game is simulated 3,000 times, plate appearance by plate appearance, with real lineups, park factors, umpire data, and weather.',
+              desc: 'Each game is simulated 5,000 times, plate appearance by plate appearance, with real lineups, park factors, umpire data, and weather.',
               color: 'text-blue-400',
             },
             {

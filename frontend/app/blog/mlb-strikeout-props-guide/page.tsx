@@ -231,7 +231,7 @@ export default function StrikeoutPropsGuide() {
             </p>
 
             <p>
-              FullCountProps runs <strong>3,000 Monte Carlo simulations</strong> of each game
+              FullCountProps runs <strong>5,000 Monte Carlo simulations</strong> of each game
               at the plate-appearance level. Each simulation draws from the pitcher&apos;s pitch mix,
               the batter&apos;s tendencies, and the umpire&apos;s zone profile. The result is a full
               probability distribution — we can tell you there&apos;s a 58% chance of 7+ Ks, not just
@@ -253,7 +253,7 @@ export default function StrikeoutPropsGuide() {
 
             <ul>
               <li>
-                <strong>Projection</strong> — the mean simulated strikeout total across 3,000
+                <strong>Projection</strong> — the mean simulated strikeout total across 5,000
                 simulations
               </li>
               <li>

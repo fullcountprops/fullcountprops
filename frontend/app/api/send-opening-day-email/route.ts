@@ -58,7 +58,7 @@ function buildEmailHtml(): string {
             <td style="background-color:#111827;border-left:1px solid #1e293b;border-right:1px solid #1e293b;padding:32px;">
               <p style="margin:0 0 16px;font-size:16px;line-height:1.7;color:#cbd5e1;">
                 The 2026 MLB season is underway — and your Opening Day projections are live.
-                Our model has already run <strong style="color:#ffffff;">3,000 Monte Carlo simulations</strong>
+                Our model has already run <strong style="color:#ffffff;">5,000 Monte Carlo simulations</strong>
                 across today&apos;s full slate, surfacing the highest-confidence strikeout and batter prop edges.
               </p>
               <p style="margin:0 0 28px;font-size:16px;line-height:1.7;color:#cbd5e1;">

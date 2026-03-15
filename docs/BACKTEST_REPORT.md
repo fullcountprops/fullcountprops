@@ -14,7 +14,7 @@ Run the full backtest pipeline:
 # 1. Run Monte Carlo backtest on 2025 season (sample 30 days for speed)
 python scripts/backtest_simulator.py \
     --start 2025-04-01 --end 2025-09-30 \
-    --sims 3000 --prop-types K,TB,H,HR \
+    --sims 5000 --prop-types K,TB,H,HR \
     --sample-days 30 \
     --output-dir output/backtest \
     --seed 42
@@ -102,7 +102,7 @@ probabilities and Kelly criterion bet sizing.
 ## System Architecture
 
 ```
-scripts/backtest_simulator.py    → Monte Carlo engine (3,000 sims/game)
+scripts/backtest_simulator.py    → Monte Carlo engine (5,000 sims/game)
 scripts/generate_backtest_report.py → Charts + Markdown report
 scripts/compare_models.py        → Multi-model A/B testing
 configs/full_model.json          → Full model configuration

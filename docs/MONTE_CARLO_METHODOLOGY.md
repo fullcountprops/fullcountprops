@@ -31,7 +31,7 @@ The name "Monte Carlo" comes from the famous casino in Monaco. Like a casino, th
 
 Suppose deGrom's matchup model gives him a 28% chance of striking out any given batter. We simulate the first batter: we draw a random number between 0 and 1. If it's ≤ 0.28, it's a strikeout. If not, we draw from the remaining outcome probabilities (walk, single, etc.). We advance runners accordingly, track outs, and move to the next batter. We repeat this for every plate appearance in the game — 9 innings, full batting order, real lineup — and record the final strikeout total.
 
-That was one simulation. We run this **3,000 times**. The result is a frequency distribution over all possible strikeout totals. If deGrom records 7+ strikeouts in 1,820 of those 3,000 simulations, our estimated probability of the "over 6.5 strikeouts" prop is 60.7%.
+That was one simulation. We run this **5,000 times**. The result is a frequency distribution over all possible strikeout totals. If deGrom records 7+ strikeouts in 3,033 of those 5,000 simulations, our estimated probability of the "over 6.5 strikeouts" prop is 60.7%.
 
 ---
 
@@ -62,7 +62,7 @@ Layer 1: MATCHUP MODEL (XGBoost)
 
 Layer 2: MONTE CARLO ENGINE
   Input:  outcome probabilities for every upcoming PA
-  Process: Simulate 3,000 full games with real game state
+  Process: Simulate 5,000 full games with real game state
   Output:  Distribution over all player stats
 ```
 
@@ -136,7 +136,7 @@ Features are organized into four categories:
 - Handles mixed feature types (continuous + categorical) natively
 - Robust to outliers and missing values (common in small-sample matchup history)
 - Produces calibrated probability outputs via `multi:softprob`
-- Fast inference (< 1ms per PA, critical for 3,000 × ~35 PA/game = ~105,000 inference calls per game day)
+- Fast inference (< 1ms per PA, critical for 5,000 × ~35 PA/game = ~175,000 inference calls per game day)
 - Interpretable via SHAP feature importances
 
 **Hyperparameters (current):**
@@ -181,7 +181,7 @@ Each plate appearance is classified into one of 8 mutually exclusive outcomes:
 
 ```
 For each game:
-  For each simulation (1 to 3,000):
+  For each simulation (1 to 5,000):
     Initialize game state (inning=1, outs=0, score=0-0, bases empty)
     For each half-inning:
       Load batting order for the team at bat
@@ -196,7 +196,7 @@ For each game:
       End of half-inning
     End of full inning (repeat for 9 innings, extras if tied)
   Record all player stats for this simulation
-After 3,000 simulations:
+After 5,000 simulations:
   Compute distribution statistics for each player × stat combination
   Write to sim_results table
 ```
@@ -364,13 +364,13 @@ For well-established platoon splits (players with 200+ career PA against the rel
 
 ### 6.1 Calculating P(Over X.5)
 
-After 3,000 simulations, each player has a frequency distribution of outcomes. For a "strikeouts over 5.5" prop:
+After 5,000 simulations, each player has a frequency distribution of outcomes. For a "strikeouts over 5.5" prop:
 
 ```
-strikeout_counts = [4, 7, 5, 6, 8, 3, 6, 7, ...]   # 3,000 values
+strikeout_counts = [4, 7, 5, 6, 8, 3, 6, 7, ...]   # 5,000 values
 
-P(over 5.5) = count(strikeout_counts > 5.5) / 3000
-            = count(strikeout_counts >= 6) / 3000
+P(over 5.5) = count(strikeout_counts > 5.5) / 5000
+            = count(strikeout_counts >= 6) / 5000
 ```
 
 We also store the full percentile distribution (p10, p25, p50, p75, p90) in the `sim_results` table for users who want to understand the range of outcomes, not just the central tendency.
@@ -434,7 +434,7 @@ The fractional Kelly divisor is configurable via `KELLY_FRACTION` in the environ
 
 To communicate uncertainty, we generate a **confidence score** for each prop edge via bootstrap resampling:
 
-1. Resample the 3,000 simulation results with replacement, 200 times
+1. Resample the 5,000 simulation results with replacement, 200 times
 2. Compute P(over X.5) for each bootstrap sample
 3. Compute the standard deviation of the 200 bootstrap estimates
 4. Confidence score = 1 − (bootstrap std dev × 10), clamped to [0.0, 1.0]

@@ -12,18 +12,18 @@ import { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: 'Monte Carlo Simulation in Sports Betting: How 3,000 Simulations Beat Point Estimates | FullCountProps',
+  title: 'Monte Carlo Simulation in Sports Betting: How 5,000 Simulations Beat Point Estimates | FullCountProps',
   description:
-    'Why running 3,000 simulations of each MLB game produces better prop predictions than point estimates. A plain-English guide to Monte Carlo simulation in baseball betting.',
+    'Why running 5,000 simulations of each MLB game produces better prop predictions than point estimates. A plain-English guide to Monte Carlo simulation in baseball betting.',
   openGraph: {
-    title: 'Monte Carlo Simulation in Sports Betting: How 3,000 Simulations Beat Point Estimates',
+    title: 'Monte Carlo Simulation in Sports Betting: How 5,000 Simulations Beat Point Estimates',
     description:
-      'A single projection misses variance. Run 3,000 simulations and you get a full probability distribution — the same approach sportsbooks use. Here\'s how it works.',
+      'A single projection misses variance. Run 5,000 simulations and you get a full probability distribution — the same approach sportsbooks use. Here\'s how it works.',
     images: ['/og-image.png'],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Monte Carlo Simulation in Sports Betting: How 3,000 Simulations Beat Point Estimates',
+    title: 'Monte Carlo Simulation in Sports Betting: How 5,000 Simulations Beat Point Estimates',
     description:
       'Why probability distributions beat point estimates for MLB prop betting — and how to use them.',
   },
@@ -41,9 +41,9 @@ function JsonLd() {
   const data = {
     '@context': 'https://schema.org',
     '@type': 'Article',
-    headline: 'Monte Carlo Simulation in Sports Betting: How 3,000 Simulations Beat Point Estimates',
+    headline: 'Monte Carlo Simulation in Sports Betting: How 5,000 Simulations Beat Point Estimates',
     description:
-      'Why running 3,000 simulations of each MLB game produces better prop predictions than point estimates.',
+      'Why running 5,000 simulations of each MLB game produces better prop predictions than point estimates.',
     author: { '@type': 'Organization', name: 'FullCountProps' },
     publisher: { '@type': 'Organization', name: 'FullCountProps' },
     datePublished: '2026-03-15',
@@ -82,7 +82,7 @@ export default function MonteCarloGuide() {
               <span className="text-xs text-slate-500">8 min read</span>
             </div>
             <h1 className="text-3xl sm:text-4xl font-bold text-white leading-tight mb-4">
-              Monte Carlo Simulation in Sports Betting: How 3,000 Simulations Beat Point Estimates
+              Monte Carlo Simulation in Sports Betting: How 5,000 Simulations Beat Point Estimates
             </h1>
             <p className="text-slate-400 text-lg leading-relaxed">
               Most baseball projection systems give you a number: &ldquo;this pitcher projects for
@@ -181,10 +181,10 @@ export default function MonteCarloGuide() {
               of batters given his innings projection.
             </p>
 
-            <h2>Running 3,000 Simulations</h2>
+            <h2>Running 5,000 Simulations</h2>
 
             <p>
-              FullCountProps runs <strong>3,000 simulations per game</strong>, each using the
+              FullCountProps runs <strong>5,000 simulations per game</strong>, each using the
               same pitcher, lineup, park, and weather inputs but different random draws. The
               result is a distribution of outcomes — not just &ldquo;6.8 Ks&rdquo; but something like:
             </p>
@@ -206,11 +206,11 @@ export default function MonteCarloGuide() {
             </p>
 
             <p>
-              Why 3,000? It&apos;s a balance between computational accuracy and speed. Below 1,000
+              Why 5,000? It&apos;s a balance between computational accuracy and speed. Below 1,000
               simulations, sampling error introduces too much noise in the tail probabilities —
-              which matter most for props set near the distribution&apos;s edges. At 3,000
-              simulations, the standard error on a 55% probability estimate is under 1 percentage
-              point, which is precise enough to confidently identify edges.
+              which matter most for props set near the distribution&apos;s edges. At 5,000
+              simulations, the standard error on a 55% probability estimate is under 0.7 percentage
+              points, which is precise enough to confidently identify edges.
             </p>
 
             <h2>From Distribution to Edge</h2>
@@ -283,7 +283,7 @@ export default function MonteCarloGuide() {
           {/* Stats callout */}
           <div className="mt-10 grid grid-cols-3 gap-4">
             {[
-              { value: '3,000', label: 'Simulations per game' },
+              { value: '5,000', label: 'Simulations per game' },
               { value: '24', label: 'Statcast features' },
               { value: 'LightGBM', label: 'Matchup model' },
             ].map(({ value, label }) => (
@@ -300,7 +300,7 @@ export default function MonteCarloGuide() {
               See the simulation results for today&apos;s slate
             </h2>
             <p className="text-slate-400 text-sm mb-4">
-              Every FullCountProps projection is backed by 3,000 simulations. The confidence
+              Every FullCountProps projection is backed by 5,000 simulations. The confidence
               score, factor breakdown, and edge percentage are all derived directly from the
               simulation output — not a formula.
             </p>

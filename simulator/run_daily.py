@@ -938,8 +938,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--n-sims",
         type=int,
-        default=3_000,
-        help="Number of Monte Carlo simulations per game (default: 3000)",
+        default=5_000,
+        help="Number of Monte Carlo simulations per game (default: 5000)",
     )
     parser.add_argument(
         "--dry-run",

@@ -485,7 +485,7 @@ export default function BacktestPage() {
           <li>&bull; Only bets with edge &ge; 5% and confidence tier A or B are included in P/L</li>
           <li>&bull; Calibration curve bins predicted probabilities into 10% buckets and compares to actual outcomes</li>
           <li>&bull; The point-estimate comparison uses the v1.0 model (career K/9 + park factors + fixed 5.5 IP)</li>
-          <li>&bull; Monte Carlo simulation runs 3,000 iterations per game with full at-bat resolution</li>
+          <li>&bull; Monte Carlo simulation runs 5,000 iterations per game with full at-bat resolution</li>
         </ul>
         <p className="text-xs text-slate-600 mt-3">
           Past performance does not guarantee future results. For informational use only.

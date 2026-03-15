@@ -55,7 +55,7 @@ export default async function Image() {
             fontWeight: 600,
           }}
         >
-          <span style={{ display: 'flex' }}>2,500 Simulations</span>
+          <span style={{ display: 'flex' }}>5,000 Simulations</span>
           <span style={{ display: 'flex', color: '#475569' }}>|</span>
           <span style={{ display: 'flex' }}>33 Statcast Features</span>
           <span style={{ display: 'flex', color: '#475569' }}>|</span>

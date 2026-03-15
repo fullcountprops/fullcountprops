@@ -1291,7 +1291,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--simulations",
         type=int,
-        default=DEFAULT_CONFIG.NUM_SIMULATIONS if DEFAULT_CONFIG else 2500,
+        default=DEFAULT_CONFIG.NUM_SIMULATIONS if DEFAULT_CONFIG else 5000,
         metavar="N",
         help="Number of Monte Carlo iterations per game (default: %(default)s).",
     )

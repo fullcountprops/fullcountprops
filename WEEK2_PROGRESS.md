@@ -8,7 +8,7 @@
 ## What We Built
 
 ### Core Simulation Engine (`simulator/`)
-- **`simulator/monte_carlo_engine.py`** (970 lines) — Full plate-appearance-level Monte Carlo simulator. Runs 3,000 simulations per game with real batting orders, nine-inning game state (inning, outs, runners, score), pitcher fatigue model, and runner advancement logic for all 8 PA outcome types.
+- **`simulator/monte_carlo_engine.py`** (970 lines) — Full plate-appearance-level Monte Carlo simulator. Runs 5,000 simulations per game with real batting orders, nine-inning game state (inning, outs, runners, score), pitcher fatigue model, and runner advancement logic for all 8 PA outcome types.
 - **`simulator/prop_calculator.py`** (900 lines) — Converts simulation frequency distributions into P(over X.5) for each prop line. Implements no-vig probability extraction, fractional Kelly criterion sizing, bootstrap confidence scoring, and Odds API stat-type normalization.
 - **`simulator/run_daily.py`** (995 lines) — Daily orchestrator: fetches games, lineups, weather → loads XGBoost model → runs Monte Carlo simulation per game → calculates prop edges → upserts results to Supabase. Supports `--dry-run`, `--date`, `--n-sims`, `--games` flags.
 
@@ -68,7 +68,7 @@ The key architectural decision: **plate-appearance-level simulation** rather tha
 | Database tables (total) | 15 |
 | Model training features | 24 |
 | PA outcome classes modeled | 8 |
-| Simulations per game | 3,000 |
+| Simulations per game | 5,000 |
 | Sim throughput | ~571 sims/sec |
 
 ---

@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-FullCountProps is an open-source, plate-appearance–level Monte Carlo simulator that runs 2,500 full-game simulations per matchup to produce probability distributions over individual player stats, then compares those distributions to sportsbook prop lines to identify edges. Unlike season-level projection systems (Steamer, ZiPS, PECOTA) that answer "what will this player do over 600 PA?", FullCountProps answers "what is the probability this pitcher fans more than 6.5 batters *tonight at Coors Field* with Angel Hernandez behind the plate and a 12 mph wind blowing in?" Every projection is accompanied by a glass-box factor breakdown — park, umpire, catcher framing, weather, platoon — so bettors can understand exactly what is driving each number and make better-informed decisions.
+FullCountProps is an open-source, plate-appearance–level Monte Carlo simulator that runs 5,000 full-game simulations per matchup to produce probability distributions over individual player stats, then compares those distributions to sportsbook prop lines to identify edges. Unlike season-level projection systems (Steamer, ZiPS, PECOTA) that answer "what will this player do over 600 PA?", FullCountProps answers "what is the probability this pitcher fans more than 6.5 batters *tonight at Coors Field* with Angel Hernandez behind the plate and a 12 mph wind blowing in?" Every projection is accompanied by a glass-box factor breakdown — park, umpire, catcher framing, weather, platoon — so bettors can understand exactly what is driving each number and make better-informed decisions.
 
 ---
 
@@ -50,7 +50,7 @@ FullCountProps is an open-source, plate-appearance–level Monte Carlo simulator
 │                                                                         │
 │   GameData + PA probability vectors                                     │
 │        │                                                                │
-│        ▼  (× 2,500 Monte Carlo iterations, optionally parallelised)     │
+│        ▼  (× 5,000 Monte Carlo iterations, optionally parallelised)     │
 │   GameSimulator.simulate_game()                                         │
 │        │                                                                │
 │        ├── PA loop: draw outcome → update GameState                     │
@@ -328,7 +328,7 @@ The LightGBM model is expected to outperform the odds-ratio fallback in all scen
 
 ### How a Single Game Simulation Works
 
-The `GameSimulator.simulate_game()` method drives each of the 2,500 Monte Carlo iterations. Each iteration simulates a complete game from the first pitch through either 9 innings or a walk-off/extra-inning conclusion. The sequence within one iteration:
+The `GameSimulator.simulate_game()` method drives each of the 5,000 Monte Carlo iterations. Each iteration simulates a complete game from the first pitch through either 9 innings or a walk-off/extra-inning conclusion. The sequence within one iteration:
 
 ```
 1. Initialise GameState:
@@ -411,13 +411,13 @@ When a starter is pulled, the simulator transitions to a team-composite bullpen 
 - **Extra innings — Manfred runner rule:** When the score is tied after 9 complete innings, each subsequent half-inning begins with a ghost runner placed on second base (`GameState.set_manfred_runner()`). The synthetic runner has `runner_id = -1` and any runs scored by this runner are credited to the team total but not to any individual batter's RBI or runs-scored stats.
 - **Safety cap:** Games cannot exceed `MAX_INNINGS = 25`. If this cap is reached (essentially impossible in real play), the game is declared over.
 
-### Number of Simulations and Why 2,500
+### Number of Simulations and Why 5,000
 
-The default `NUM_SIMULATIONS = 2500` balances statistical precision against computational cost:
+The default `NUM_SIMULATIONS = 5000` balances statistical precision against computational cost:
 
-- **Precision:** For a binary prop (over/under), the standard error of a proportion estimated from N simulations is √(p(1−p)/N). At N=2500 and p=0.50, SE ≈ 1.0%, which is sufficient for edge detection thresholds of 3–5%.
-- **Runtime:** At approximately 70 PA per simulated game and ~50 μs per matchup model call, 2,500 simulations complete in under 60 seconds on a single CPU core. The `GameSimulator` supports parallel execution via `concurrent.futures` for further speedup.
-- **Comparison:** BallparkPal uses 3,000 simulations per game. The [thorpe0/strikeout-simulation](https://github.com/thorpe0/strikeout-simulation) repo uses 100,000 iterations but with a much simpler Poisson model (not PA-level). The INFORMS Operations Research batting-order simulation used 200,000 game iterations. FullCountProps's 2,500 PA-level simulations provide more realistic game-state modelling than a Poisson approximation while remaining tractable for daily use.
+- **Precision:** For a binary prop (over/under), the standard error of a proportion estimated from N simulations is √(p(1−p)/N). At N=5000 and p=0.50, SE ≈ 0.7%, which exceeds accuracy requirements for edge detection thresholds of 3–5%.
+- **Runtime:** At approximately 70 PA per simulated game and ~50 μs per matchup model call, 5,000 simulations complete in under 2 minutes on a single CPU core. The `GameSimulator` supports parallel execution via `concurrent.futures` for further speedup.
+- **Comparison:** BallparkPal uses 3,000 simulations per game. The [thorpe0/strikeout-simulation](https://github.com/thorpe0/strikeout-simulation) repo uses 100,000 iterations but with a much simpler Poisson model (not PA-level). The INFORMS Operations Research batting-order simulation used 200,000 game iterations. FullCountProps's 5,000 PA-level simulations provide more realistic game-state modelling than a Poisson approximation while remaining tractable for daily use.
 
 ---
 
@@ -549,7 +549,7 @@ Transparency builds trust in two ways:
 
 | Feature | BallparkPal | FullCountProps |
 |---|---|---|
-| Simulations per game | 3,000 | 2,500 |
+| Simulations per game | 3,000 | 5,000 |
 | PA-level resolution | Yes | Yes |
 | ML model | Proprietary (100+ features) | LightGBM (33 features) + odds-ratio fallback |
 | Umpire integration | No (uses umpire data for other tools) | Yes — PA-level K adjustment |
@@ -697,7 +697,7 @@ from simulation.matchup_model import MatchupModel
 from simulation.prop_analyzer import PropAnalyzer, PropReporter
 
 # 1. Load config and model
-cfg = SimulationConfig(NUM_SIMULATIONS=2500)
+cfg = SimulationConfig(NUM_SIMULATIONS=5000)
 model = MatchupModel(model_path="models/matchup_model.joblib")
 simulator = GameSimulator(config=cfg, matchup_model=model)
 analyzer = PropAnalyzer(config=cfg)
