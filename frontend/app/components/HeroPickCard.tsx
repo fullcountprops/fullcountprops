@@ -18,11 +18,7 @@ import { TopEdgeCard } from './TopEdgeCard';
 const OPENING_DAY = new Date('2026-03-27T00:00:00-04:00');
 
 // =================================================================
-// SamplePickCard — your existing hardcoded Corbin Burnes card.
-//
-// IMPORTANT: Copy your EXACT existing JSX from page.tsx into this
-// function. Below is a recreation based on what I saw on the live
-// site — but match your actual code exactly (classNames, structure).
+// SamplePickCard — hardcoded Garrett Crochet card.
 // =================================================================
 function SamplePickCard() {
   return (
@@ -42,9 +38,9 @@ function SamplePickCard() {
 
       {/* Player + matchup */}
       <div className="mt-3">
-        <div className="text-lg font-semibold text-white">Corbin Burnes</div>
+        <div className="text-lg font-semibold text-white">Garrett Crochet</div>
         <p className="mt-0.5 text-sm text-slate-500">
-          BAL vs NYY · Yankee Stadium
+          BOS vs TOR · Fenway Park
         </p>
       </div>
 
@@ -61,19 +57,19 @@ function SamplePickCard() {
         </p>
         <div className="flex justify-between text-sm">
           <span className="text-slate-400">Base matchup K rate</span>
-          <span className="text-slate-300">26.3%</span>
+          <span className="text-slate-300">25.8%</span>
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-slate-400">Park K factor</span>
-          <span className="text-green-400">+1.4pp</span>
+          <span className="text-green-400">+1.0pp</span>
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-slate-400">Umpire tendency</span>
-          <span className="text-green-400">+2.2pp</span>
+          <span className="text-green-400">+1.4pp</span>
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-slate-400">Catcher framing</span>
-          <span className="text-green-400">+3.0pp</span>
+          <span className="text-green-400">+1.8pp</span>
         </div>
       </div>
 
@@ -81,11 +77,11 @@ function SamplePickCard() {
       <div className="mt-4 grid grid-cols-4 gap-3 border-t border-slate-800 pt-4">
         <div>
           <p className="text-xs text-slate-500">Sim mean</p>
-          <p className="text-sm font-semibold text-white">6.8 Ks</p>
+          <p className="text-sm font-semibold text-white">8.4 Ks</p>
         </div>
         <div>
           <p className="text-xs text-slate-500">P(Over)</p>
-          <p className="text-sm font-semibold text-white">60.7%</p>
+          <p className="text-sm font-semibold text-white">68.3%</p>
         </div>
         <div>
           <p className="text-xs text-slate-500">Book implied</p>
@@ -134,7 +130,6 @@ export function HeroPickCard() {
 
   return (
     <Suspense fallback={<PickCardSkeleton />}>
-      {/* @ts-expect-error Async Server Component */}
       <TopEdgeCard />
     </Suspense>
   );
