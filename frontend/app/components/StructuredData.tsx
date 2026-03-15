@@ -12,7 +12,7 @@ export function HomepageJsonLd() {
     operatingSystem: 'Web',
     url: 'https://www.fullcountprops.com',
     description:
-      'MLB prop betting analytics powered by Monte Carlo simulation. 3,000 sims per game, 24 engineered features, glass-box factor breakdowns on every pick.',
+      'MLB prop betting analytics powered by Monte Carlo simulation. 3,000 sims per game, 33 engineered features, glass-box factor breakdowns on every pick.',
     offers: [
       {
         '@type': 'Offer',
@@ -68,7 +68,7 @@ export function FaqJsonLd() {
         name: 'How does FullCountProps generate prop predictions?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'We run 2,500 Monte Carlo simulations per game at the plate-appearance level, using 33 Statcast features including park factors, umpire tendencies, and catcher framing data.',
+          text: 'We run 3,000 Monte Carlo simulations per game at the plate-appearance level, using 33 Statcast features including park factors, umpire tendencies, and catcher framing data.',
         },
       },
       {
