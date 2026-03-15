@@ -163,11 +163,7 @@ export const FOUNDING_MEMBER_CAP = 100;
  */
 export const STRIPE_PRICE_TO_TIER: Record<string, TierName> = {
   // Double-A prices
-  // TODO: Add the current $9/mo Double-A price ID here once confirmed from
-  //       Stripe Dashboard (Products → FullCountProps Double-A → Prices).
-  //       Without this, the webhook falls back to the env-var-only path via
-  //       buildPriceToTierMap(). If STRIPE_DOUBLE_A_MONTHLY_PRICE_ID is unset
-  //       in Vercel, new Double-A subscribers will be assigned single_a.
+  'price_1TBIRyCHMWdtVF7LxSqpG5r7': 'double_a', // Double-A monthly $9/mo (current default)
   'price_1T7WVcCHMWdtVF7LGT9iNi4C': 'double_a', // Double-A monthly $7.99 (archived — original price)
   'price_1TB8vOCHMWdtVF7LZY7ThWrX': 'double_a', // Double-A Founding Member $4.99/mo
   // Triple-A prices
