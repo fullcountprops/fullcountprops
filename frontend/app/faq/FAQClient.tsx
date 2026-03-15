@@ -203,7 +203,7 @@ const FAQ_SECTIONS: { title: string; items: FAQItem[] }[] = [
         ),
       },
       {
-        question: 'What does the Double-A plan ($7.99/mo) add?',
+        question: 'What does the Double-A plan ($9/mo) add?',
         answer: (
           <ul className="list-disc list-outside ml-5 space-y-1">
                             <li>Everything in Single-A (free tier)</li>
@@ -216,7 +216,7 @@ const FAQ_SECTIONS: { title: string; items: FAQItem[] }[] = [
         ),
       },
                     {
-          question: 'What does the Triple-A plan ($29.99/mo) add?',
+          question: 'What does the Triple-A plan ($19/mo) add?',
           answer: (
             <ul className="list-disc list-outside ml-5 space-y-1">
                 <li>Everything in Double-A</li>
@@ -231,7 +231,7 @@ const FAQ_SECTIONS: { title: string; items: FAQItem[] }[] = [
           ),
         },
       {
-        question: 'What does The Show plan ($49.99/mo) add?',
+        question: 'What does The Show plan ($39/mo) add?',
         answer: (
           <ul className="list-disc list-outside ml-5 space-y-1">
             <li>Everything in Triple-A</li>
