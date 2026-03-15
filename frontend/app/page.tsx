@@ -205,7 +205,7 @@ export default async function HomePage() {
               </p>
 
               {/* CTA */}
-              <div className="flex flex-col sm:flex-row items-center gap-3">                   <Link href="/subscribe" className="rounded-lg bg-green-600 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-green-500">Start Free — 3 Picks Daily</Link>                   <Link href="/subscribe" className="rounded-lg border border-slate-700 px-6 py-3 text-base font-medium text-slate-300 transition-colors hover:border-slate-500 hover:text-white">See All Plans</Link>                 </div>                 <p className="mt-3 text-sm text-slate-500">Free tier includes top 3 daily edges. No credit card required.</p>
+              <div className="flex flex-col sm:flex-row items-center gap-3">                   <Link href="/edges" className="rounded-lg bg-green-600 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-green-500">See Today's Top Picks</Link>                   <Link href="/subscribe" className="rounded-lg border border-slate-700 px-6 py-3 text-base font-medium text-slate-300 transition-colors hover:border-slate-500 hover:text-white">See All Plans</Link>                 </div>                 <p className="mt-3 text-sm text-slate-500">Free tier includes top 3 daily edges. No credit card required.</p>
 
                             {/* Opening Day Email Signup */}
               <div className="mt-6 w-full max-w-md mx-auto">
@@ -268,7 +268,7 @@ export default async function HomePage() {
                 <div className="font-medium text-white">Free tier — no signup required</div>
                 <div className="mt-1 text-sm text-slate-400">
                   See the top 3 daily edges with full factor breakdowns.
-                  Upgrade to Pro for the complete slate, CSV export, and SHAP explanations.
+                  Upgrade to Double-A for the complete slate, CSV export, and SHAP explanations.
                 </div>
               </div>
             </div>
@@ -451,15 +451,15 @@ export default async function HomePage() {
             Ready to find your edge?
           </h2>
           <p className="text-slate-400 mb-6 max-w-md mx-auto">
-            Start with 3 free picks daily, or upgrade to Pro for the full slate
+            Start with 3 free picks daily, or Upgrade to Double-A for the full slate
             with SHAP explanations and CSV export.
           </p>
           <div className="flex items-center justify-center gap-4 flex-wrap">
             <Link
-              href="/subscribe"
+              href="/edges"
               className="px-6 py-3 bg-green-600 hover:bg-green-500 text-white font-semibold rounded-xl transition-colors"
             >
-              Start Free — 3 Picks Daily
+              See Today's Top Picks
             </Link>
             <Link
               href="/methodology"
