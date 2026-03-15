@@ -34,6 +34,7 @@ function getPriceId(
     triple_a_annual: process.env.STRIPE_PRO_ANNUAL_PRICE_ID,
     the_show_monthly: process.env.STRIPE_PREMIUM_MONTHLY_PRICE_ID,
     the_show_annual: process.env.STRIPE_PREMIUM_ANNUAL_PRICE_ID,
+        founding_member_monthly: process.env.NEXT_PUBLIC_FOUNDING_PRICE_ID,
   };
 
   return map[`${plan}_${period}`] ?? null;
@@ -74,8 +75,8 @@ export async function POST(request: NextRequest) {
     const plan = body.plan as string;
     const period = (body.period as string) || 'monthly';
 
-    const validPlans = [TIERS.DOUBLE_A, TIERS.TRIPLE_A, TIERS.THE_SHOW];
-    if (!validPlans.includes(plan as typeof TIERS.DOUBLE_A)) {
+        const validPlans = [TIERS.DOUBLE_A, TIERS.TRIPLE_A, TIERS.THE_SHOW, 'founding_member'];
+  if (!validPlans.includes(plan as typeof TIERS.DOUBLE_A)) {
       return NextResponse.json(
         { error: `Invalid plan. Must be one of: ${validPlans.join(', ')}` },
         { status: 400 }
