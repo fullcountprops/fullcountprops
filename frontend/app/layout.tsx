@@ -313,6 +313,12 @@ export default function RootLayout({
                 <Link href="/privacy" className="hover:text-slate-400 transition-colors">
                   Privacy Policy
                 </Link>
+                              <Link href="/disclaimer" className="hover:text-slate-400 transition-colors">
+                Disclaimer
+              </Link>
+              <Link href="/cookies" className="hover:text-slate-400 transition-colors">
+                Cookie Policy
+              </Link>
               </div>
             </div>
           </div>
