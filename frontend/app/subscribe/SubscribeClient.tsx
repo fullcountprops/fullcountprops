@@ -4,7 +4,7 @@
 // SubscribeClient — Tier comparison & Stripe checkout flow
 // ============================================================
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { TIER_DISPLAY } from '../lib/tiers'
 
@@ -77,6 +77,8 @@ export default function SubscribeClient() {
         </div>
       )}
 
+      <FoundingMemberBanner />
+
       {/* Pricing Cards */}
       <div className="max-w-6xl mx-auto px-4 pb-20 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
         {TIERS.map(tier => (
@@ -145,4 +147,24 @@ export default function SubscribeClient() {
       </div>
     </div>
   )
+}
+
+function FoundingMemberBanner() {
+  const [spots, setSpots] = useState<number | null>(null);
+  useEffect(() => {
+    fetch('/api/founding-spots')
+      .then(res => res.json())
+      .then(data => { if (data.available) setSpots(data.remaining); else setSpots(0); })
+      .catch(() => setSpots(null));
+  }, []);
+  if (spots === null || spots <= 0) return null;
+  return (
+    <div className="max-w-5xl mx-auto px-4 mb-8">
+      <div className="rounded-xl border border-green-800/50 bg-green-950/30 p-6 text-center">
+        <p className="text-green-400 font-semibold text-sm uppercase tracking-wider mb-1">Founding Member Offer</p>
+        <p className="text-white text-xl font-bold mb-2">Lock in $4.99/mo for life <span className="text-slate-400 text-base font-normal ml-2 line-through">$7.99/mo</span></p>
+        <p className="text-slate-400 text-sm">First 100 subscribers get the founding rate &mdash; permanently. <span className="text-green-400 font-medium">{spots} spot{spots !== 1 ? 's' : ''} left.</span></p>
+      </div>
+    </div>
+  );
 }

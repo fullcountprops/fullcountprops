@@ -113,7 +113,25 @@ export async function POST(request: NextRequest) {
     }
 
     // ---- 5. Resolve Stripe price ID ----
-    const priceId = getPriceId(plan, period);
+    let priceId = getPriceId(plan, period);
+
+    // Founding member pricing: serve $4.99 if slots remain
+    if (plan === 'double_a' && period === 'monthly') {
+      const foundingPriceId = process.env.STRIPE_FOUNDING_DOUBLE_A_PRICE_ID;
+      if (foundingPriceId) {
+        const supabaseAdmin = createClient(supabaseUrl, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+        const { count, error: countError } = await supabaseAdmin
+          .from('subscriptions')
+          .select('*', { count: 'exact', head: true })
+          .eq('tier', 'double_a')
+          .eq('status', 'active');
+        if (!countError && (count ?? 0) < 100) {
+          priceId = foundingPriceId;
+        }
+        // else: slots full or query error, fall through to regular $7.99
+      }
+    }
+
     if (!priceId) {
       return NextResponse.json(
         {
