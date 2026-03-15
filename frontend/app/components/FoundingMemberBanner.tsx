@@ -17,7 +17,7 @@ import { createClient } from '@supabase/supabase-js';
 
 const TOTAL_SPOTS = 100;
 const FOUNDING_PRICE = 4.99;
-const REGULAR_PRICE = 7.99;
+const REGULAR_PRICE = 9;
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
