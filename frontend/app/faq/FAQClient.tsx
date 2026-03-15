@@ -295,7 +295,7 @@ const FAQ_SECTIONS: { title: string; items: FAQItem[] }[] = [
         answer: (
           <p>
             BallparkPal is our closest structural competitor — they also run PA-level
-            Monte Carlo simulations (3,000 per game vs. our 2,500). Their advantages:
+            Monte Carlo simulations (3,000 per game vs. our 3,000). Their advantages:
             a trained proprietary model with 100+ features and years of production
             refinement. Our advantages: open source, free tier, glass-box SHAP
             explanations (they don&apos;t show factor breakdowns), deeper park
