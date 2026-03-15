@@ -1,21 +1,4 @@
-// ===========================================================
-// /subscribe — Subscription Tier Comparison Page
-// Server component with metadata; client interactions in
-// SubscribeClient.tsx
-// ===========================================================
-
-import { Metadata } from 'next'
-import SubscribeClient from './SubscribeClient'
-
-export const metadata: Metadata = {
-  title: 'Subscribe – FullCountProps',
-  description: 'Unlock full MLB prop edges: Double-A ($9/mo), Triple-A ($19/mo), or The Show ($39/mo). Daily email alerts, API access, and more.',
-  openGraph: {
-    title: 'Subscribe to FullCountProps',
-    description: 'MLB prop analytics starting at $9/mo. Full slate access, SHAP explanations, and glass-box transparency on every pick.',
-  },
-}
-
+import { redirect } from 'next/navigation';
 export default function SubscribePage() {
-  return <SubscribeClient />
+  redirect('/pricing');
 }

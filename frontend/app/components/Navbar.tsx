@@ -190,10 +190,10 @@ export function Navbar() {
             <DesktopDropdown key={group.label} group={group} pathname={pathname} />
           ))}
           <Link
-            href="/subscribe"
+            href="/pricing"
             className="bg-green-600 hover:bg-green-500 text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-colors"
           >
-            Subscribe
+            Pricing
           </Link>
         </div>
 
@@ -224,10 +224,10 @@ export function Navbar() {
               <MobileSection key={group.label} group={group} pathname={pathname} />
             ))}
             <Link
-              href="/subscribe"
+              href="/pricing"
               className="mt-5 block bg-green-600 hover:bg-green-500 text-white px-4 py-2.5 rounded-lg font-medium text-center text-sm transition-colors"
             >
-              Subscribe
+              Pricing
             </Link>
           </div>
         </div>

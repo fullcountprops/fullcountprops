@@ -215,7 +215,7 @@ export default function RootLayout({
                     </Link>
                   </li>
                   <li>
-                    <Link href="/subscribe" className="text-slate-500 hover:text-slate-300 transition-colors">
+                    <Link href="/pricing" className="text-slate-500 hover:text-slate-300 transition-colors">
                       Pricing
                     </Link>
                   </li>

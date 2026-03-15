@@ -97,7 +97,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     // Conversion pages
     {
-      url: `${BASE_URL}/subscribe`,
+      url: `${BASE_URL}/pricing`,
       lastModified: now,
       changeFrequency: 'monthly',
       priority: 0.8,
