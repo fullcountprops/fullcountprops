@@ -6,9 +6,9 @@
 .PHONY: help simulate backtest train refresh-data test lint test-python \
         test-frontend projections grade props setup clean full-daily-pipeline \
         backfill-statcast build-training-data train-model full-pipeline \
-        quick-test-pipeline
+        quick-test-pipeline health-check
 
-PYTHON ?= python3.11
+PYTHON ?= python3
 PIP ?= pip
 NPM ?= npm
 NUM_SIMS ?= 10000
@@ -135,6 +135,9 @@ full-pipeline: ## Full ML pipeline: backfill-statcast â†’ build-training-data â†
 	$(MAKE) build-training-data START_YEAR=$(START_YEAR) END_YEAR=$(END_YEAR)
 	$(MAKE) train-model
 	@echo "$(GREEN)Full ML pipeline complete.$(RESET)"
+
+health-check: ## Verify today's projections are present and fresh in Supabase
+	$(PYTHON) scripts/pipeline_health_check.py
 
 quick-test-pipeline: ## Quick single-season pipeline test (2024 only, no CV)
 	@echo "$(CYAN)Running quick test pipeline (2024, no CV)...$(RESET)"
