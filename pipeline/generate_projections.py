@@ -381,7 +381,7 @@ def project_pitcher(mlbam_id, player_name, opponent, venue, game_pk=None):
     # Factor 1: Career K/9 and BB/9
     career_k9 = fetch_pitcher_k9(mlbam_id)
     career_bb9 = fetch_pitcher_bb9(mlbam_id)
-        career_rates = fetch_pitcher_career_rates(mlbam_id)
+    career_rates = fetch_pitcher_career_rates(mlbam_id)
     career_h9 = career_rates["career_h9"]
     career_hr9 = career_rates["career_hr9"]
     career_era = career_rates["career_era"]
@@ -606,7 +606,7 @@ def project_pitcher(mlbam_id, player_name, opponent, venue, game_pk=None):
         }),
     }
 
-        ip_proj = {
+    ip_proj = {
         "mlbam_id": mlbam_id,
         "player_name": player_name,
         "stat_type": "pitcher_innings",
