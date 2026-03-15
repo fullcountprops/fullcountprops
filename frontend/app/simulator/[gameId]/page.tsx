@@ -64,7 +64,7 @@ function generateDemoBuckets(mean: number, std: number, line: number | null): { 
   const maxVal = Math.ceil(mean + 3 * std)
   for (let v = minVal; v <= maxVal; v++) {
     const z = (v - mean) / (std || 1)
-    const count = Math.round(3000 * Math.exp(-0.5 * z * z) / (std * Math.sqrt(2 * Math.PI)))
+    const count = Math.round(2500 * Math.exp(-0.5 * z * z) / (std * Math.sqrt(2 * Math.PI)))
     buckets.push({ value: v, count: Math.max(0, count) })
   }
   return buckets
@@ -97,7 +97,7 @@ function DistributionChart({
       return (
         <div className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-xs">
           <p className="text-white font-semibold">{d.value} {STAT_LABELS[player.stat_type] || player.stat_type}</p>
-          <p className="text-slate-400">{d.count} simulations ({((d.count / 3000) * 100).toFixed(1)}%)</p>
+          <p className="text-slate-400">{d.count} simulations ({((d.count / 2500) * 100).toFixed(1)}%)</p>
         </div>
       )
     }
