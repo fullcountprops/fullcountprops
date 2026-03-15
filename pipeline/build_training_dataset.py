@@ -181,11 +181,21 @@ def split_train_test(
     years = sorted(df["game_year"].unique())
     test_yr = test_year or max(years)
 
-    log.info(f"  Train years: {[y for y in years if y != test_yr]}")
-    log.info(f"  Test year:   {test_yr}")
-
     train_df = df[df["game_year"] != test_yr].copy()
     test_df = df[df["game_year"] == test_yr].copy()
+
+    # Single-year fallback: if all data is in the test year, use a random 80/20 split
+    if len(train_df) == 0:
+        log.warning(
+            "Only one season (%d) found — falling back to random 80/20 train/test split.",
+            test_yr,
+        )
+        train_df = df.sample(frac=0.8, random_state=42)
+        test_df = df.drop(train_df.index)
+        log.info(f"  Train rows: {len(train_df):,}  Test rows: {len(test_df):,}")
+    else:
+        log.info(f"  Train years: {[y for y in years if y != test_yr]}")
+        log.info(f"  Test year:   {test_yr}")
 
     feature_cols = [c for c in ALL_FEATURES if c in df.columns]
 
