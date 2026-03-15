@@ -108,7 +108,7 @@ const TIER_GATED_ROUTES: { path: string; minTier: string }[] = [
 ];
 
 // Routes where tier info is passed as a header but access is not blocked
-const TIER_AWARE_ROUTES = ['/edges', '/players'];
+const TIER_AWARE_ROUTES = ['/edges', '/players', '/most-likely', '/projections'];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -126,7 +126,6 @@ export function middleware(request: NextRequest) {
   // ---- Public routes — no tier check needed ----
   const publicPaths = [
     '/',
-    '/projections',
     '/compare',
     '/methodology',
     '/faq',
@@ -176,7 +175,6 @@ export function middleware(request: NextRequest) {
   );
 
   if (isTierAware) {
-    const response = NextResponse.next();
     // Pass tier to the page via a request header (readable in server components)
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set('x-subscription-tier', tier);

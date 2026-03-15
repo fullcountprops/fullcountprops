@@ -10,7 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
-import { TIERS, normalizeTier } from '@/app/lib/tiers';
+import { TIERS } from '@/app/lib/tiers';
 
 let _stripe: Stripe | null = null;
 function getStripe(): Stripe {
@@ -34,7 +34,7 @@ function getPriceId(
     triple_a_annual: process.env.STRIPE_PRO_ANNUAL_PRICE_ID,
     the_show_monthly: process.env.STRIPE_PREMIUM_MONTHLY_PRICE_ID,
     the_show_annual: process.env.STRIPE_PREMIUM_ANNUAL_PRICE_ID,
-        founding_member_monthly: process.env.NEXT_PUBLIC_FOUNDING_PRICE_ID,
+        founding_member_monthly: process.env.STRIPE_FOUNDING_DOUBLE_A_PRICE_ID,
   };
 
   return map[`${plan}_${period}`] ?? null;
@@ -83,11 +83,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ---- 3. Check if user already has this or higher tier ----
-    const currentTier = normalizeTier(user.user_metadata?.subscription_tier);
-    // (Allow checkout regardless — Stripe handles upgrades/downgrades)
-
-    // ---- 4. Get or create Stripe customer ----
+    // ---- 3. Get or create Stripe customer ----
     let customerId = user.user_metadata?.stripe_customer_id as
       | string
       | undefined;
@@ -129,7 +125,7 @@ export async function POST(request: NextRequest) {
         if (!countError && (count ?? 0) < 100) {
           priceId = foundingPriceId;
         }
-        // else: slots full or query error, fall through to regular $7.99
+        // else: slots full or query error, fall through to regular $9/mo
       }
     }
 

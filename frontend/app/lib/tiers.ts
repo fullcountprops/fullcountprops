@@ -163,14 +163,19 @@ export const FOUNDING_MEMBER_CAP = 100;
  */
 export const STRIPE_PRICE_TO_TIER: Record<string, TierName> = {
   // Double-A prices
-  'price_1T7WVcCHMWdtVF7LGT9iNi4C': 'double_a', // Double-A monthly $7.99 (original default)
+  // TODO: Add the current $9/mo Double-A price ID here once confirmed from
+  //       Stripe Dashboard (Products → FullCountProps Double-A → Prices).
+  //       Without this, the webhook falls back to the env-var-only path via
+  //       buildPriceToTierMap(). If STRIPE_DOUBLE_A_MONTHLY_PRICE_ID is unset
+  //       in Vercel, new Double-A subscribers will be assigned single_a.
+  'price_1T7WVcCHMWdtVF7LGT9iNi4C': 'double_a', // Double-A monthly $7.99 (archived — original price)
   'price_1TB8vOCHMWdtVF7LZY7ThWrX': 'double_a', // Double-A Founding Member $4.99/mo
   // Triple-A prices
-  'price_1TBHXMCHMWdtVF7L6cLerQ6q': 'triple_a', // Triple-A monthly $29.99 (current default)
+  'price_1TBIUqCHMWdtVF7LiWLpv0cj': 'triple_a', // Triple-A monthly $19/mo (current default)
   'price_1TBHSVCHMWdtVF7LfmebGKhC': 'triple_a', // Triple-A monthly $19.00 (archived)
   'price_1T7TZjCHMWdtVF7LPK79esVb': 'triple_a', // Triple-A monthly $29.00 (archived)
   // The Show prices
-  'price_1TBHaACHMWdtVF7LgKr1muuZ': 'the_show', // The Show monthly $49.99 (current default)
+  'price_1TBIWhCHMWdtVF7L4ILjZtPV': 'the_show', // The Show monthly $39/mo (current default)
   'price_1TBHUHCHMWdtVF7LrME2uBAk': 'the_show', // The Show monthly $39.00 (archived)
   'price_1T7TosCHMWdtVF7LowXBxhaW': 'the_show', // The Show monthly $49.00 (archived)
 };
