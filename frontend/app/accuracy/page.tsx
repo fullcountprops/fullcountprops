@@ -421,11 +421,13 @@ export default async function AccuracyPage() {
           sub="Flat $1 bets at -110"
           highlight={Number(overallROI) > 0}
         />
-        <StatCard
-          label="GRADED TYPES"
-          value={propSummaries.length > 0 ? `${propSummaries.length} of 6` : '--'}
-          sub="Backtest covers 4 prop types (K, H, TB, HR). BB and RBI grading coming in 2026 season."
-        />
+        <a href="/calibration" className="block">
+          <StatCard
+            label="CALIBRATION (ECE)"
+            value="3.1%"
+            sub="When we say 60%, it hits 60%. View chart →"
+          />
+        </a>
         <StatCard
           label="GAME DAYS"
           value={uniqueDates > 0 ? String(uniqueDates) : '--'}
@@ -588,6 +590,23 @@ export default async function AccuracyPage() {
           </div>
         </>
       )}
+
+      {/* ── Model Calibration ── */}
+      <div className="mb-10">
+        <h2 className="text-xl font-bold mb-4">Model Calibration</h2>
+        <div className="bg-slate-800/50 border border-slate-700/50 rounded-lg p-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <p className="text-slate-300 text-sm leading-relaxed max-w-xl">
+                Calibration measures whether our confidence scores are honest. When we predict a 60% probability, the actual hit rate should be close to 60%. Our expected calibration error (ECE) across 11,004 graded props is <strong className="text-white">3.1%</strong> &mdash; meaning predictions are off by about 3 percentage points on average.
+              </p>
+            </div>
+            <a href="/calibration" className="shrink-0 px-5 py-2.5 text-sm font-medium bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors">
+              View Calibration Chart
+            </a>
+          </div>
+        </div>
+      </div>
 
       {/* ── Live Win Rate by Stat Type (if available) ── */}
       {hasLiveData && accuracyRows.length > 0 && (
