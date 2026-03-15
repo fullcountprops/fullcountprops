@@ -124,7 +124,7 @@ export default async function HomePage() {
               </h1>
 
               <p className="text-slate-400 text-lg leading-relaxed mb-8 max-w-lg">
-                2,500 Monte Carlo simulations per game. 33 Statcast features.
+                2,500 Monte Carlo simulations per game. 24 engineered features.
                 Glass-box factor breakdowns on every pick. See exactly why we like
                 each bet &mdash; not just that we do.
               </p>
@@ -214,7 +214,7 @@ export default async function HomePage() {
             {
               step: '01',
               title: 'Matchup Model',
-              desc: 'A LightGBM model takes 33 Statcast features for every pitcher-batter matchup and predicts the probability of 8 PA outcomes.',
+              desc: 'A LightGBM model takes 24 engineered features for every pitcher-batter matchup and predicts the probability of 8 PA outcomes.',
               color: 'text-green-400',
             },
             {
