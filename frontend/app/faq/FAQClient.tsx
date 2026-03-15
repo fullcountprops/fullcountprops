@@ -206,16 +206,29 @@ const FAQ_SECTIONS: { title: string; items: FAQItem[] }[] = [
         question: 'What does the Double-A plan ($7.99/mo) add?',
         answer: (
           <ul className="list-disc list-outside ml-5 space-y-1">
-            <li>All edges — full slate every day, not just the top 3</li>
-            <li>Full probability distributions (p10, p25, p50, p75, p90)</li>
-            <li>SHAP feature attribution for every pick</li>
-            <li>Kelly criterion bet sizing</li>
-            <li>Daily email digest delivered at 11am ET</li>
-            <li>Player prediction history (last 50 games)</li>
-            <li>Backtest accuracy broken down by stat type</li>
-          </ul>
+                            <li>Everything in Single-A (free tier)</li>
+                <li>Full daily best bets (every game)</li>
+                <li>Full edges page access</li>
+                <li>Basic SHAP explanations (top 3 factors)</li>
+                <li>Player pages with recent history</li>
+                <li>Daily email digest delivered at 11am ET</li>
         ),
       },
+                    {
+          question: 'What does the Triple-A plan ($29.99/mo) add?',
+          answer: (
+            <ul className="list-disc list-outside ml-5 space-y-1">
+                <li>Everything in Double-A</li>
+                <li>Full SHAP breakdowns (all factors)</li>
+                <li>Probability distributions</li>
+                <li>Kelly criterion sizing</li>
+                <li>Full backtest accuracy and calibration</li>
+                <li>Game simulator access</li>
+                <li>Umpire framing and park composites</li>
+                <li>50-game player history</li>
+            </ul>
+          ),
+        },
       {
         question: 'What does The Show plan ($49.99/mo) add?',
         answer: (
