@@ -115,6 +115,31 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'daily',
       priority: 0.4,
     },
+    // Blog
+    {
+      url: `${BASE_URL}/blog`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.6,
+    },
+    {
+      url: `${BASE_URL}/blog/mlb-strikeout-props-guide`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.6,
+    },
+    {
+      url: `${BASE_URL}/blog/how-park-factors-affect-mlb-props`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.6,
+    },
+    {
+      url: `${BASE_URL}/blog/monte-carlo-simulation-sports-betting`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.6,
+    },
   ];
 
   // ---- Dynamic player pages ----
