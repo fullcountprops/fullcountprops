@@ -70,7 +70,7 @@ export function routeTask(task: TaskDescriptor): RoutingDecision {
     return {
       model: 'haiku-4.5',
       reason: `QA anomaly detection at ${task.criticality} criticality`,
-      expected_risk: task.criticality === 'high' ? 'medium' : 'low',
+      expected_risk: 'low',
     };
   }
 

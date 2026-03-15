@@ -3,6 +3,7 @@
 // ============================================================
 
 // ── Subscription Tiers ──────────────────────────────────────────────
+/** @deprecated Use TierName from '@/app/lib/tiers' instead. Legacy type kept for backward compat. */
 export type SubscriptionTier = 'free' | 'pro' | 'premium'
 
 export interface Subscription {

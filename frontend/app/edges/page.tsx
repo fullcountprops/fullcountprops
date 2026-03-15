@@ -270,7 +270,7 @@ function UpgradeBanner({ totalCount, visibleCount }: { totalCount: number; visib
         {hiddenCount} more edge{hiddenCount !== 1 ? 's' : ''} available today
       </h3>
       <p className="text-slate-400 text-sm mb-4 max-w-lg mx-auto">
-        Free accounts see the top {visibleCount} edges. Upgrade to Double-A ($7.99/mo) for full access
+        Free accounts see the top {visibleCount} edges. Upgrade to Double-A ($9/mo) for full access
         to every edge, factor breakdown, and daily email digest.
       </p>
       <Link

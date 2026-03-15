@@ -203,7 +203,7 @@ const FAQ_SECTIONS: { title: string; items: FAQItem[] }[] = [
         ),
       },
       {
-        question: 'What does the Double-A plan ($9/mo) add?',
+        question: 'What does Double-A ($9/mo) include?',
         answer: (
           <ul className="list-disc list-outside ml-5 space-y-1">
                             <li>Everything in Single-A (free tier)</li>
@@ -215,33 +215,30 @@ const FAQ_SECTIONS: { title: string; items: FAQItem[] }[] = [
                         </ul>
         ),
       },
-                    {
-          question: 'What does the Triple-A plan ($19/mo) add?',
-          answer: (
-            <ul className="list-disc list-outside ml-5 space-y-1">
-                <li>Everything in Double-A</li>
-                <li>Full SHAP breakdowns (all factors)</li>
-                <li>Probability distributions</li>
-                <li>Kelly criterion sizing</li>
-                <li>Full backtest accuracy and calibration</li>
-                <li>Game simulator access</li>
-                <li>Umpire framing and park composites</li>
-                <li>50-game player history</li>
-            </ul>
-          ),
-        },
       {
-        question: 'What does The Show plan ($39/mo) add?',
+        question: 'What does Triple-A ($19/mo) and The Show ($39/mo) include?',
         answer: (
-          <ul className="list-disc list-outside ml-5 space-y-1">
-            <li>Everything in Triple-A</li>
-            <li>REST API access (1,000 requests per hour)</li>
-            <li>API key management dashboard</li>
-            <li>CSV export of all edges and projections</li>
-            <li>Custom alert thresholds for edge notifications</li>
-            <li>Player history expanded to 200 games</li>
-            <li>Webhook notifications (coming soon)</li>
-          </ul>
+          <>
+            <p><strong className="text-slate-200">Triple-A ($19/mo)</strong> adds everything in Double-A plus:</p>
+            <ul className="list-disc list-outside ml-5 space-y-1 mt-2 mb-4">
+              <li>Full SHAP breakdowns (all factors)</li>
+              <li>Probability distributions</li>
+              <li>Kelly criterion sizing</li>
+              <li>Full backtest accuracy and calibration</li>
+              <li>Game simulator access</li>
+              <li>Umpire framing and park composites</li>
+              <li>50-game player history</li>
+            </ul>
+            <p><strong className="text-slate-200">The Show ($39/mo)</strong> adds everything in Triple-A plus:</p>
+            <ul className="list-disc list-outside ml-5 space-y-1 mt-2">
+              <li>REST API access (1,000 requests per hour)</li>
+              <li>API key management dashboard</li>
+              <li>Custom alert thresholds</li>
+              <li>200-game player history</li>
+              <li>Priority support</li>
+              <li>Webhook notifications (coming soon)</li>
+            </ul>
+          </>
         ),
       },
       {

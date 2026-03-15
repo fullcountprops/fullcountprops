@@ -41,7 +41,7 @@ export async function GET(
       )
     }
 
-    const limit = tier === 'single_a' ? 10 : tier === 'double_a' ? 50 : 200
+    const limit = (tier as string) === 'single_a' ? 10 : (tier as string) === 'double_a' ? 50 : 200
 
     const { data: picks, error } = await supabase
       .from('picks')

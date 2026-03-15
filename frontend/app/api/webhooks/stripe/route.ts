@@ -78,7 +78,8 @@ async function syncSubscriptionsTable(params: {
   currentPeriodStart?: string;
   currentPeriodEnd?: string;
 }) {
-  const db = getSupabaseAdmin();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = getSupabaseAdmin() as any;
 
   // Check if row exists by stripe_customer_id
   const { data: existing } = await db
