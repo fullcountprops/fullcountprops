@@ -1,5 +1,5 @@
 # =============================================================================
-# simulator.yml — Baseline MLB
+# simulator.yml — FullCountProps
 # Monte Carlo game simulation pipeline (CANONICAL — replaces daily_simulation.yml)
 #
 # Schedule: Daily at 11:00 AM ET (15:00 UTC during EDT)
