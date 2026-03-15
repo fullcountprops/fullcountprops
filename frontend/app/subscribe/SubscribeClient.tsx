@@ -37,7 +37,7 @@ export default function SubscribeClient() {
     setError(null)
     setLoading(tier)
     try {
-      const res = await fetch('/api/v1/checkout', {
+      const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
