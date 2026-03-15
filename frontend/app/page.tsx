@@ -261,6 +261,14 @@ export default async function HomePage() {
           DIFFERENTIATORS
           ════════════════════════════════════════════════ */}
       <section className="max-w-6xl mx-auto px-4 pb-20">
+                <div className="text-center mb-12">
+          <h2 className="text-2xl font-bold text-white mb-3">
+            Built Different
+          </h2>
+          <p className="text-slate-400 max-w-lg mx-auto">
+            Six reasons FullCountProps stands apart from every other prop analytics tool.
+          </p>
+        </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {[
             {
@@ -311,6 +319,34 @@ export default async function HomePage() {
       {/* ════════════════════════════════════════════════
           TODAY'S GAMES (if any)
           ════════════════════════════════════════════════ */}
+      
+      {/* ════════════════════════════════════════════════
+          MID-PAGE CTA
+      ════════════════════════════════════════════════ */}
+      <section className="max-w-4xl mx-auto px-4 py-16">
+        <div className="text-center p-8 bg-gradient-to-r from-green-950/30 via-slate-900/60 to-green-950/30 border border-slate-800 rounded-2xl">
+          <h2 className="text-xl font-bold text-white mb-2">
+            See what the model likes today
+          </h2>
+          <p className="text-slate-400 mb-5 max-w-md mx-auto text-sm">
+            Free tier: top 3 daily edges with full factor breakdowns. Upgrade anytime for the complete slate.
+          </p>
+          <div className="flex items-center justify-center gap-3 flex-wrap">
+            <Link
+              href="/edges"
+              className="px-5 py-2.5 bg-green-600 hover:bg-green-500 text-white font-semibold rounded-lg transition-colors text-sm"
+            >
+              View Today's Edges
+            </Link>
+            <Link
+              href="/subscribe"
+              className="px-5 py-2.5 border border-slate-700 hover:border-slate-500 text-slate-300 hover:text-white font-medium rounded-lg transition-colors text-sm"
+            >
+              Compare Plans
+            </Link>
+          </div>
+        </div>
+      </section>
       {games.length > 0 && (
         <section className="max-w-6xl mx-auto px-4 pb-20">
           <h2 className="text-2xl font-bold text-white mb-6">
