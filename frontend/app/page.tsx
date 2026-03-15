@@ -130,7 +130,7 @@ export default async function HomePage() {
               </p>
 
               {/* CTA */}
-              <div className="flex flex-col sm:flex-row items-center gap-3">                   <Link href="/edges" className="rounded-lg bg-green-600 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-green-500">See Today's Top Picks</Link>                   <Link href="/subscribe" className="rounded-lg border border-slate-700 px-6 py-3 text-base font-medium text-slate-300 transition-colors hover:border-slate-500 hover:text-white">See All Plans</Link>                 </div>                 <p className="mt-3 text-sm text-slate-500">Free tier includes top 3 daily edges. No credit card required.</p>
+              <div className="flex flex-col sm:flex-row items-center gap-3">                   <Link href="/edges" className="rounded-lg bg-green-600 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-green-500">See Today's Top Picks</Link>                   <Link href="/pricing" className="rounded-lg border border-slate-700 px-6 py-3 text-base font-medium text-slate-300 transition-colors hover:border-slate-500 hover:text-white">See All Plans</Link>                 </div>                 <p className="mt-3 text-sm text-slate-500">Free tier includes top 3 daily edges. No credit card required.</p>
 
                             {/* Opening Day Email Signup */}
               <div className="mt-6 w-full max-w-md mx-auto">
@@ -339,7 +339,7 @@ export default async function HomePage() {
               View Today's Edges
             </Link>
             <Link
-              href="/subscribe"
+              href="/pricing"
               className="px-5 py-2.5 border border-slate-700 hover:border-slate-500 text-slate-300 hover:text-white font-medium rounded-lg transition-colors text-sm"
             >
               Compare Plans

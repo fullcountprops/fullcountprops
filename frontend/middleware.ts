@@ -130,7 +130,6 @@ export function middleware(request: NextRequest) {
     '/methodology',
     '/faq',
     '/accuracy',
-    '/subscribe',
     '/pricing',
     '/props',
     '/newsletter',

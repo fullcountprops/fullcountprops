@@ -179,10 +179,10 @@ export default async function NewsletterPage() {
           <div className="mt-12 text-center py-10 border border-slate-700 rounded-2xl bg-slate-900">
             <h3 className="text-xl font-semibold mb-2">Get these in your inbox</h3>
             <p className="text-slate-400 text-sm mb-6">
-              Pro and Premium subscribers receive the daily digest at 11am ET.
+              Double-A and above subscribers receive the daily digest at 11am ET.
             </p>
             <a
-              href="/subscribe"
+              href="/pricing"
               className="inline-block bg-blue-600 hover:bg-blue-500 text-white font-medium px-6 py-3 rounded-lg transition-colors"
             >
               View Plans

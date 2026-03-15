@@ -109,7 +109,7 @@ export async function authenticateRequest(
 
     if (!allowed) {
       const res = jsonError(
-        'Rate limit exceeded. Upgrade to Pro for higher limits.',
+        'Rate limit exceeded. Upgrade to Double-A for higher limits.',
         'RATE_LIMIT_EXCEEDED',
         429
       )

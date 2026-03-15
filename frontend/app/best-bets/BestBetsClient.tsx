@@ -181,7 +181,7 @@ function PaywallBanner({ totalBets }: { totalBets: number }) {
         {totalBets - 3} more picks available today
       </h3>
       <p className="text-sm text-slate-400 mb-4">
-        Upgrade to Pro to see the full slate with SHAP explanations, probability distributions, and Kelly sizing.
+        Upgrade to Double-A to see the full slate with SHAP explanations, probability distributions, and Kelly sizing.
       </p>
       <Link
         href="/pricing"
