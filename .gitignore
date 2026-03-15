@@ -1,3 +1,12 @@
+# Python virtual environment
+venv/
+.venv/
+
+# Large data files (Statcast / training data — too large for git)
+data/statcast/
+data/*.parquet
+data/training/
+
 # Logs
 logs
 *.log

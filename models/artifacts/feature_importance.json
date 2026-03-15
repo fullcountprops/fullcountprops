@@ -1,0 +1,423 @@
+{
+  "importance_type": "gain",
+  "feature_names": [
+    "p_avg_velo",
+    "p_swstr_pct",
+    "p_csw_pct",
+    "p_zone_pct",
+    "p_k_pct",
+    "p_bb_pct",
+    "p_gb_rate",
+    "p_fb_rate",
+    "p_ld_rate",
+    "p_pct_fastball",
+    "p_pct_slider",
+    "p_pct_curve",
+    "p_pct_change",
+    "p_pct_cutter",
+    "p_whiff_fastball",
+    "p_whiff_slider",
+    "p_whiff_curve",
+    "p_whiff_change",
+    "p_whiff_cutter",
+    "b_k_pct",
+    "b_bb_pct",
+    "b_xba",
+    "b_xslg",
+    "b_barrel_pct",
+    "b_chase_rate",
+    "b_whiff_pct",
+    "b_avg_ev",
+    "b_hard_hit_pct",
+    "platoon_same",
+    "platoon_opposite",
+    "p_throws_L",
+    "b_stands_L",
+    "park_factor_hr",
+    "park_factor_hit",
+    "temp_f",
+    "wind_mph",
+    "wind_out",
+    "umpire_k_delta",
+    "umpire_bb_delta",
+    "inning",
+    "score_diff"
+  ],
+  "gain": [
+    275499.37239951454,
+    243330.75774125755,
+    244826.79644326912,
+    269971.88997088745,
+    270010.0570416376,
+    336742.3919011988,
+    239701.2908268422,
+    241896.6268964745,
+    270321.55606231093,
+    266221.89383772016,
+    227502.58713506162,
+    185829.0687735211,
+    229802.7289403677,
+    110192.43561899662,
+    248247.56954331696,
+    235275.56433786452,
+    190557.7001130581,
+    237786.81989070773,
+    145012.38912278414,
+    438253.59498272836,
+    463694.348566358,
+    379020.946498191,
+    341694.2239775136,
+    420749.7514788308,
+    388508.4680983466,
+    376879.80338717997,
+    359067.59893506765,
+    319621.0996824517,
+    58156.14568525553,
+    8776.936477422714,
+    17152.349678635597,
+    41170.61787497997,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    197536.81021392345,
+    263090.60725586116
+  ],
+  "gain_normalized": [
+    0.032252,
+    0.028486,
+    0.028661,
+    0.031605,
+    0.031609,
+    0.039421,
+    0.028061,
+    0.028318,
+    0.031646,
+    0.031166,
+    0.026633,
+    0.021754,
+    0.026902,
+    0.0129,
+    0.029062,
+    0.027543,
+    0.022308,
+    0.027837,
+    0.016976,
+    0.051305,
+    0.054283,
+    0.044371,
+    0.040001,
+    0.049256,
+    0.045482,
+    0.04412,
+    0.042035,
+    0.037417,
+    0.006808,
+    0.001027,
+    0.002008,
+    0.00482,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.023125,
+    0.030799
+  ],
+  "split_count": [
+    12542,
+    10863,
+    11204,
+    12696,
+    11186,
+    13379,
+    10972,
+    11225,
+    12695,
+    12408,
+    10479,
+    8666,
+    10727,
+    5452,
+    11818,
+    11080,
+    8781,
+    10762,
+    6529,
+    18671,
+    19448,
+    18186,
+    15046,
+    16147,
+    19145,
+    18020,
+    17039,
+    15865,
+    1834,
+    416,
+    780,
+    1259,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    9974,
+    14029
+  ],
+  "ranked": [
+    {
+      "feature": "b_bb_pct",
+      "gain": 463694.348566358,
+      "gain_normalized": 0.054283,
+      "split_count": 19448
+    },
+    {
+      "feature": "b_k_pct",
+      "gain": 438253.59498272836,
+      "gain_normalized": 0.051305,
+      "split_count": 18671
+    },
+    {
+      "feature": "b_barrel_pct",
+      "gain": 420749.7514788308,
+      "gain_normalized": 0.049256,
+      "split_count": 16147
+    },
+    {
+      "feature": "b_chase_rate",
+      "gain": 388508.4680983466,
+      "gain_normalized": 0.045482,
+      "split_count": 19145
+    },
+    {
+      "feature": "b_xba",
+      "gain": 379020.946498191,
+      "gain_normalized": 0.044371,
+      "split_count": 18186
+    },
+    {
+      "feature": "b_whiff_pct",
+      "gain": 376879.80338717997,
+      "gain_normalized": 0.04412,
+      "split_count": 18020
+    },
+    {
+      "feature": "b_avg_ev",
+      "gain": 359067.59893506765,
+      "gain_normalized": 0.042035,
+      "split_count": 17039
+    },
+    {
+      "feature": "b_xslg",
+      "gain": 341694.2239775136,
+      "gain_normalized": 0.040001,
+      "split_count": 15046
+    },
+    {
+      "feature": "p_bb_pct",
+      "gain": 336742.3919011988,
+      "gain_normalized": 0.039421,
+      "split_count": 13379
+    },
+    {
+      "feature": "b_hard_hit_pct",
+      "gain": 319621.0996824517,
+      "gain_normalized": 0.037417,
+      "split_count": 15865
+    },
+    {
+      "feature": "p_avg_velo",
+      "gain": 275499.37239951454,
+      "gain_normalized": 0.032252,
+      "split_count": 12542
+    },
+    {
+      "feature": "p_ld_rate",
+      "gain": 270321.55606231093,
+      "gain_normalized": 0.031646,
+      "split_count": 12695
+    },
+    {
+      "feature": "p_k_pct",
+      "gain": 270010.0570416376,
+      "gain_normalized": 0.031609,
+      "split_count": 11186
+    },
+    {
+      "feature": "p_zone_pct",
+      "gain": 269971.88997088745,
+      "gain_normalized": 0.031605,
+      "split_count": 12696
+    },
+    {
+      "feature": "p_pct_fastball",
+      "gain": 266221.89383772016,
+      "gain_normalized": 0.031166,
+      "split_count": 12408
+    },
+    {
+      "feature": "score_diff",
+      "gain": 263090.60725586116,
+      "gain_normalized": 0.030799,
+      "split_count": 14029
+    },
+    {
+      "feature": "p_whiff_fastball",
+      "gain": 248247.56954331696,
+      "gain_normalized": 0.029062,
+      "split_count": 11818
+    },
+    {
+      "feature": "p_csw_pct",
+      "gain": 244826.79644326912,
+      "gain_normalized": 0.028661,
+      "split_count": 11204
+    },
+    {
+      "feature": "p_swstr_pct",
+      "gain": 243330.75774125755,
+      "gain_normalized": 0.028486,
+      "split_count": 10863
+    },
+    {
+      "feature": "p_fb_rate",
+      "gain": 241896.6268964745,
+      "gain_normalized": 0.028318,
+      "split_count": 11225
+    },
+    {
+      "feature": "p_gb_rate",
+      "gain": 239701.2908268422,
+      "gain_normalized": 0.028061,
+      "split_count": 10972
+    },
+    {
+      "feature": "p_whiff_change",
+      "gain": 237786.81989070773,
+      "gain_normalized": 0.027837,
+      "split_count": 10762
+    },
+    {
+      "feature": "p_whiff_slider",
+      "gain": 235275.56433786452,
+      "gain_normalized": 0.027543,
+      "split_count": 11080
+    },
+    {
+      "feature": "p_pct_change",
+      "gain": 229802.7289403677,
+      "gain_normalized": 0.026902,
+      "split_count": 10727
+    },
+    {
+      "feature": "p_pct_slider",
+      "gain": 227502.58713506162,
+      "gain_normalized": 0.026633,
+      "split_count": 10479
+    },
+    {
+      "feature": "inning",
+      "gain": 197536.81021392345,
+      "gain_normalized": 0.023125,
+      "split_count": 9974
+    },
+    {
+      "feature": "p_whiff_curve",
+      "gain": 190557.7001130581,
+      "gain_normalized": 0.022308,
+      "split_count": 8781
+    },
+    {
+      "feature": "p_pct_curve",
+      "gain": 185829.0687735211,
+      "gain_normalized": 0.021754,
+      "split_count": 8666
+    },
+    {
+      "feature": "p_whiff_cutter",
+      "gain": 145012.38912278414,
+      "gain_normalized": 0.016976,
+      "split_count": 6529
+    },
+    {
+      "feature": "p_pct_cutter",
+      "gain": 110192.43561899662,
+      "gain_normalized": 0.0129,
+      "split_count": 5452
+    },
+    {
+      "feature": "platoon_same",
+      "gain": 58156.14568525553,
+      "gain_normalized": 0.006808,
+      "split_count": 1834
+    },
+    {
+      "feature": "b_stands_L",
+      "gain": 41170.61787497997,
+      "gain_normalized": 0.00482,
+      "split_count": 1259
+    },
+    {
+      "feature": "p_throws_L",
+      "gain": 17152.349678635597,
+      "gain_normalized": 0.002008,
+      "split_count": 780
+    },
+    {
+      "feature": "platoon_opposite",
+      "gain": 8776.936477422714,
+      "gain_normalized": 0.001027,
+      "split_count": 416
+    },
+    {
+      "feature": "park_factor_hr",
+      "gain": 0.0,
+      "gain_normalized": 0.0,
+      "split_count": 0
+    },
+    {
+      "feature": "park_factor_hit",
+      "gain": 0.0,
+      "gain_normalized": 0.0,
+      "split_count": 0
+    },
+    {
+      "feature": "temp_f",
+      "gain": 0.0,
+      "gain_normalized": 0.0,
+      "split_count": 0
+    },
+    {
+      "feature": "wind_mph",
+      "gain": 0.0,
+      "gain_normalized": 0.0,
+      "split_count": 0
+    },
+    {
+      "feature": "wind_out",
+      "gain": 0.0,
+      "gain_normalized": 0.0,
+      "split_count": 0
+    },
+    {
+      "feature": "umpire_k_delta",
+      "gain": 0.0,
+      "gain_normalized": 0.0,
+      "split_count": 0
+    },
+    {
+      "feature": "umpire_bb_delta",
+      "gain": 0.0,
+      "gain_normalized": 0.0,
+      "split_count": 0
+    }
+  ]
+}
