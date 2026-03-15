@@ -22,7 +22,7 @@
 
 ## 1. Project Overview
 
-**FullCountProps** is a production-grade MLB player prop analytics platform built around a plate-appearance-level Monte Carlo simulation engine. The system ingests real-time game, player, and Statcast pitch data, trains an XGBoost matchup model on ~6 million historical plate appearances, and simulates each game 3,000 times to generate probability distributions over every meaningful player outcome (strikeouts, hits, total bases, RBIs, walks, etc.).
+**FullCountProps** is a production-grade MLB player prop analytics platform built around a plate-appearance-level Monte Carlo simulation engine. The system ingests real-time game, player, and Statcast pitch data, trains an LightGBM matchup model on ~6 million historical plate appearances, and simulates each game 3,000 times to generate probability distributions over every meaningful player outcome (strikeouts, hits, total bases, RBIs, walks, etc.).
 
 The simulation output is cross-referenced against live sportsbook lines from The Odds API to identify edges — situations where the model's estimated probability of a prop outcome meaningfully exceeds the no-vig implied probability embedded in the market. Edges are ranked using a fractional Kelly criterion for stake sizing and surfaced to users via a Next.js frontend deployed on Vercel.
 
@@ -44,7 +44,7 @@ The simulation output is cross-referenced against live sportsbook lines from The
 The diagram below traces data from external APIs through the processing pipeline, into the database, through the simulation engine, and finally to the user-facing frontend.
 
 ```
- External APIs → Supabase → XGBoost Model → Monte Carlo Engine → Prop Calculator → Frontend
+ External APIs → Supabase → LightGBM Model → Monte Carlo Engine → Prop Calculator → Frontend
 ```
 
 For the full ASCII diagram, see the repository source of this file.
@@ -73,14 +73,14 @@ The pipeline directory contains all scripts responsible for pulling external dat
 
 ---
 
-### `models/` — XGBoost Matchup Model
+### `models/` — LightGBM Matchup Model
 
 The models directory contains training infrastructure for the plate-appearance outcome classifier that powers the Monte Carlo engine.
 
 | File | Purpose |
 |------|---------|
 | `build_training_dataset.py` | Queries `statcast_pitches`, engineers 24 features, encodes labels, outputs `data/training_set.parquet` |
-| `train_model.py` | Trains XGBoost multiclass classifier on the parquet dataset; exports model artifact to `data/xgboost_model.json` |
+| `train_model.py` | Trains LightGBM multiclass classifier on the parquet dataset; exports model artifact to `data/LightGBM_model.json` |
 | `evaluate_model.py` | Computes log-loss, calibration curves, and per-class AUC; outputs evaluation report |
 | `feature_registry.py` | Single source of truth for all 24 feature definitions; shared with inference code at runtime |
 
@@ -222,8 +222,8 @@ GitHub Actions workflows drive the daily data pipeline and CI checks.
 
 ```
 data/
-├── training_set.parquet          # Feature matrix for XGBoost training (~6M rows)
-├── xgboost_model.json            # Serialized trained XGBoost model
+├── training_set.parquet          # Feature matrix for LightGBM training (~6M rows)
+├── LightGBM_model.json            # Serialized trained LightGBM model
 ├── feature_importance.csv        # Feature importance scores from last training run
 ├── calibration_report.json       # Latest calibration evaluation output
 └── backtest_results/
@@ -257,7 +257,7 @@ models/build_training_dataset.py
     ▼
 models/train_model.py ──────────────────────────────────────────────┐
     │                                                                         │
-    │ produces model artifact (data/xgboost_model.json)                      │
+    │ produces model artifact (data/LightGBM_model.json)                      │
     ▼                                                                         │
 simulator/monte_carlo_engine.py ──────────────────────────────────────┘
     │
@@ -299,7 +299,7 @@ FullCountProps uses Supabase (PostgreSQL) with 20 core tables.
 | `park_factors` | 30 static | Per-stadium HR/fly ball/strikeout factors | Seeded once |
 | `weather_snapshots` | ~50/game day | Game-time weather conditions per venue | Midday + afternoon |
 | `umpire_data` | ~100 active | Home plate umpire K/BB tendency scores | Weekly refresh |
-| `model_artifacts` | ~1/season | Serialized XGBoost model + metadata | Seasonal |
+| `model_artifacts` | ~1/season | Serialized LightGBM model + metadata | Seasonal |
 
 ---
 
