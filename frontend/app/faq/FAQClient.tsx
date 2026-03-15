@@ -7,7 +7,7 @@ interface FAQItem {
   answer: React.ReactNode
 }
 
-function FAQAccordion({ item }: { item: FAQItem }) {
+function FAQAccordion({ item }: { item: FAQItem; key?: string }) {
   const [open, setOpen] = useState(false)
 
   return (
