@@ -12,7 +12,7 @@ export function HomepageJsonLd() {
     operatingSystem: 'Web',
     url: 'https://www.fullcountprops.com',
     description:
-      'MLB prop betting analytics powered by Monte Carlo simulation. 2,500 sims per game, 33 Statcast features, glass-box factor breakdowns on every pick.',
+      'MLB prop betting analytics powered by Monte Carlo simulation. 3,000 sims per game, 24 engineered features, glass-box factor breakdowns on every pick.',
     offers: [
       {
         '@type': 'Offer',
