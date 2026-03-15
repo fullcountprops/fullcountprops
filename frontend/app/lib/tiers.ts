@@ -169,6 +169,9 @@ export const STRIPE_PRODUCT_TO_TIER: Record<string, TierName> = {
   'prod_U5f9VI7Q1iJMkT': 'the_show',  // Stripe "Premium"  → The Show
 };
 
+/** Maximum founding member slots for Double-A */
+export const FOUNDING_MEMBER_CAP = 100;
+
 /** Hard-coded Stripe price ID → tier mapping (LIVE keys). */
 export const STRIPE_PRICE_TO_TIER: Record<string, TierName> = {
   'price_1T7WVcCHMWdtVF7LGT9iNi4C': 'double_a',  // Double-A monthly $7.99
@@ -189,6 +192,8 @@ export function buildPriceToTierMap(): Record<string, TierName> {
   const theShowAnnual = process.env.STRIPE_PREMIUM_ANNUAL_PRICE_ID;
 
   if (doubleA) map[doubleA] = 'double_a';
+  const foundingDoubleA = process.env.STRIPE_FOUNDING_DOUBLE_A_PRICE_ID;
+  if (foundingDoubleA) map[foundingDoubleA] = 'double_a';
   if (tripleA) map[tripleA] = 'triple_a';
   if (tripleAAnnual) map[tripleAAnnual] = 'triple_a';
   if (theShow) map[theShow] = 'the_show';
