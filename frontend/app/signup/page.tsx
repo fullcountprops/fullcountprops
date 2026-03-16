@@ -1,6 +1,9 @@
 // frontend/app/signup/page.tsx
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import LoginClient from '../login/LoginClient';
+
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Sign Up — FullCountProps',
@@ -8,5 +11,9 @@ export const metadata: Metadata = {
 };
 
 export default function SignupPage() {
-  return <LoginClient defaultView="sign_up" />;
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-950" />}>
+      <LoginClient defaultView="sign_up" />
+    </Suspense>
+  );
 }
