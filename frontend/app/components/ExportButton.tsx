@@ -17,7 +17,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { getPublicClient } from '@/app/lib/supabase';
+import { getSupabaseBrowserClient } from '@/app/lib/supabase-browser';
 import { normalizeTier, hasAccess, EXPORT_LIMITS, type TierName, type ExportType } from '@/app/lib/tiers';
 
 interface ExportButtonProps {
@@ -40,7 +40,7 @@ export default function ExportButton({
   filters,
   className = '',
 }: ExportButtonProps) {
-    const supabase = getPublicClient();
+    const supabase = getSupabaseBrowserClient();
   const [status, setStatus] = useState<ExportStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [downloading, setDownloading] = useState(false);

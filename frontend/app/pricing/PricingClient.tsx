@@ -9,7 +9,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { TIER_DISPLAY, type TierName } from '@/app/lib/tiers';
-import { getPublicClient } from '@/app/lib/supabase';
+import { getSupabaseBrowserClient } from '@/app/lib/supabase-browser';
 
 export default function PricingClient() {
   const router = useRouter();
@@ -18,7 +18,7 @@ export default function PricingClient() {
   const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
-    const supabase = getPublicClient();
+    const supabase = getSupabaseBrowserClient();
 
     // Check current session immediately
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -50,7 +50,7 @@ export default function PricingClient() {
 
     setLoading(plan);
     try {
-      const supabase = getPublicClient();
+      const supabase = getSupabaseBrowserClient();
       const {
         data: { session },
       } = await supabase.auth.getSession();
