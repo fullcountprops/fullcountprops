@@ -96,18 +96,20 @@ export async function POST(request: NextRequest) {
         },
       });
       customerId = customer.id;
-
-      // Save customer ID to user metadata
-      const supabaseAdmin = createClient(
-        supabaseUrl,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      );
-      await supabaseAdmin.auth.admin.updateUserById(user.id, {
-        user_metadata: {
-          stripe_customer_id: customerId,
-        },
-      });
     }
+
+    // Always persist stripe_customer_id so webhook lookups find the user.
+    // Spread existing metadata to avoid overwriting subscription_tier etc.
+    const supabaseAdmin = createClient(
+      supabaseUrl,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+    await supabaseAdmin.auth.admin.updateUserById(user.id, {
+      user_metadata: {
+        ...user.user_metadata,
+        stripe_customer_id: customerId,
+      },
+    });
 
     // ---- 5. Resolve Stripe price ID ----
     let priceId = getPriceId(plan, period);

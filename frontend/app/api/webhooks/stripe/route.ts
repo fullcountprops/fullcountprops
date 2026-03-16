@@ -131,9 +131,27 @@ async function updateUserTier(
     return null;
   }
 
-  const user = (users as { users: Array<{ id: string; email?: string; user_metadata?: Record<string, unknown> }> }).users.find(
+  type UserRecord = { id: string; email?: string; user_metadata?: Record<string, unknown> };
+  const allUsers = (users as { users: UserRecord[] }).users;
+
+  let user: UserRecord | undefined = allUsers.find(
     (u) => u.user_metadata?.stripe_customer_id === customerId
   );
+
+  // Fallback: look up by email from Stripe customer object
+  if (!user) {
+    const customer = await getStripe().customers.retrieve(customerId) as Stripe.Customer;
+    if (customer.email) {
+      const match = allUsers.find((u) => u.email === customer.email);
+      if (match) {
+        user = match;
+        // Save stripe_customer_id so future webhook lookups hit the fast path
+        await getSupabaseAdmin().auth.admin.updateUserById(match.id, {
+          user_metadata: { ...match.user_metadata, stripe_customer_id: customerId },
+        });
+      }
+    }
+  }
 
   if (!user) {
     console.error(`No user found with stripe_customer_id: ${customerId}`);
