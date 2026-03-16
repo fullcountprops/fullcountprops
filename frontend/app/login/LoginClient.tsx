@@ -18,7 +18,9 @@ interface Props {
 export default function LoginClient({ defaultView = 'sign_in' }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get('redirect') || '/pricing';
+  const basePath = searchParams.get('redirect') || '/pricing';
+  const plan = searchParams.get('plan');
+  const redirectTo = plan ? `${basePath}?plan=${plan}` : basePath;
   const view = (searchParams.get('view') as 'sign_in' | 'sign_up') || defaultView;
 
   const supabase = getSupabaseBrowserClient();

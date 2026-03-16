@@ -44,7 +44,7 @@ export default function PricingClient() {
     if (!authReady) return;
 
     if (!currentUser) {
-      router.push(`/signup?redirect=/pricing&plan=${plan}`);
+      router.push(`/login?redirect=/pricing&plan=${plan}`);
       return;
     }
 
