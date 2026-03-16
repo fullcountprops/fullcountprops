@@ -6,15 +6,34 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { TIER_DISPLAY, type TierName } from '@/app/lib/tiers';
 import { getPublicClient } from '@/app/lib/supabase';
 
 export default function PricingClient() {
   const router = useRouter();
-    const supabase = getPublicClient();
   const [loading, setLoading] = useState<TierName | null>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [authReady, setAuthReady] = useState(false);
+
+  useEffect(() => {
+    const supabase = getPublicClient();
+
+    // Check current session immediately
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setCurrentUser(user);
+      setAuthReady(true);
+    });
+
+    // Listen for auth changes (login, logout, token refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setCurrentUser(session?.user ?? null);
+      setAuthReady(true);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   async function handleCheckout(plan: TierName) {
     if (plan === 'single_a') {
@@ -22,17 +41,16 @@ export default function PricingClient() {
       return;
     }
 
+    if (!authReady) return;
+
+    if (!currentUser) {
+      router.push(`/signup?redirect=/pricing&plan=${plan}`);
+      return;
+    }
+
     setLoading(plan);
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        router.push(`/signup?redirect=/pricing&plan=${plan}`);
-        return;
-      }
-
+      const supabase = getPublicClient();
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -126,7 +144,7 @@ export default function PricingClient() {
                 {/* CTA Button */}
                 <button
                   onClick={() => handleCheckout(tier.id)}
-                  disabled={isLoading}
+                  disabled={isLoading || !authReady}
                   className={`w-full rounded-lg py-3 px-4 text-sm font-semibold transition-colors mb-6 ${
                     isPopular
                       ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
