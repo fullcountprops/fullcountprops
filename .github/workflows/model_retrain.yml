@@ -1,3 +1,4 @@
+# DISABLED: trains XGBoost but canonical model is LightGBM. Rebuild for LightGBM post-launch.
 # =============================================================================
 # model_retrain.yml — Baseline MLB
 # Monthly XGBoost matchup model retraining pipeline
@@ -35,6 +36,7 @@ concurrency:
 
 jobs:
   retrain:
+    if: false
     name: "Retrain XGBoost Model"
     runs-on: ubuntu-latest
     timeout-minutes: 60
