@@ -2,12 +2,13 @@
 // ============================================================
 // FullCountProps — Middleware
 //
-// Subscription gate: checks auth session + subscription tier
-// for subscriber-gated routes. Free users see limited content
-// on /edges (top 3 with blurred cards). Paid users get full access.
+// 1. Refreshes the Supabase auth session cookie on every request
+//    (required to keep the session alive via @supabase/ssr).
+// 2. Subscription gate: checks auth session + subscription tier
+//    for subscriber-gated routes.
 //
 // Routes gated by this middleware:
-//   /edges       — accessible to all, but tier info passed via header
+//   /edges       — accessible to all, tier info passed via header
 //   /players/*   — accessible to all, tier info passed via header
 //   /best-bets   — requires Double-A+
 //   /simulator   — requires Triple-A+
@@ -16,6 +17,7 @@
 
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
 
 // ---- Tier hierarchy for comparison ----
 const TIER_HIERARCHY = ['single_a', 'double_a', 'triple_a', 'the_show'];
@@ -35,11 +37,8 @@ function getUserTierFromCookies(request: NextRequest): {
   isAuthenticated: boolean;
   userId?: string;
 } {
-  // Supabase stores auth in a cookie named sb-<project-ref>-auth-token
-  // The cookie value is a base64-encoded JSON with access_token
   const cookies = request.cookies;
 
-  // Find the Supabase auth cookie
   let authCookieValue: string | undefined;
   for (const [name, cookie] of cookies) {
     if (name.startsWith('sb-') && name.endsWith('-auth-token')) {
@@ -53,11 +52,8 @@ function getUserTierFromCookies(request: NextRequest): {
   }
 
   try {
-    // The cookie may be a JSON array [access_token, refresh_token] or
-    // a base64url-encoded JSON with access_token field
     let accessToken: string | undefined;
 
-    // Try parsing as JSON first (Supabase v2 stores as base64 JSON)
     const decoded = decodeURIComponent(authCookieValue);
     const parsed = JSON.parse(decoded);
 
@@ -73,7 +69,6 @@ function getUserTierFromCookies(request: NextRequest): {
       return { tier: 'single_a', isAuthenticated: false };
     }
 
-    // Decode JWT payload (second segment)
     const parts = accessToken.split('.');
     if (parts.length !== 3) {
       return { tier: 'single_a', isAuthenticated: false };
@@ -81,7 +76,6 @@ function getUserTierFromCookies(request: NextRequest): {
 
     const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
 
-    // Check expiration
     if (payload.exp && payload.exp * 1000 < Date.now()) {
       return { tier: 'single_a', isAuthenticated: false };
     }
@@ -110,10 +104,11 @@ const TIER_GATED_ROUTES: { path: string; minTier: string }[] = [
 // Routes where tier info is passed as a header but access is not blocked
 const TIER_AWARE_ROUTES = ['/edges', '/players', '/most-likely', '/projections'];
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // ---- Skip: API routes, static files, Next.js internals ----
+  // Must return before creating the Supabase client (no need to refresh on these)
   if (
     pathname.startsWith('/api/') ||
     pathname.startsWith('/_next/') ||
@@ -122,6 +117,29 @@ export function middleware(request: NextRequest) {
   ) {
     return NextResponse.next();
   }
+
+  // ---- Refresh Supabase auth session cookie ----
+  // IMPORTANT: always return supabaseResponse (or a response that copies its cookies)
+  // to keep the session alive. Do NOT return a plain NextResponse.next() after this point.
+  const supabaseResponse = NextResponse.next({ request });
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            request.cookies.set(name, value);
+            supabaseResponse.cookies.set(name, value, options);
+          });
+        },
+      },
+    }
+  );
+  await supabase.auth.getUser();
 
   // ---- Public routes — no tier check needed ----
   const publicPaths = [
@@ -141,10 +159,11 @@ export function middleware(request: NextRequest) {
     '/account',
     '/park-factors',
     '/games',
+    '/blog',
   ];
 
   if (publicPaths.some((p) => pathname === p || pathname.startsWith(p + '/'))) {
-    return NextResponse.next();
+    return supabaseResponse;
   }
 
   // ---- Extract user tier from JWT cookie ----
@@ -174,20 +193,26 @@ export function middleware(request: NextRequest) {
   );
 
   if (isTierAware) {
-    // Pass tier to the page via a request header (readable in server components)
+    // Build a new response with custom request headers (for tier info),
+    // then copy any refreshed Supabase auth cookies from supabaseResponse.
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set('x-subscription-tier', tier);
     requestHeaders.set('x-is-authenticated', isAuthenticated ? '1' : '0');
 
-    return NextResponse.next({
-      request: {
-        headers: requestHeaders,
-      },
+    const response = NextResponse.next({
+      request: { headers: requestHeaders },
     });
+
+    // Forward refreshed auth cookies so the session stays alive
+    supabaseResponse.cookies.getAll().forEach(({ name, value }) => {
+      response.cookies.set(name, value);
+    });
+
+    return response;
   }
 
-  // ---- All other routes: pass through ----
-  return NextResponse.next();
+  // ---- All other routes: pass through with refreshed session ----
+  return supabaseResponse;
 }
 
 export const config = {

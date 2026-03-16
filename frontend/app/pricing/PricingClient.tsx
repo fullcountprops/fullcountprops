@@ -29,7 +29,7 @@ export default function PricingClient() {
       } = await supabase.auth.getSession();
 
       if (!session) {
-        router.push(`/login?redirect=/pricing&plan=${plan}`);
+        router.push(`/signup?redirect=/pricing&plan=${plan}`);
         return;
       }
 
