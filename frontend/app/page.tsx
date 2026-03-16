@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import { HeroPickCard } from './components/HeroPickCard';
@@ -5,6 +6,23 @@ import { OpeningDaySignup } from './components/OpeningDaySignup';
 // HeroSignup removed — subscriptions are live
 
 export const dynamic = 'force-dynamic'
+
+export const metadata: Metadata = {
+  title: 'FullCountProps — MLB Player Prop Predictions Powered by Monte Carlo Simulation',
+  description: 'Data-driven MLB prop predictions updated daily. Strikeout props, hitting props, and projected box scores built on 5,000-sim Monte Carlo models.',
+  openGraph: {
+    title: 'FullCountProps — MLB Player Prop Predictions',
+    description: 'Data-driven MLB prop predictions updated daily. Strikeout props, hitting props, and projected box scores.',
+    url: 'https://fullcountprops.com',
+    siteName: 'FullCountProps',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'FullCountProps — MLB Player Prop Predictions',
+    description: 'Data-driven MLB prop predictions updated daily.',
+  },
+};
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
