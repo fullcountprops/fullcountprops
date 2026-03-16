@@ -237,12 +237,12 @@ export async function POST(request: NextRequest) {
               stripeProductId: productId,
               tier,
               status: 'active',
-              currentPeriodStart: new Date(
-                subscription.current_period_start * 1000
-              ).toISOString(),
-              currentPeriodEnd: new Date(
-                subscription.current_period_end * 1000
-              ).toISOString(),
+              currentPeriodStart: subscription.current_period_start
+                ? new Date(subscription.current_period_start * 1000).toISOString()
+                : undefined,
+              currentPeriodEnd: subscription.current_period_end
+                ? new Date(subscription.current_period_end * 1000).toISOString()
+                : undefined,
             });
           }
         }
@@ -268,12 +268,12 @@ export async function POST(request: NextRequest) {
             stripeProductId: productId,
             tier,
             status: 'active',
-            currentPeriodStart: new Date(
-              subscription.current_period_start * 1000
-            ).toISOString(),
-            currentPeriodEnd: new Date(
-              subscription.current_period_end * 1000
-            ).toISOString(),
+            currentPeriodStart: subscription.current_period_start
+              ? new Date(subscription.current_period_start * 1000).toISOString()
+              : undefined,
+            currentPeriodEnd: subscription.current_period_end
+              ? new Date(subscription.current_period_end * 1000).toISOString()
+              : undefined,
           });
         }
         break;
@@ -298,12 +298,12 @@ export async function POST(request: NextRequest) {
             stripeProductId: productId,
             tier,
             status: 'active',
-            currentPeriodStart: new Date(
-              subscription.current_period_start * 1000
-            ).toISOString(),
-            currentPeriodEnd: new Date(
-              subscription.current_period_end * 1000
-            ).toISOString(),
+            currentPeriodStart: subscription.current_period_start
+              ? new Date(subscription.current_period_start * 1000).toISOString()
+              : undefined,
+            currentPeriodEnd: subscription.current_period_end
+              ? new Date(subscription.current_period_end * 1000).toISOString()
+              : undefined,
           });
         }
         break;
