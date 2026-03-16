@@ -24,7 +24,7 @@ on:
       n_sims:
         description: 'Number of simulations per game'
         required: false
-        default: '3000'
+        default: '5000'
         type: string
 
 env:
@@ -96,7 +96,7 @@ jobs:
 
       - name: Run Monte Carlo simulation
         run: |
-          ARGS="--n-sims ${{ inputs.n_sims || '3000' }}"
+          ARGS="--n-sims ${{ inputs.n_sims || '5000' }}"
           if [ -n "${{ inputs.date }}" ]; then
             ARGS="$ARGS --date ${{ inputs.date }}"
           fi
