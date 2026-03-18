@@ -174,7 +174,7 @@ export async function middleware(request: NextRequest) {
     if (pathname === route.path || pathname.startsWith(route.path + '/')) {
       if (!isAuthenticated) {
         const loginUrl = request.nextUrl.clone();
-        loginUrl.pathname = '/login';
+        loginUrl.pathname = '/signup';
         loginUrl.searchParams.set('redirect', pathname);
         return NextResponse.redirect(loginUrl);
       }

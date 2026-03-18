@@ -86,7 +86,7 @@ export default function ExportButton({
       } = await supabase.auth.getSession();
 
       if (!session) {
-        window.location.href = '/login?redirect=' + window.location.pathname;
+        window.location.href = '/signup?redirect=' + window.location.pathname;
         return;
       }
 
@@ -137,11 +137,11 @@ export default function ExportButton({
   if (!status) {
     return (
       <a
-        href="/login"
+        href="/signup"
         className={`inline-flex items-center gap-2 rounded-lg bg-gray-800 px-3 py-2 text-xs font-medium text-gray-400 hover:bg-gray-700 transition-colors ${className}`}
       >
         <DownloadIcon className="h-4 w-4" />
-        Log in to export
+        Sign up to export
       </a>
     );
   }
