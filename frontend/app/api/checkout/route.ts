@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 import { TIERS } from '@/app/lib/tiers';
+import { getDoubleAPriceId } from '@/app/lib/founding';
 
 let _stripe: Stripe | null = null;
 function getStripe(): Stripe {
@@ -113,22 +114,14 @@ export async function POST(request: NextRequest) {
 
     // ---- 5. Resolve Stripe price ID ----
     let priceId = getPriceId(plan, period);
+    let isFounding = false;
 
-    // Founding member pricing: serve $4.99 if slots remain
+    // Founding member pricing: delegate to getDoubleAPriceId() which checks
+    // the cap, cutoff date, and returns the correct price + founding flag.
     if (plan === 'double_a' && period === 'monthly') {
-      const foundingPriceId = process.env.STRIPE_FOUNDING_DOUBLE_A_PRICE_ID;
-      if (foundingPriceId) {
-        const supabaseAdmin = createClient(supabaseUrl, process.env.SUPABASE_SERVICE_ROLE_KEY!);
-        const { count, error: countError } = await supabaseAdmin
-          .from('subscriptions')
-          .select('*', { count: 'exact', head: true })
-          .eq('tier', 'double_a')
-          .eq('status', 'active');
-        if (!countError && (count ?? 0) < 100) {
-          priceId = foundingPriceId;
-        }
-        // else: slots full or query error, fall through to regular $9/mo
-      }
+      const result = await getDoubleAPriceId();
+      if (result.priceId) priceId = result.priceId;
+      isFounding = result.isFounding;
     }
 
     if (!priceId) {
@@ -155,6 +148,11 @@ export async function POST(request: NextRequest) {
       ],
       success_url: `${baseUrl}/account?checkout=success&plan=${plan}`,
       cancel_url: `${baseUrl}/pricing?checkout=cancelled`,
+      metadata: {
+        supabase_user_id: user.id,
+        plan: plan,
+        founding_member: isFounding ? 'true' : 'false',
+      },
       subscription_data: {
         metadata: {
           supabase_user_id: user.id,

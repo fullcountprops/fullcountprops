@@ -10,6 +10,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { TIER_DISPLAY, type TierName } from '@/app/lib/tiers';
 import { getSupabaseBrowserClient } from '@/app/lib/supabase-browser';
+import { FoundingMemberBanner, FoundingPriceDisplay } from '@/app/components/FoundingMemberBanner';
 
 export default function PricingClient() {
   const router = useRouter();
@@ -95,6 +96,8 @@ export default function PricingClient() {
           </p>
         </div>
 
+        <FoundingMemberBanner />
+
         {/* Pricing Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-4">
           {TIER_DISPLAY.map((tier) => {
@@ -131,6 +134,8 @@ export default function PricingClient() {
                     <div className="flex items-baseline">
                       <span className="text-4xl font-bold">Free</span>
                     </div>
+                  ) : tier.id === 'double_a' ? (
+                    <FoundingPriceDisplay />
                   ) : (
                     <div className="flex items-baseline">
                       <span className="text-4xl font-bold">

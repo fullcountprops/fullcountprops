@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import { HeroPickCard } from './components/HeroPickCard';
-import { OpeningDaySignup } from './components/OpeningDaySignup';
+import SeasonAwareCTA from './components/SeasonAwareCTA';
 // HeroSignup removed — subscriptions are live
 
 export const dynamic = 'force-dynamic'
@@ -147,16 +147,8 @@ export default async function HomePage() {
                 each bet &mdash; not just that we do.
               </p>
 
-              {/* CTA */}
-              <div className="flex flex-col sm:flex-row items-center gap-3">                   <Link href="/edges" className="rounded-lg bg-green-600 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-green-500">See Today's Top Picks</Link>                   <Link href="/pricing" className="rounded-lg border border-slate-700 px-6 py-3 text-base font-medium text-slate-300 transition-colors hover:border-slate-500 hover:text-white">See All Plans</Link>                 </div>                 <p className="mt-3 text-sm text-slate-500">Free tier includes top 3 daily edges. No credit card required.</p>
-
-                            {/* Opening Day Email Signup */}
-              <div className="mt-6 w-full max-w-md mx-auto">
-                <p className="mb-2 text-center text-xs text-slate-500">
-                  Season starts March 27. Get notified:
-                </p>
-                <OpeningDaySignup source="homepage_hero" />
-              </div>
+              {/* CTA — live picks or pre-season signup depending on projections */}
+              <SeasonAwareCTA />
             </div>
 
             {/* Right: Sample pick card */}

@@ -1,109 +1,86 @@
 'use client';
-
-// ============================================================
-// FoundingMemberBanner — Shows remaining founding member spots
-//
-// Drop into SubscribeClient.tsx above the pricing cards grid.
-// Reads count from Supabase (active double_a subscriptions).
-//
-// Usage:
-//   <FoundingMemberBanner />
-//
-// To disable: remove the component or set NEXT_PUBLIC_FOUNDING_MEMBER_ENABLED=false
-// ============================================================
+// frontend/app/components/FoundingMemberBanner.tsx
+// Reads from /api/founding-status (ISR-cached, 60s) — not directly from Supabase.
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
 
-const TOTAL_SPOTS = 100;
-const FOUNDING_PRICE = 4.99;
-const REGULAR_PRICE = 9;
+interface FoundingStatusResponse {
+  isAvailable: boolean;
+  remaining: number;
+  cap: number;
+}
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-);
+// ---- Banner above pricing cards ----
 
 export function FoundingMemberBanner() {
-  const [claimedCount, setClaimedCount] = useState<number | null>(null);
+  const [status, setStatus] = useState<FoundingStatusResponse | null>(null);
 
   useEffect(() => {
-    async function fetchCount() {
-      try {
-        const { count, error } = await supabase
-          .from('subscriptions')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'active')
-          .in('tier', ['double_a', 'pro']); // include legacy 'pro' tier name
-
-        if (!error && count !== null) {
-          setClaimedCount(count);
-        }
-      } catch {
-        // Silently fail — banner just won't show count
-      }
-    }
-    fetchCount();
+    fetch('/api/founding-status')
+      .then((r) => r.json())
+      .then(setStatus)
+      .catch(() => {}); // fail silently — banner just won't show
   }, []);
 
-  const remaining = claimedCount !== null
-    ? Math.max(0, TOTAL_SPOTS - claimedCount)
-    : TOTAL_SPOTS;
+  if (!status?.isAvailable) return null;
 
-  const isSoldOut = remaining === 0;
-  const urgencyLevel = remaining <= 10 ? 'critical' : remaining <= 30 ? 'high' : 'normal';
-
-  if (isSoldOut) return null;
+  const { remaining, cap } = status;
+  const borderClass =
+    remaining <= 10
+      ? 'border-red-500/50 bg-red-950/30'
+      : remaining <= 20
+      ? 'border-yellow-500/50 bg-yellow-950/30'
+      : 'border-emerald-500/50 bg-emerald-950/30';
+  const accentClass =
+    remaining <= 10 ? 'text-red-400' : remaining <= 20 ? 'text-yellow-400' : 'text-emerald-400';
 
   return (
-    <div className="max-w-5xl mx-auto px-4 mb-8">
-      <div className={`rounded-xl border p-6 text-center ${
-        urgencyLevel === 'critical'
-          ? 'border-red-800/50 bg-red-950/20'
-          : 'border-green-800/50 bg-green-950/20'
-      }`}>
-        <p className="text-green-400 font-semibold text-xs uppercase tracking-widest mb-2">
-          Founding Member Offer
-        </p>
-        <p className="text-white text-2xl font-bold mb-1">
-          Lock in ${FOUNDING_PRICE}/mo for life
-          <span className="text-slate-500 text-lg font-normal ml-2 line-through">
-            ${REGULAR_PRICE}/mo
-          </span>
-        </p>
-        <p className="text-slate-400 text-sm">
-          {urgencyLevel === 'critical' ? (
-            <>
-              <span className="text-red-400 font-semibold">Only {remaining} spots left</span>
-              {' '}— founding rate is locked permanently for early subscribers.
-            </>
-          ) : (
-            <>
-              First {TOTAL_SPOTS} subscribers get the founding rate — permanently.
-              {claimedCount !== null && (
-                <span className="text-green-400 font-medium"> {remaining} of {TOTAL_SPOTS} remaining.</span>
-              )}
-            </>
-          )}
-        </p>
+    <div className={`mb-8 rounded-xl border px-6 py-4 text-center ${borderClass}`}>
+      <p className={`text-sm font-semibold ${accentClass}`}>
+        ⚡ Founding Member Pricing — {remaining} of {cap} spots left
+      </p>
+      <p className="mt-1 text-sm text-gray-300">
+        Lock in{' '}
+        <span className="font-bold text-white">$4.99/mo for life</span>
+        {' '}before spots run out.{' '}
+        <span className="text-gray-500 line-through">$9/mo</span> after launch pricing.
+      </p>
+    </div>
+  );
+}
 
-        {/* Progress bar */}
-        {claimedCount !== null && (
-          <div className="mt-4 max-w-xs mx-auto">
-            <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all duration-500 ${
-                  urgencyLevel === 'critical' ? 'bg-red-500' : 'bg-green-500'
-                }`}
-                style={{ width: `${Math.min(100, (claimedCount / TOTAL_SPOTS) * 100)}%` }}
-              />
-            </div>
-            <p className="text-xs text-slate-600 mt-1">
-              {claimedCount} of {TOTAL_SPOTS} claimed
-            </p>
-          </div>
-        )}
+// ---- Inline price display for the Double-A card ----
+
+export function FoundingPriceDisplay() {
+  const [status, setStatus] = useState<FoundingStatusResponse | null>(null);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/founding-status')
+      .then((r) => r.json())
+      .then((data) => { setStatus(data); setLoaded(true); })
+      .catch(() => setLoaded(true));
+  }, []);
+
+  // Skeleton — same height as price to avoid layout shift
+  if (!loaded) {
+    return <div className="h-10 w-28 rounded bg-gray-800 animate-pulse" />;
+  }
+
+  if (status?.isAvailable) {
+    return (
+      <div className="flex items-baseline gap-2 flex-wrap">
+        <span className="text-4xl font-bold">$4.99</span>
+        <span className="text-gray-400 ml-1">/mo</span>
+        <span className="text-gray-600 text-sm line-through">$9/mo</span>
       </div>
+    );
+  }
+
+  return (
+    <div className="flex items-baseline">
+      <span className="text-4xl font-bold">$9.00</span>
+      <span className="text-gray-400 ml-1">/mo</span>
     </div>
   );
 }

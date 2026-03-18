@@ -77,6 +77,7 @@ async function syncSubscriptionsTable(params: {
   status: 'active' | 'canceled' | 'past_due';
   currentPeriodStart?: string;
   currentPeriodEnd?: string;
+  foundingMember?: boolean;
 }) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = getSupabaseAdmin() as any;
@@ -97,6 +98,7 @@ async function syncSubscriptionsTable(params: {
     user_id: params.userId,
     current_period_start: params.currentPeriodStart,
     current_period_end: params.currentPeriodEnd,
+    ...(params.foundingMember !== undefined && { founding_member: params.foundingMember }),
     updated_at: new Date().toISOString(),
   };
 
@@ -218,6 +220,7 @@ export async function POST(request: NextRequest) {
         const session = event.data.object as Stripe.Checkout.Session;
         const customerId = session.customer as string;
         const subscriptionId = session.subscription as string;
+        const isFoundingMember = session.metadata?.founding_member === 'true';
 
         if (subscriptionId) {
           const subscription =
@@ -243,6 +246,7 @@ export async function POST(request: NextRequest) {
               currentPeriodEnd: subscription.current_period_end
                 ? new Date(subscription.current_period_end * 1000).toISOString()
                 : undefined,
+              foundingMember: isFoundingMember,
             });
           }
         }
