@@ -28,7 +28,7 @@ export default function AccountClient() {
 
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) {
-        router.push('/login?redirect=/account');
+        router.push('/signup?redirect=/account');
         return;
       }
       setEmail(user.email ?? null);
@@ -38,7 +38,7 @@ export default function AccountClient() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
-        router.push('/login?redirect=/account');
+        router.push('/signup?redirect=/account');
         return;
       }
       setEmail(session.user.email ?? null);
