@@ -1,8 +1,9 @@
 'use client';
 // frontend/app/components/FoundingMemberBanner.tsx
-// Reads from /api/founding-status (ISR-cached, 60s) — not directly from Supabase.
+// Reads from /api/founding-status — purely client-side, never SSR.
 
 import { useState, useEffect } from 'react';
+import { FOUNDING_MEMBER_CAP } from '@/app/lib/tiers';
 
 interface FoundingStatusResponse {
   isAvailable: boolean;
@@ -13,18 +14,25 @@ interface FoundingStatusResponse {
 // ---- Banner above pricing cards ----
 
 export function FoundingMemberBanner() {
-  const [status, setStatus] = useState<FoundingStatusResponse | null>(null);
+  const [remaining, setRemaining] = useState<number | null>(null);
+  const [isAvailable, setIsAvailable] = useState<boolean>(false);
 
   useEffect(() => {
     fetch('/api/founding-status')
       .then((r) => r.json())
-      .then(setStatus)
-      .catch(() => {}); // fail silently — banner just won't show
+      .then((data) => {
+        setRemaining(data.remaining ?? null);
+        setIsAvailable(data.isAvailable ?? false);
+      })
+      .catch(() => {
+        setRemaining(null);
+        setIsAvailable(false);
+      });
   }, []);
 
-  if (!status?.isAvailable) return null;
+  if (remaining === null || !isAvailable || remaining <= 0) return null;
 
-  const { remaining, cap } = status;
+  const cap = FOUNDING_MEMBER_CAP;
   const borderClass =
     remaining <= 10
       ? 'border-red-500/50 bg-red-950/30'

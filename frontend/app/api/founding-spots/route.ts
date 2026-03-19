@@ -16,12 +16,12 @@ export async function GET() {
       .eq('status', 'active');
     if (error) {
       console.error('Founding spots query error', error);
-      return NextResponse.json({ total: FOUNDING_CAP, claimed: 0, remaining: FOUNDING_CAP, available: true });
+      return NextResponse.json({ total: FOUNDING_CAP, claimed: 0, remaining: 0, available: false });
     }
     const claimed = count ?? 0;
     const remaining = Math.max(0, FOUNDING_CAP - claimed);
     return NextResponse.json({ total: FOUNDING_CAP, claimed, remaining, available: remaining > 0 });
   } catch {
-    return NextResponse.json({ total: FOUNDING_CAP, claimed: 0, remaining: FOUNDING_CAP, available: true });
+    return NextResponse.json({ total: FOUNDING_CAP, claimed: 0, remaining: 0, available: false });
   }
 }
