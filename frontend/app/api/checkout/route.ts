@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
           quantity: 1,
         },
       ],
-      success_url: `${baseUrl}/account?checkout=success&plan=${plan}`,
+      success_url: `${baseUrl}/account?success=true`,
       cancel_url: `${baseUrl}/pricing?checkout=cancelled`,
       metadata: {
         supabase_user_id: user.id,
