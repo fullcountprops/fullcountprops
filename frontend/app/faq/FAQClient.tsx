@@ -203,7 +203,7 @@ const FAQ_SECTIONS: { title: string; items: FAQItem[] }[] = [
         ),
       },
       {
-        question: 'What does Double-A ($9/mo) include?',
+        question: 'What does Double-A ($7.99/mo) include?',
         answer: (
           <ul className="list-disc list-outside ml-5 space-y-1">
                             <li>Everything in Single-A (free tier)</li>
@@ -216,10 +216,10 @@ const FAQ_SECTIONS: { title: string; items: FAQItem[] }[] = [
         ),
       },
       {
-        question: 'What does Triple-A ($19/mo) and The Show ($39/mo) include?',
+        question: 'What does Triple-A ($29.99/mo) and The Show ($49.99/mo) include?',
         answer: (
           <>
-            <p><strong className="text-slate-200">Triple-A ($19/mo)</strong> adds everything in Double-A plus:</p>
+            <p><strong className="text-slate-200">Triple-A ($29.99/mo)</strong> adds everything in Double-A plus:</p>
             <ul className="list-disc list-outside ml-5 space-y-1 mt-2 mb-4">
               <li>Full SHAP breakdowns (all factors)</li>
               <li>Probability distributions</li>
@@ -229,7 +229,7 @@ const FAQ_SECTIONS: { title: string; items: FAQItem[] }[] = [
               <li>Umpire framing and park composites</li>
               <li>50-game player history</li>
             </ul>
-            <p><strong className="text-slate-200">The Show ($39/mo)</strong> adds everything in Triple-A plus:</p>
+            <p><strong className="text-slate-200">The Show ($49.99/mo)</strong> adds everything in Triple-A plus:</p>
             <ul className="list-disc list-outside ml-5 space-y-1 mt-2">
               <li>REST API access (1,000 requests per hour)</li>
               <li>API key management dashboard</li>

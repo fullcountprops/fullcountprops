@@ -163,15 +163,15 @@ export const FOUNDING_MEMBER_CAP = 100;
  */
 export const STRIPE_PRICE_TO_TIER: Record<string, TierName> = {
   // Double-A prices
-  'price_1TBIRyCHMWdtVF7LxSqpG5r7': 'double_a', // Double-A monthly $9/mo (current default)
-  'price_1T7WVcCHMWdtVF7LGT9iNi4C': 'double_a', // Double-A monthly $7.99 (archived — original price)
+  'price_1TBIRyCHMWdtVF7LxSqpG5r7': 'double_a', // Double-A monthly $7.99/mo (current default)
+  'price_1T7WVcCHMWdtVF7LGT9iNi4C': 'double_a', // Double-A monthly $7.99 (archived)
   'price_1TB8vOCHMWdtVF7LZY7ThWrX': 'double_a', // Double-A Founding Member $4.99/mo
   // Triple-A prices
-  'price_1TBIUqCHMWdtVF7LiWLpv0cj': 'triple_a', // Triple-A monthly $19/mo (current default)
+  'price_1TBIUqCHMWdtVF7LiWLpv0cj': 'triple_a', // Triple-A monthly $29.99/mo (current default)
   'price_1TBHSVCHMWdtVF7LfmebGKhC': 'triple_a', // Triple-A monthly $19.00 (archived)
   'price_1T7TZjCHMWdtVF7LPK79esVb': 'triple_a', // Triple-A monthly $29.00 (archived)
   // The Show prices
-  'price_1TBIWhCHMWdtVF7L4ILjZtPV': 'the_show', // The Show monthly $39/mo (current default)
+  'price_1TBIWhCHMWdtVF7L4ILjZtPV': 'the_show', // The Show monthly $49.99/mo (current default)
   'price_1TBHUHCHMWdtVF7LrME2uBAk': 'the_show', // The Show monthly $39.00 (archived)
   'price_1T7TosCHMWdtVF7LowXBxhaW': 'the_show', // The Show monthly $49.00 (archived)
 };
@@ -232,8 +232,8 @@ export const TIER_DISPLAY: TierDisplay[] = [
     id: 'double_a',
     name: 'Double-A',
     tagline: 'See the full slate',
-    price: 9,
-    priceLabel: '$9/mo',
+    price: 7.99,
+    priceLabel: '$7.99/mo',
     badge: 'Most Popular',
     cta: 'Start Double-A',
     features: [
@@ -250,8 +250,8 @@ export const TIER_DISPLAY: TierDisplay[] = [
     id: 'triple_a',
     name: 'Triple-A',
     tagline: 'Full scouting report',
-    price: 19,
-    priceLabel: '$19/mo',
+    price: 29.99,
+    priceLabel: '$29.99/mo',
     cta: 'Start Triple-A',
     features: [
       'Everything in Double-A',
@@ -269,8 +269,8 @@ export const TIER_DISPLAY: TierDisplay[] = [
     id: 'the_show',
     name: 'The Show',
     tagline: 'Big league analytics',
-    price: 39,
-    priceLabel: '$39/mo',
+    price: 49.99,
+    priceLabel: '$49.99/mo',
     cta: 'Go to The Show',
     features: [
       'Everything in Triple-A',

@@ -51,7 +51,7 @@ export function FoundingMemberBanner() {
         Lock in{' '}
         <span className="font-bold text-white">$4.99/mo for life</span>
         {' '}before spots run out.{' '}
-        <span className="text-gray-500 line-through">$9/mo</span> after launch pricing.
+        <span className="text-gray-500 line-through">$7.99/mo</span> after launch pricing.
       </p>
     </div>
   );
@@ -80,14 +80,14 @@ export function FoundingPriceDisplay() {
       <div className="flex items-baseline gap-2 flex-wrap">
         <span className="text-4xl font-bold">$4.99</span>
         <span className="text-gray-400 ml-1">/mo</span>
-        <span className="text-gray-600 text-sm line-through">$9/mo</span>
+        <span className="text-gray-600 text-sm line-through">$7.99/mo</span>
       </div>
     );
   }
 
   return (
     <div className="flex items-baseline">
-      <span className="text-4xl font-bold">$9.00</span>
+      <span className="text-4xl font-bold">$7.99</span>
       <span className="text-gray-400 ml-1">/mo</span>
     </div>
   );

@@ -84,7 +84,7 @@ export function FaqJsonLd() {
         name: 'Is FullCountProps free to use?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'Yes! The free tier shows the top 3 daily edges with full factor breakdowns. No credit card or signup required. Paid tiers start at $9/mo for full slate access.',
+          text: 'Yes! The free tier shows the top 3 daily edges with full factor breakdowns. No credit card or signup required. Paid tiers start at $7.99/mo for full slate access.',
         },
       },
       {

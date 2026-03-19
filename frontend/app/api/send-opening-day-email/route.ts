@@ -84,7 +84,7 @@ function buildEmailHtml(): string {
               <!-- Secondary info -->
               <p style="margin:0 0 8px;font-size:14px;line-height:1.6;color:#94a3b8;">
                 Free (Single-A) accounts see the top 3 edges each day.
-                Upgrade to <strong style="color:#ffffff;">Double-A ($9/mo)</strong> for the full daily slate,
+                Upgrade to <strong style="color:#ffffff;">Double-A ($7.99/mo)</strong> for the full daily slate,
                 email digest, and unlimited player history.
               </p>
 

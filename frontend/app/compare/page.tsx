@@ -35,7 +35,7 @@ type Platform = {
 }
 
 const platforms: Platform[] = [
-  { name: 'FullCountProps', price: '$9/mo', shortName: 'FCP' },
+  { name: 'FullCountProps', price: '$7.99/mo', shortName: 'FCP' },
   { name: 'BallparkPal', price: '$10/mo', shortName: 'BallparkPal' },
   { name: 'EV Analytics', price: '$85/mo', shortName: 'EV Analytics' },
   { name: 'Action Network', price: '$10/mo', shortName: 'Action Net.' },
@@ -98,9 +98,9 @@ const differentiators = [
   },
   {
     title: 'Aggressive Pricing',
-    subtitle: '$9/mo vs $10–85/mo',
+    subtitle: '$7.99/mo vs $10–85/mo',
     description:
-      'Competitors charge $10 to $85 per month for less transparency and often fewer features. FullCountProps Double-A starts at $9/mo — the most affordable option with full Monte Carlo distributions, daily email digest, SHAP explanations, and confidence grades included.',
+      'Competitors charge $10 to $85 per month for less transparency and often fewer features. FullCountProps Double-A starts at $7.99/mo — the most affordable option with full Monte Carlo distributions, daily email digest, SHAP explanations, and confidence grades included.',
     icon: (
       <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -163,7 +163,7 @@ export default function ComparePage() {
             >
               Start Free — 3 Picks Daily
             </Link>
-                            <p className="text-xs text-slate-500 mt-2">Double-A: $9/mo for all picks + full analytics</p>
+                            <p className="text-xs text-slate-500 mt-2">Double-A: $7.99/mo for all picks + full analytics</p>
             <Link
               href="/accuracy"
               className="border border-slate-700 hover:border-slate-500 text-slate-300 hover:text-white px-8 py-3 rounded-lg font-medium transition-colors"
@@ -255,7 +255,7 @@ export default function ComparePage() {
         <div className="mt-12 rounded-lg border border-slate-800 bg-slate-900/50 p-6 text-center">
           <h3 className="text-lg font-medium text-white">Full transparency at the lowest price point</h3>
           <p className="mx-auto mt-2 max-w-lg text-sm text-slate-400">
-            FullCountProps Double-A starts at $9/mo — less than any competitor listed
+            FullCountProps Double-A starts at $7.99/mo — less than any competitor listed
             above — with Monte Carlo simulation, public accuracy tracking, and
             full factor breakdowns included.
           </p>
@@ -314,7 +314,7 @@ export default function ComparePage() {
           </h2>
           <p className="text-slate-400 mb-8 max-w-lg mx-auto">
             Start with our free tier — 3 daily edges, full accuracy dashboard access, and complete
-            methodology documentation. Upgrade anytime for $9/mo.
+            methodology documentation. Upgrade anytime for $7.99/mo.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link

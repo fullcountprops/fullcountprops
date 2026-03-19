@@ -6,7 +6,7 @@ import { TIER_DISPLAY } from '@/app/lib/tiers'
 import { checkDataFreshness } from '../lib/dataFreshness'
 import StaleDataBanner from '../components/StaleDataBanner'
 
-const DOUBLE_A_PRICE = TIER_DISPLAY.find((t) => t.id === 'double_a')?.priceLabel ?? '$9/mo'
+const DOUBLE_A_PRICE = TIER_DISPLAY.find((t) => t.id === 'double_a')?.priceLabel ?? '$7.99/mo'
 
 export const dynamic = 'force-dynamic'
 
