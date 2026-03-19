@@ -161,6 +161,17 @@ export default function RootLayout({
                   Monte Carlo MLB prop analytics with glass-box transparency.
                   Every factor visible. Every result graded publicly.
                 </p>
+                <p className="text-slate-500 text-sm mt-3">
+                  Built by{' '}
+                  <a
+                    href="https://twitter.com/fullcountprops"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-slate-400 hover:text-slate-300"
+                  >
+                    Grant Lescallett
+                  </a>
+                </p>
               </div>
 
               {/* Product */}
@@ -237,6 +248,14 @@ export default function RootLayout({
                   Connect
                 </h3>
                 <ul className="space-y-2 text-sm">
+                  <li>
+                    <a
+                      href="mailto:support@fullcountprops.com"
+                      className="text-slate-500 hover:text-slate-300 transition-colors"
+                    >
+                      Support
+                    </a>
+                  </li>
                   <li>
                     <a
                       href="https://twitter.com/fullcountprops"

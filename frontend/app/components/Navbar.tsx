@@ -116,7 +116,7 @@ function MobileSection({ group, pathname }: { group: NavGroup; pathname: string 
     <div className="border-b border-slate-800/50 last:border-0">
       <button
         className={`flex items-center justify-between w-full py-3 text-left text-base transition-colors ${
-          hasActive ? 'text-white font-medium' : 'text-slate-400'
+          hasActive ? 'text-white font-medium' : 'text-slate-300'
         }`}
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
@@ -140,7 +140,7 @@ function MobileSection({ group, pathname }: { group: NavGroup; pathname: string 
               className={`block py-2 px-3 rounded-md text-sm transition-colors ${
                 pathname === item.href
                   ? 'text-white bg-slate-800/50 font-medium'
-                  : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/30'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800/30'
               }`}
             >
               {item.label}
@@ -330,7 +330,7 @@ export function Navbar() {
 
       {/* Mobile slide-in panel */}
       {mobileOpen && (
-        <div className="fixed inset-0 top-14 z-40 bg-black/50 lg:hidden">
+        <div className="fixed inset-0 top-14 z-40 bg-black/60 lg:hidden">
           <div
             ref={menuRef}
             className="absolute right-0 top-0 h-full w-72 bg-slate-950 border-l border-slate-800 p-5 overflow-y-auto flex flex-col"
@@ -363,7 +363,7 @@ export function Navbar() {
                   <>
                     <Link
                       href="/login"
-                      className="block text-center px-4 py-2.5 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                      className="block text-center px-4 py-2.5 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
                     >
                       Log In
                     </Link>

@@ -219,6 +219,19 @@ export default function PricingClient() {
           })}
         </div>
 
+        {/* Trust signal */}
+        <p className="text-slate-500 text-sm text-center mt-6">
+          All plans billed monthly. Cancel anytime. Payments secured by{' '}
+          <a
+            href="https://stripe.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-slate-400 hover:text-slate-300 underline underline-offset-2"
+          >
+            Stripe
+          </a>.
+        </p>
+
         {/* Feature Comparison Table */}
         <div className="mt-20">
           <h2 className="text-2xl font-bold text-center mb-8">

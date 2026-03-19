@@ -33,7 +33,7 @@ export default function AccountClient() {
     // Verify user server-side and hydrate state
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) {
-        router.push('/signup?redirect=/account');
+        router.push('/login?redirect=/account');
         return;
       }
       setEmail(user.email ?? null);
@@ -48,7 +48,7 @@ export default function AccountClient() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
       if (!s) {
-        router.push('/signup?redirect=/account');
+        router.push('/login?redirect=/account');
         return;
       }
       setSession(s);
