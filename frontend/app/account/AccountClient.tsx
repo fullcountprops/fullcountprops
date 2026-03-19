@@ -31,16 +31,13 @@ interface SubscriptionRecord {
 export default function AccountClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const checkoutSuccess = searchParams.get('checkout') === 'success';
-  const planParam = searchParams.get('plan') as TierName | null;
-
   const [email, setEmail] = useState<string | null>(null);
   const [tier, setTier] = useState<TierName>('single_a');
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [managingPortal, setManagingPortal] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(checkoutSuccess);
+  const [showSuccess, setShowSuccess] = useState(searchParams.get('success') === 'true');
   const [subscription, setSubscription] = useState<SubscriptionRecord | null>(null);
 
   useEffect(() => {
@@ -89,20 +86,14 @@ export default function AccountClient() {
     return () => authListener.unsubscribe();
   }, [router]);
 
-  // Auto-dismiss success banner after 8s and clean ?checkout=success from URL
+  // Auto-dismiss success banner after 8s and clean ?success=true from URL
   useEffect(() => {
-    if (!checkoutSuccess) return;
-    router.replace('/account');
-    const t = setTimeout(() => setShowSuccess(false), 8000);
-    return () => clearTimeout(t);
-  }, [checkoutSuccess, router]);
-
-  // Tier shown in success banner: prefer URL param (freshly purchased)
-  // since user_metadata may not have updated yet when the page first loads.
-  const successTierLabel =
-    planParam && planParam in TIER_LABELS
-      ? TIER_LABELS[planParam]
-      : TIER_LABELS[tier];
+    if (showSuccess) {
+      const timer = setTimeout(() => setShowSuccess(false), 8000);
+      window.history.replaceState({}, '', '/account');
+      return () => clearTimeout(timer);
+    }
+  }, [showSuccess]);
 
   async function handleManageSubscription() {
     if (!session) return;
@@ -166,35 +157,11 @@ export default function AccountClient() {
 
         {/* Success banner */}
         {showSuccess && (
-          <div className="mb-8 rounded-xl border border-emerald-600/40 bg-emerald-950/50 px-6 py-4">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-start gap-3">
-                <svg
-                  className="h-5 w-5 text-emerald-400 mt-0.5 shrink-0"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2.5}
-                  stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                </svg>
-                <div>
-                  <p className="text-sm font-semibold text-emerald-300">
-                    Welcome to {successTierLabel}!
-                  </p>
-                  <p className="text-sm text-emerald-400/80 mt-0.5">
-                    Your subscription is active. You now have full access to your tier&apos;s features.
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowSuccess(false)}
-                className="text-emerald-400/60 hover:text-emerald-300 transition-colors shrink-0 text-lg leading-none"
-                aria-label="Dismiss"
-              >
-                ×
-              </button>
-            </div>
+          <div
+            onClick={() => setShowSuccess(false)}
+            className="mb-6 cursor-pointer rounded-lg border border-green-800/50 bg-green-950/40 px-4 py-3 text-center text-sm text-green-300 transition-opacity hover:opacity-80"
+          >
+            Welcome! Your subscription is active. Click to dismiss.
           </div>
         )}
 
