@@ -22,14 +22,13 @@ export const metadata: Metadata = {
 function JsonLd() {
   const data = {
     '@context': 'https://schema.org',
-    '@type': 'Article',
-    headline: 'FullCountProps Methodology',
+    '@type': 'TechArticle',
+    headline: 'FullCountProps Methodology — How Our Monte Carlo Model Works',
     description:
-      'How the FullCountProps Monte Carlo simulation engine produces MLB player prop projections.',
-    author: { '@type': 'Organization', name: 'FullCountProps' },
+      'PA-level Monte Carlo simulation using LightGBM, 24 Statcast features, umpire tendencies, park factors, and SHAP explanations.',
+    author: { '@type': 'Person', name: 'Grant Lescallett' },
     publisher: { '@type': 'Organization', name: 'FullCountProps' },
-    datePublished: '2026-03-01',
-    dateModified: '2026-03-02',
+    url: 'https://www.fullcountprops.com/methodology',
   }
   return (
     <script

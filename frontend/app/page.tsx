@@ -110,6 +110,19 @@ function GameCard({ game }: { game: any }) {
 }
 
 
+const organizationJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'FullCountProps',
+  url: 'https://www.fullcountprops.com',
+  description:
+    'Glass-box MLB prop analytics powered by Monte Carlo simulation and Statcast data. Every factor visible. Every result graded publicly.',
+  sameAs: [
+    'https://twitter.com/fullcountprops',
+    'https://github.com/fullcountprops/fullcountprops',
+  ],
+};
+
 export default async function HomePage() {
   const games = await getTodaysGames()
   const daysUntil = getDaysUntilOpeningDay()
@@ -117,6 +130,10 @@ export default async function HomePage() {
 
   return (
     <div>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+      />
       {/* ════════════════════════════════════════════════
           HERO SECTION
           ════════════════════════════════════════════════ */}
