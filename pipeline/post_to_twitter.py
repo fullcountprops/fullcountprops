@@ -39,7 +39,7 @@ TWITTER_API_SECRET = os.environ.get("TWITTER_API_SECRET", "").strip()
 TWITTER_ACCESS_TOKEN = os.environ.get("TWITTER_ACCESS_TOKEN", "").strip()
 TWITTER_ACCESS_SECRET = os.environ.get("TWITTER_ACCESS_SECRET", "").strip()
 
-SITE_URL = "https://fullcountprops.vercel.app"
+SITE_URL = "https://www.fullcountprops.com"
 
 STAT_EMOJI = {
     "pitcher_strikeouts": "\U0001f525",

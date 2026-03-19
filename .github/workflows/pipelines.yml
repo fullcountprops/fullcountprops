@@ -180,9 +180,10 @@ jobs:
           pip install -r requirements.txt
           pip install tweepy
       - name: Post top picks to Twitter
+        # TODO: Remove --dry-run after adding TWITTER_* secrets to GitHub Actions
         run: python pipeline/post_to_twitter.py --dry-run
       - name: Send daily newsletter
-        run: python pipeline/send_newsletter.py --dry-run
+        run: python pipeline/send_newsletter.py
 
   # -- Afternoon Pipeline: Props Refresh + Update Projections (4:30 PM ET)
   afternoon-props-projections:
