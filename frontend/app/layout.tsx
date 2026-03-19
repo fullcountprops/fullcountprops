@@ -185,38 +185,18 @@ export default function RootLayout({
                     </Link>
                   </li>
                   <li>
-                    <Link href="/most-likely" className="text-slate-500 hover:text-slate-300 transition-colors">
-                      Most Likely
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/trends" className="text-slate-500 hover:text-slate-300 transition-colors">
-                      Trends
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/pitchers/preview" className="text-slate-500 hover:text-slate-300 transition-colors">
-                      Pitcher Preview
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/matchups" className="text-slate-500 hover:text-slate-300 transition-colors">
-                      Matchup Tool
-                    </Link>
-                  </li>
-                  <li>
                     <Link href="/park-factors" className="text-slate-500 hover:text-slate-300 transition-colors">
                       Park Factors
                     </Link>
                   </li>
                   <li>
-                    <Link href="/compare" className="text-slate-500 hover:text-slate-300 transition-colors">
-                      Compare
+                    <Link href="/pricing" className="text-slate-500 hover:text-slate-300 transition-colors">
+                      Pricing
                     </Link>
                   </li>
                   <li>
-                    <Link href="/pricing" className="text-slate-500 hover:text-slate-300 transition-colors">
-                      Pricing
+                    <Link href="/account" className="text-slate-500 hover:text-slate-300 transition-colors">
+                      My Account
                     </Link>
                   </li>
                 </ul>
@@ -305,20 +285,19 @@ export default function RootLayout({
                             <p className="text-slate-600 text-xs mt-2">
                 If you or someone you know has a gambling problem, call 1-800-GAMBLER (1-800-426-2537). Must be 21+ to use this service.
               </p>
-              <div className="flex items-center gap-4 text-xs text-slate-600">
-                <Link href="/terms" className="hover:text-slate-400 transition-colors">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-600">
+                <Link href="/terms" className="py-2 hover:text-slate-400 transition-colors">
                   Terms of Use
-                                </Link>
-                                
-                <Link href="/privacy" className="hover:text-slate-400 transition-colors">
+                </Link>
+                <Link href="/privacy" className="py-2 hover:text-slate-400 transition-colors">
                   Privacy Policy
                 </Link>
-                              <Link href="/disclaimer" className="hover:text-slate-400 transition-colors">
-                Disclaimer
-              </Link>
-              <Link href="/cookies" className="hover:text-slate-400 transition-colors">
-                Cookie Policy
-              </Link>
+                <Link href="/disclaimer" className="py-2 hover:text-slate-400 transition-colors">
+                  Disclaimer
+                </Link>
+                <Link href="/cookies" className="py-2 hover:text-slate-400 transition-colors">
+                  Cookie Policy
+                </Link>
               </div>
             </div>
           </div>

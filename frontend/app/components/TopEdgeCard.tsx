@@ -13,12 +13,12 @@
 import { createClient } from '@supabase/supabase-js';
 import Link from 'next/link';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-);
-
 async function getTopEdge() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!url || !key) return null;
+
+  const supabase = createClient(url, key);
   const today = new Date().toISOString().split('T')[0];
 
   // TODO: Adjust column names to match your simulation_results schema.
@@ -121,7 +121,7 @@ export async function TopEdgeCard() {
       </div>
 
       {/* Stats row */}
-      <div className="mt-4 grid grid-cols-3 gap-4 border-t border-slate-800 pt-4">
+      <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-4 border-t border-slate-800 pt-4">
         <div>
           <p className="text-xs text-slate-500">Sim mean</p>
           <p className="text-sm font-semibold text-white">

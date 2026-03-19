@@ -386,7 +386,7 @@ export default async function ParkFactorsPage() {
         </h2>
 
         {/* Column headers explanation */}
-        <div className="grid grid-cols-3 gap-4 mb-4 text-xs text-slate-500">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 text-xs text-slate-500">
           <div className="text-center">
             <span className="font-medium text-slate-400">K Factor</span>
             <div>+ = more strikeouts</div>

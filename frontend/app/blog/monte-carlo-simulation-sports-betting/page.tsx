@@ -281,7 +281,7 @@ export default function MonteCarloGuide() {
           </article>
 
           {/* Stats callout */}
-          <div className="mt-10 grid grid-cols-3 gap-4">
+          <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
               { value: '5,000', label: 'Simulations per game' },
               { value: '24', label: 'Statcast features' },

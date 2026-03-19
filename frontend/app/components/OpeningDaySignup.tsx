@@ -1,12 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-);
+import { getPublicClient } from '@/app/lib/supabase';
 
 const OPENING_DAY = new Date('2026-03-27T00:00:00-04:00');
 
@@ -47,6 +42,7 @@ export function OpeningDaySignup({
     setErrorMsg('');
 
     try {
+      const supabase = getPublicClient();
       const { error } = await supabase
         .from('email_signups')
         .insert({ email: trimmed, source });
@@ -106,7 +102,7 @@ export function OpeningDaySignup({
         disabled={status === 'loading'}
         className="w-full sm:w-auto whitespace-nowrap rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500 disabled:opacity-50"
       >
-        {status === 'loading' ? 'Saving...' : 'Notify Me on Opening Day'}
+        {status === 'loading' ? 'Saving...' : 'Subscribe for Daily Picks'}
       </button>
       {status === 'error' && errorMsg && (
         <p className="w-full text-xs text-red-400 sm:w-auto">{errorMsg}</p>

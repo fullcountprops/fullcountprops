@@ -155,7 +155,7 @@ function PitcherCard({ game }: { game: PitcherGame }) {
         </div>
 
         {/* Summary Grades */}
-        <div className="grid grid-cols-4 gap-3 mt-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
           <div className="text-center p-2 bg-gray-900/60 rounded-lg">
             <div className="text-xs text-slate-500 mb-1">Proj K</div>
             <div className="text-xl font-bold text-white">

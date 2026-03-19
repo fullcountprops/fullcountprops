@@ -96,7 +96,7 @@ export default function OpeningDayPost() {
           <p className="text-sm text-slate-400 mb-4">
             [TEAM] vs [OPPONENT] &middot; [VENUE] &middot; [TIME] ET
           </p>
-          <div className="grid grid-cols-3 gap-4 text-center">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-center">
             <div>
               <p className="text-xs text-slate-500">Sim Mean</p>
               <p className="text-lg font-bold text-white">[X.X] Ks</p>
@@ -139,7 +139,7 @@ export default function OpeningDayPost() {
           <p className="text-sm text-slate-400 mb-4">
             [TEAM] vs [OPPONENT] &middot; [VENUE] &middot; [TIME] ET
           </p>
-          <div className="grid grid-cols-3 gap-4 text-center">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-center">
             <div>
               <p className="text-xs text-slate-500">Sim Mean</p>
               <p className="text-lg font-bold text-white">[X.X]</p>
@@ -170,7 +170,7 @@ export default function OpeningDayPost() {
           <p className="text-sm text-slate-400 mb-4">
             [TEAM] vs [OPPONENT] &middot; [VENUE] &middot; [TIME] ET
           </p>
-          <div className="grid grid-cols-3 gap-4 text-center">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-center">
             <div>
               <p className="text-xs text-slate-500">Sim Mean</p>
               <p className="text-lg font-bold text-white">[X.X]</p>

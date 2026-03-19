@@ -67,10 +67,21 @@ export default function SeasonAwareCTA() {
 
   // Pre-season or no picks today
   return (
-    <div className="w-full max-w-md">
-      <p className="mb-2 text-xs text-slate-500">
-        Season starts March 26. Get notified:
-      </p>
+    <div className="flex flex-col gap-4 w-full max-w-md">
+      <div className="flex flex-col sm:flex-row items-center gap-3">
+        <Link
+          href="/pricing"
+          className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-green-500"
+        >
+          Get Started Free
+        </Link>
+        <Link
+          href="/methodology"
+          className="rounded-lg border border-slate-700 px-6 py-3 text-base font-medium text-slate-300 transition-colors hover:border-slate-500 hover:text-white"
+        >
+          See How It Works
+        </Link>
+      </div>
       <OpeningDaySignup source="homepage_hero" />
     </div>
   );

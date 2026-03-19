@@ -74,7 +74,7 @@ function SamplePickCard() {
       </div>
 
       {/* Stats row */}
-      <div className="mt-4 grid grid-cols-4 gap-3 border-t border-slate-800 pt-4">
+      <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 border-t border-slate-800 pt-4">
         <div>
           <p className="text-xs text-slate-500">Sim mean</p>
           <p className="text-sm font-semibold text-white">8.4 Ks</p>
@@ -112,7 +112,7 @@ function PickCardSkeleton() {
       <div className="mt-3 h-6 w-48 rounded bg-slate-800" />
       <div className="mt-2 h-4 w-36 rounded bg-slate-800" />
       <div className="mt-4 h-8 w-32 rounded bg-slate-800" />
-      <div className="mt-4 grid grid-cols-3 gap-4 border-t border-slate-800 pt-4">
+      <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-4 border-t border-slate-800 pt-4">
         <div className="h-10 rounded bg-slate-800" />
         <div className="h-10 rounded bg-slate-800" />
         <div className="h-10 rounded bg-slate-800" />
