@@ -1,6 +1,6 @@
 # DISABLED: trains XGBoost but canonical model is LightGBM. Rebuild for LightGBM post-launch.
 # =============================================================================
-# model_retrain.yml — Baseline MLB
+# model_retrain.yml — FullCountProps
 # Monthly XGBoost matchup model retraining pipeline
 #
 # Schedule: 1st of each month at 4:00 AM ET (08:00 UTC during EDT)

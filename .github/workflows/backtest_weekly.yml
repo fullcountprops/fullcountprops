@@ -1,5 +1,5 @@
 # =============================================================================
-# backtest_weekly.yml — Baseline MLB
+# backtest_weekly.yml — FullCountProps
 # Weekly accuracy backtesting pipeline
 #
 # Schedule: Every Sunday at 6:00 AM ET (10:00 UTC during EDT)
