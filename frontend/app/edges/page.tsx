@@ -2,8 +2,11 @@ import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
+import { TIER_DISPLAY } from '@/app/lib/tiers'
 import { checkDataFreshness } from '../lib/dataFreshness'
 import StaleDataBanner from '../components/StaleDataBanner'
+
+const DOUBLE_A_PRICE = TIER_DISPLAY.find((t) => t.id === 'double_a')?.priceLabel ?? '$9/mo'
 
 export const dynamic = 'force-dynamic'
 
@@ -219,13 +222,13 @@ function UpgradeBanner({ hiddenCount }: { hiddenCount: number }) {
       </h3>
       <p className="text-slate-400 text-sm mb-6 max-w-md mx-auto">
         Upgrade to Double-A to unlock all daily edges with confidence levels,
-        SHAP breakdowns, and edge percentages.
+        factor breakdowns, and edge percentages.
       </p>
       <Link
         href="/pricing"
         className="inline-block rounded-lg bg-green-600 hover:bg-green-500 text-white px-6 py-3 text-sm font-semibold transition-colors"
       >
-        Unlock All Edges — $9/mo
+        Unlock All Edges — {DOUBLE_A_PRICE}
       </Link>
     </div>
   )
