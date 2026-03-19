@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js'
-import { OpeningDaySignup } from '../components/OpeningDaySignup';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
@@ -113,33 +112,22 @@ export default async function PropsPage() {
         </p>
       </div>
 
-      {props.length === 0 ? (<>
-        <div className="text-center py-16">
-          <div className="text-4xl mb-4">&#x1F4CA;</div>
-          <h2 className="text-xl font-semibold text-slate-300 mb-2">No props data yet</h2>
-          <p className="text-slate-500">
-            {!supabaseUrl
-              ? 'Configure Supabase environment variables to load props.'
-              : 'Prop lines are fetched 4x daily starting Opening Day 2026. Check back then!'}
-          </p>
-          <div className="mt-8 p-4 bg-gray-900 rounded-lg border border-gray-700 max-w-md mx-auto text-sm text-slate-400">
-            <p className="font-medium text-slate-300 mb-2">What you&apos;ll see here:</p>
-            <ul className="space-y-1 text-left">
-              <li>&#x2022; Player prop lines from The Odds API</li>
-              <li>&#x2022; Our model&apos;s edge % vs the market</li>
-              <li>&#x2022; Over/under odds from major sportsbooks</li>
-              <li>&#x2022; Updated 4x daily (8am, 10:30am, 4:30pm ET)</li>
-            </ul>
+      {props.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-24 px-4">
+          <div className="max-w-md text-center">
+            <h2 className="text-xl font-semibold text-white mb-3">No props today</h2>
+            <p className="text-slate-400 leading-relaxed mb-8">
+              Daily props will appear here once the MLB season begins on March 27, 2026.
+            </p>
+            <a
+              href="/pricing"
+              className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-medium bg-green-600 hover:bg-green-500 text-white rounded-lg transition-colors"
+            >
+              Get Started Free
+            </a>
           </div>
         </div>
-
-                    <div className="mt-6 mx-auto max-w-md">
-                <p className="mb-2 text-center text-sm text-slate-400">
-                  Get notified when prop lines start flowing:
-                </p>
-                <OpeningDaySignup source="props_empty" />
-              </div>
-    </>  ) : (
+      ) : (
         <div className="space-y-8">
           {Object.entries(byMarket).map(([market, marketProps]: [string, any]) => (
             <section key={market}>

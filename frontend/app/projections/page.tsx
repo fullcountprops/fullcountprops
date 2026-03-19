@@ -287,22 +287,18 @@ export default async function ProjectionsPage() {
       <StaleDataBanner status={freshness.status} lastUpdated={freshness.lastUpdated} />
 
       {projections.length === 0 ? (
-        <div className="text-center py-16">
-          <h2 className="text-xl font-semibold text-slate-300 mb-2">No projections yet</h2>
-          <p className="text-slate-500 max-w-md mx-auto">
-            {!supabaseUrl
-              ? 'Configure Supabase environment variables to load projections.'
-              : 'Projections generate automatically starting Opening Day 2026 using our v3.0 multi-stat model.'}
-          </p>
-          <div className="mt-8 p-4 bg-gray-900 rounded-lg border border-gray-700 max-w-md mx-auto text-sm text-slate-400 text-left">
-            <p className="font-medium text-slate-300 mb-2">v3.0 Model — supported stat types:</p>
-            <ul className="space-y-1">
-              <li>&bull; Pitcher Strikeouts (K) &amp; Walks (BB)</li>
-              <li>&bull; Batter Total Bases (TB), Hits (H), Home Runs (HR)</li>
-              <li>&bull; Batter RBIs, Walks (BB), Strikeouts (K), Runs (R)</li>
-              <li>&bull; Park-specific &amp; platoon split adjustments</li>
-              <li>&bull; Umpire &amp; catcher framing factors</li>
-            </ul>
+        <div className="flex flex-col items-center justify-center py-24 px-4">
+          <div className="max-w-md text-center">
+            <h2 className="text-xl font-semibold text-white mb-3">No projections today</h2>
+            <p className="text-slate-400 leading-relaxed mb-8">
+              Projections are generated daily during the MLB regular season. Check back on Opening Day.
+            </p>
+            <a
+              href="/methodology"
+              className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-medium bg-green-600 hover:bg-green-500 text-white rounded-lg transition-colors"
+            >
+              See Our Methodology
+            </a>
           </div>
         </div>
       ) : (

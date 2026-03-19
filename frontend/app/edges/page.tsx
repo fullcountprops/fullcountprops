@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
-import { OpeningDaySignup } from '../components/OpeningDaySignup';
 import { checkDataFreshness } from '../lib/dataFreshness'
 import StaleDataBanner from '../components/StaleDataBanner'
 
@@ -409,37 +408,20 @@ export default async function EdgesPage({
       {/* Results */}
       <div className="max-w-6xl mx-auto px-4 pb-20">
         {projections.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="text-5xl mb-4">&#9898;</div>
-            <h2 className="text-xl font-semibold text-slate-300 mb-3">
-              No edges available for {displayDate}
-            </h2>
-            <p className="text-slate-500 max-w-md mx-auto mb-6">
-              {isPreSeason
-                ? 'The 2026 MLB season has not started yet. Edges will populate automatically once games are scheduled and lineups are confirmed starting Opening Day (March 26, 2026).'
-                : 'No projections were generated for this date. This could mean no games are scheduled, or the model has not yet run for this slate. Try selecting a different date.'}
-            </p>
-            <div className="flex items-center justify-center gap-4 flex-wrap">
+          <div className="flex flex-col items-center justify-center py-24 px-4">
+            <div className="max-w-md text-center">
+              <h2 className="text-xl font-semibold text-white mb-3">No edges today</h2>
+              <p className="text-slate-400 leading-relaxed mb-8">
+                Our model runs 5,000 simulations per game during the MLB season. The first edges
+                will be published on Opening Day, March 27, 2026.
+              </p>
               <Link
                 href="/methodology"
-                className="text-sm text-green-400 hover:text-green-300 font-medium transition-colors"
+                className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-medium bg-green-600 hover:bg-green-500 text-white rounded-lg transition-colors"
               >
-                How the model works &rarr;
-              </Link>
-              <Link
-                href="/accuracy"
-                className="text-sm text-slate-400 hover:text-slate-200 font-medium transition-colors"
-              >
-                View backtest results &rarr;
+                Learn How It Works
               </Link>
             </div>
-
-                          <div className="mt-6 mx-auto max-w-md">
-                <p className="mb-2 text-center text-sm text-slate-400">
-                  Want to know the moment picks go live?
-                </p>
-                <OpeningDaySignup source="edges_empty" />
-              </div>
           </div>
         ) : (
           <div className="space-y-10">
