@@ -1,8 +1,10 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { usePathname } from 'next/navigation'
+import { useState, useEffect, useRef } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { getPublicClient } from '@/app/lib/supabase'
+import type { User } from '@supabase/supabase-js'
 
 // Nav structure: 3 grouped categories + standalone Subscribe CTA
 // Reduces 10 flat links → 3 dropdowns (Hick's Law optimization)
@@ -150,16 +152,48 @@ function MobileSection({ group, pathname }: { group: NavGroup; pathname: string 
   )
 }
 
+// User avatar icon
+function UserIcon() {
+  return (
+    <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <circle cx="12" cy="8" r="4" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+    </svg>
+  )
+}
+
 // Main Navbar export
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
   const pathname = usePathname()
+  const router = useRouter()
   const menuRef = useRef<HTMLDivElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  // Auth state
+  useEffect(() => {
+    const supabase = getPublicClient()
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null)
+      setLoading(false)
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+      setLoading(false)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
 
   // Close mobile menu on route change
   useEffect(() => { setMobileOpen(false) }, [pathname])
 
-  // Close on click outside
+  // Close dropdown on route change
+  useEffect(() => { setDropdownOpen(false) }, [pathname])
+
+  // Close mobile menu on click outside
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -170,11 +204,97 @@ export function Navbar() {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [mobileOpen])
 
+  // Close dropdown on click outside + Escape
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false)
+      }
+    }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setDropdownOpen(false)
+    }
+    if (dropdownOpen) {
+      document.addEventListener('mousedown', handleClick)
+      document.addEventListener('keydown', handleKey)
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClick)
+      document.removeEventListener('keydown', handleKey)
+    }
+  }, [dropdownOpen])
+
   // Lock body scroll when mobile menu open
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
   }, [mobileOpen])
+
+  async function handleSignOut() {
+    const supabase = getPublicClient()
+    await supabase.auth.signOut()
+    setDropdownOpen(false)
+    router.push('/')
+  }
+
+  // Desktop auth section
+  function DesktopAuth() {
+    if (loading) return <div className="w-24" />
+
+    if (!user) {
+      return (
+        <div className="flex items-center gap-3">
+          <Link
+            href="/login"
+            className="text-sm text-slate-400 hover:text-slate-100 transition-colors"
+          >
+            Log In
+          </Link>
+          <Link
+            href="/pricing"
+            className="bg-green-600 hover:bg-green-500 text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-colors"
+          >
+            Sign Up
+          </Link>
+        </div>
+      )
+    }
+
+    return (
+      <div ref={dropdownRef} className="relative">
+        <button
+          onClick={() => setDropdownOpen((o) => !o)}
+          className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition-colors"
+          aria-label="User menu"
+          aria-expanded={dropdownOpen}
+        >
+          <UserIcon />
+        </button>
+        {dropdownOpen && (
+          <div className="absolute right-0 top-full mt-2 w-48 bg-slate-900 border border-slate-700 rounded-lg shadow-lg z-50 overflow-hidden">
+            <Link
+              href="/account"
+              className="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+            >
+              Account
+            </Link>
+            <Link
+              href="/pricing"
+              className="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+            >
+              Pricing
+            </Link>
+            <button
+              onClick={handleSignOut}
+              className="block w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+            >
+              Log Out
+            </button>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <nav className="border-b border-slate-800 bg-slate-950/80 backdrop-blur-sm sticky top-0 z-50">
@@ -184,17 +304,12 @@ export function Navbar() {
           FullCountProps
         </Link>
 
-        {/* Desktop nav: 3 dropdowns + CTA */}
+        {/* Desktop nav: 3 dropdowns + auth CTA */}
         <div className="hidden lg:flex items-center gap-8">
           {NAV_GROUPS.map((group) => (
             <DesktopDropdown key={group.label} group={group} pathname={pathname} />
           ))}
-          <Link
-            href="/pricing"
-            className="bg-green-600 hover:bg-green-500 text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-colors"
-          >
-            Pricing
-          </Link>
+          <DesktopAuth />
         </div>
 
         {/* Mobile hamburger */}
@@ -218,17 +333,50 @@ export function Navbar() {
         <div className="fixed inset-0 top-14 z-40 bg-black/50 lg:hidden">
           <div
             ref={menuRef}
-            className="absolute right-0 top-0 h-full w-72 bg-slate-950 border-l border-slate-800 p-5 overflow-y-auto"
+            className="absolute right-0 top-0 h-full w-72 bg-slate-950 border-l border-slate-800 p-5 overflow-y-auto flex flex-col"
           >
-            {NAV_GROUPS.map((group) => (
-              <MobileSection key={group.label} group={group} pathname={pathname} />
-            ))}
-            <Link
-              href="/pricing"
-              className="mt-5 block bg-green-600 hover:bg-green-500 text-white px-4 py-2.5 rounded-lg font-medium text-center text-sm transition-colors"
-            >
-              Pricing
-            </Link>
+            <div className="flex-1">
+              {NAV_GROUPS.map((group) => (
+                <MobileSection key={group.label} group={group} pathname={pathname} />
+              ))}
+            </div>
+
+            {/* Mobile auth footer */}
+            {!loading && (
+              <div className="mt-5 flex flex-col gap-2">
+                {user ? (
+                  <>
+                    <Link
+                      href="/account"
+                      className="block text-center px-4 py-2.5 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+                    >
+                      Account
+                    </Link>
+                    <button
+                      onClick={handleSignOut}
+                      className="block w-full text-center px-4 py-2.5 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                    >
+                      Log Out
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      href="/login"
+                      className="block text-center px-4 py-2.5 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                    >
+                      Log In
+                    </Link>
+                    <Link
+                      href="/pricing"
+                      className="block bg-green-600 hover:bg-green-500 text-white px-4 py-2.5 rounded-lg font-medium text-center text-sm transition-colors"
+                    >
+                      Sign Up
+                    </Link>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
