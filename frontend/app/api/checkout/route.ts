@@ -35,7 +35,7 @@ function getPriceId(
     triple_a_annual: process.env.STRIPE_PRO_ANNUAL_PRICE_ID,
     the_show_monthly: process.env.STRIPE_PREMIUM_MONTHLY_PRICE_ID,
     the_show_annual: process.env.STRIPE_PREMIUM_ANNUAL_PRICE_ID,
-        founding_member_monthly: process.env.STRIPE_FOUNDING_DOUBLE_A_PRICE_ID,
+        founding_member_monthly: process.env.STRIPE_FOUNDING_PRICE_ID,
   };
 
   return map[`${plan}_${period}`] ?? null;

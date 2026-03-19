@@ -181,7 +181,7 @@ export function buildPriceToTierMap(): Record<string, TierName> {
   const map: Record<string, TierName> = { ...STRIPE_PRICE_TO_TIER };
   // Also honor env-var overrides (e.g. for test mode)
   const doubleA = process.env.STRIPE_DOUBLE_A_MONTHLY_PRICE_ID;
-  const foundingDoubleA = process.env.STRIPE_FOUNDING_DOUBLE_A_PRICE_ID;
+  const foundingDoubleA = process.env.STRIPE_FOUNDING_PRICE_ID;
   const tripleA = process.env.STRIPE_PRO_MONTHLY_PRICE_ID;
   const tripleAAnnual = process.env.STRIPE_PRO_ANNUAL_PRICE_ID;
   const theShow = process.env.STRIPE_PREMIUM_MONTHLY_PRICE_ID;
