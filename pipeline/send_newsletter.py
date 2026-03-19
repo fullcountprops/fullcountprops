@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-send_newsletter.py -- Baseline MLB
+send_newsletter.py -- FullCountProps
 Daily email newsletter system using Resend API.
 
 Sends formatted HTML emails to subscribers with today's

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-fetch_lineups.py - Baseline MLB
+fetch_lineups.py - FullCountProps
 Fetch starting lineups via BallDontLie licensed API.
 Uses the Stats endpoint with game_ids to get players who appeared in each game.
 For pre-game lineups, falls back to the Games endpoint probable pitcher data

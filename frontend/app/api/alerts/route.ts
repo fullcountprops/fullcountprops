@@ -139,7 +139,7 @@ export async function POST(req: NextRequest) {
     const { data: subscribers, error: subError } = await supabase
       .from('subscriptions')
       .select('email, tier')
-      .in('tier', ['pro', 'premium'])
+      .in('tier', ['double_a', 'triple_a', 'the_show'])
       .eq('status', 'active')
 
     if (subError || !subscribers || subscribers.length === 0) {

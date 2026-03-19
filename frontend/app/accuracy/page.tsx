@@ -1,4 +1,11 @@
+import type { Metadata } from 'next'
 import { getPublicClient, isSupabaseConfigured } from '../lib/supabase'
+
+export const metadata: Metadata = {
+  title: 'Model Accuracy — FullCountProps',
+  description:
+    'Track FullCountProps model accuracy in real time. Hit rate, edge calibration, and graded pick results across all MLB prop types.',
+}
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0

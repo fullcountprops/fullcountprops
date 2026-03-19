@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-fetch_players.py - Baseline MLB
+fetch_players.py - FullCountProps
 Fetch active MLB players via BallDontLie licensed API.
 Replaces previous statsapi.mlb.com roster scraping for legal compliance.
 

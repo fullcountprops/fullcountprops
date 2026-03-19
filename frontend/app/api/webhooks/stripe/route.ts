@@ -173,7 +173,7 @@ async function updateUserTier(
   if (updateError) {
     console.error(`Failed to update tier for user ${user.id}:`, updateError);
   } else {
-    console.log(`Updated user ${user.id} to tier: ${tier}`);
+    console.info(`Updated user ${user.id} to tier: ${tier}`);
   }
 
   return user;
@@ -344,7 +344,7 @@ export async function POST(request: NextRequest) {
       }
 
       default:
-        console.log(`Unhandled event type: ${event.type}`);
+        console.info(`Unhandled event type: ${event.type}`);
     }
   } catch (err) {
     console.error(`Error processing webhook event ${event.type}:`, err);

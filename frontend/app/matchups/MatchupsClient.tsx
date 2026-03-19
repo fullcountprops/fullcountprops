@@ -382,7 +382,7 @@ export default function MatchupsClient({ batters, pitchers }: MatchupsClientProp
               The matchup tool uses the same multi-stat projection engine from the main simulator.
               Projected per-game rates are converted to Poisson probability distributions, showing
               the likelihood of each exact outcome count. During the season, rates are derived from
-              the v3.0 LightGBM model with 33 Statcast features, park factors, umpire data, and
+              the v3.0 LightGBM model with 24 Statcast features, park factors, umpire data, and
               platoon splits.
             </p>
           </div>

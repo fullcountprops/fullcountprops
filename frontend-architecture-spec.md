@@ -1,4 +1,4 @@
-# Baseline MLB — Frontend Architecture Spec
+# FullCountProps — Frontend Architecture Spec
 
 ## Last Updated: February 25, 2026
 
@@ -55,7 +55,7 @@ fullcountprops.com/
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│  BASELINE MLB                    [date] [refresh ↻] │
+│  FullCountProps                    [date] [refresh ↻] │
 │  Your daily MLB research. Every factor. No secrets. │
 ├─────────────────────────────────────────────────────┤
 │                                                     │
@@ -218,7 +218,7 @@ For each pitcher:
 - Source: `picks` table filtered by pitcher_id
 
 **6. Our Track Record on This Pitcher**
-- Baseline MLB's projection accuracy for this specific pitcher
+- FullCountProps's projection accuracy for this specific pitcher
 - Hit rate, avg CLV, avg projection error
 - Source: `picks` table aggregated by pitcher_id
 
@@ -295,7 +295,7 @@ For each pitcher:
 
 **6. Transparency Statement**
 - Static text block explaining: data sources, methodology, grading rules
-- "Every projection Baseline MLB has ever made is logged and graded. We don't hide misses."
+- "Every projection FullCountProps has ever made is logged and graded. We don't hide misses."
 - Link to raw data export (CSV download of all picks)
 
 ---
@@ -306,7 +306,7 @@ For each pitcher:
 **Static content page**
 
 ### Sections
-- What is Baseline MLB
+- What is FullCountProps
 - Data sources (with links): Baseball Savant, MLB Stats API, The Odds API, OpenWeatherMap
 - How projections work (glass-box methodology explanation)
 - What we track: every factor, every adjustment, every result
@@ -319,7 +319,7 @@ For each pitcher:
 
 ### Navigation Bar
 ```
-[⚾ BASELINE MLB]  [Today's Slate]  [Props]  [Accuracy]  [About]
+[⚾ FullCountProps]  [Today's Slate]  [Props]  [Accuracy]  [About]
 ```
 - Fixed top, dark background (#0a0a0f or similar)
 - Mobile: hamburger menu

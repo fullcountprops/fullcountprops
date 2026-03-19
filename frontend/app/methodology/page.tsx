@@ -93,7 +93,7 @@ export default function MethodologyPage() {
           {/* Stats row */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-16">
             <StatBox value="5,000" label="Simulations / Game" />
-            <StatBox value="33" label="Model Features" />
+            <StatBox value="24" label="Statcast Features" />
             <StatBox value="6M+" label="Training PAs" />
             <StatBox value="8" label="Outcome Classes" />
           </div>
@@ -130,7 +130,7 @@ export default function MethodologyPage() {
                 <span className="text-green-400">Layer 1:</span> MATCHUP MODEL (LightGBM)
               </div>
               <div className="pl-4 text-slate-400 mb-1">
-                Input: pitcher x batter x 33 context features
+                Input: pitcher x batter x 24 context features
               </div>
               <div className="pl-4 text-slate-400 mb-4">
                 Output: probability of each of 8 PA outcomes
@@ -163,7 +163,7 @@ export default function MethodologyPage() {
               Statcast data (2021&ndash;2025).
             </p>
             <p>
-              For every upcoming plate appearance, the model takes 33 features and
+              For every upcoming plate appearance, the model takes 24 features and
               outputs the probability of 8 possible outcomes:
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 my-4">
@@ -194,7 +194,7 @@ export default function MethodologyPage() {
             </p>
 
             <h3 className="text-lg font-semibold text-white mt-8 mb-3">
-              The 33 Features
+              The 24 Statcast Features
             </h3>
             <p>Our feature set is organized into five categories:</p>
             <ul className="space-y-3 mt-3">

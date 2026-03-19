@@ -57,7 +57,7 @@ export default async function Image() {
         >
           <span style={{ display: 'flex' }}>5,000 Simulations</span>
           <span style={{ display: 'flex', color: '#475569' }}>|</span>
-          <span style={{ display: 'flex' }}>33 Statcast Features</span>
+          <span style={{ display: 'flex' }}>24 Statcast Features</span>
           <span style={{ display: 'flex', color: '#475569' }}>|</span>
           <span style={{ display: 'flex' }}>+8.7% ROI</span>
         </div>

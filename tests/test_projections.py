@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-tests/test_projections.py -- Baseline MLB
+tests/test_projections.py -- FullCountProps
 Pytest test suite for core projection math functions.
 
 Tests cover:

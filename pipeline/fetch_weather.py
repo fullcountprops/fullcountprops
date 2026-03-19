@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-fetch_weather.py — Baseline MLB
+fetch_weather.py — FullCountProps
 Fetch weather data for each MLB ballpark using Open-Meteo (free, no API key).
 Stores temperature, wind speed, wind direction, and humidity for game-time
 conditions. Used as context features in the Monte Carlo simulation.

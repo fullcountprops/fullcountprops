@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-generate_projections.py -- Baseline MLB
+generate_projections.py -- FullCountProps
 Glass-box pitcher strikeout & walk projection engine v2.1.
 
 Model factors (v2.1):

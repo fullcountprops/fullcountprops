@@ -1,5 +1,12 @@
+import type { Metadata } from 'next'
 import { createClient } from '@supabase/supabase-js'
 import ProjectionsClient from './ProjectionsClient'
+
+export const metadata: Metadata = {
+  title: 'Model Projections — FullCountProps',
+  description:
+    'Daily MLB player stat projections from the FullCountProps LightGBM model. Pitcher strikeouts, batter total bases, hits, home runs, and more.',
+}
 import { checkDataFreshness } from '../lib/dataFreshness'
 import StaleDataBanner from '../components/StaleDataBanner'
 

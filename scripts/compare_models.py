@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-compare_models.py — Baseline MLB
+compare_models.py — FullCountProps
 Multi-model comparison tool for the Monte Carlo backtest system.
 
 Orchestrates multiple runs of backtest_simulator.py (and optionally

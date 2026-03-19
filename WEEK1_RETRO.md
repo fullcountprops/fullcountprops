@@ -1,4 +1,4 @@
-# Week 1 Retrospective — Baseline MLB
+# Week 1 Retrospective — FullCountProps
 
 **Date:** 2025-02-25  
 **Sprint:** Days 1–5 (Infrastructure & Launch)

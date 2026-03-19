@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-post_to_twitter.py -- Baseline MLB
+post_to_twitter.py -- FullCountProps
 Auto-publish daily best bets to X/Twitter.
 
 Reads today's top plays from Supabase and posts a formatted thread.
@@ -137,11 +137,11 @@ def build_tweets(plays: list, game_date: str) -> list:
     tweets = []
 
     if not plays:
-        tweets.append(f"\U0001f4ca Baseline MLB - {date_display}\n\nNo strong plays today. Model confidence too low across the board.\n\nFull projections: {SITE_URL}/projections")
+        tweets.append(f"\U0001f4ca FullCountProps - {date_display}\n\nNo strong plays today. Model confidence too low across the board.\n\nFull projections: {SITE_URL}/projections")
         return tweets
 
     # Opening tweet
-    header = f"\U0001f4ca Baseline MLB Best Bets - {date_display}\n\n{len(plays)} plays with 5%+ edge:\n\n"
+    header = f"\U0001f4ca FullCountProps Best Bets - {date_display}\n\n{len(plays)} plays with 5%+ edge:\n\n"
     lines = []
     for p in plays[:3]:
         emoji = STAT_EMOJI.get(p["stat_type"], "\U0001f4c8")
@@ -216,7 +216,7 @@ def post_tweet(text: str, reply_to_id: str = None) -> str:
 
 def main(dry_run=False):
     game_date = date.today().isoformat()
-    log.info(f"=== Baseline MLB Twitter Post for {game_date} ===")
+    log.info(f"=== FullCountProps Twitter Post for {game_date} ===")
 
     if dry_run:
         log.info("DRY RUN mode enabled — will preview tweets without posting")

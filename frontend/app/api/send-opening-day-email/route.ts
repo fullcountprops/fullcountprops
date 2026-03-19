@@ -182,7 +182,7 @@ export async function POST(req: NextRequest) {
     .map((row: { email: string }) => row.email)
     .filter(Boolean)
 
-  console.log(`[send-opening-day-email] Sending to ${emails.length} recipients`)
+  console.info(`[send-opening-day-email] Sending to ${emails.length} recipients`)
 
   // 4. Send emails, tracking successes and failures
   let sent = 0
@@ -197,7 +197,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  console.log(`[send-opening-day-email] Complete — sent: ${sent}, errors: ${errors}`)
+  console.info(`[send-opening-day-email] Complete — sent: ${sent}, errors: ${errors}`)
 
   return NextResponse.json({ sent, errors })
 }

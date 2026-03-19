@@ -3,8 +3,7 @@
 // ============================================================
 
 // ── Subscription Tiers ──────────────────────────────────────────────
-/** @deprecated Use TierName from '@/app/lib/tiers' instead. Legacy type kept for backward compat. */
-export type SubscriptionTier = 'free' | 'pro' | 'premium'
+export type SubscriptionTier = 'single_a' | 'double_a' | 'triple_a' | 'the_show'
 
 export interface Subscription {
   id: number
@@ -35,9 +34,10 @@ export interface ApiKey {
 
 // ── Rate Limit Config ───────────────────────────────────────────────
 export const RATE_LIMITS: Record<SubscriptionTier, { requests_per_hour: number; requests_per_day: number }> = {
-  free:    { requests_per_hour: 20,   requests_per_day: 100   },
-  pro:     { requests_per_hour: 200,  requests_per_day: 2000  },
-  premium: { requests_per_hour: 1000, requests_per_day: 10000 },
+  single_a: { requests_per_hour: 20,   requests_per_day: 100   },
+  double_a: { requests_per_hour: 200,  requests_per_day: 2000  },
+  triple_a: { requests_per_hour: 500,  requests_per_day: 5000  },
+  the_show: { requests_per_hour: 1000, requests_per_day: 10000 },
 }
 
 // ── Tier Capabilities ───────────────────────────────────────────────
@@ -51,7 +51,7 @@ export const TIER_CAPS: Record<SubscriptionTier, {
   custom_alerts: boolean
   email_alerts: boolean
 }> = {
-  free: {
+  single_a: {
     max_edges: 3,
     show_distributions: false,
     show_shap: false,
@@ -61,17 +61,27 @@ export const TIER_CAPS: Record<SubscriptionTier, {
     custom_alerts: false,
     email_alerts: false,
   },
-  pro: {
+  double_a: {
+    max_edges: null,
+    show_distributions: false,
+    show_shap: false,
+    show_kelly: false,
+    api_access: false,
+    export_csv: true,
+    custom_alerts: false,
+    email_alerts: true,
+  },
+  triple_a: {
     max_edges: null,
     show_distributions: true,
     show_shap: true,
     show_kelly: true,
     api_access: false,
-    export_csv: false,
+    export_csv: true,
     custom_alerts: false,
     email_alerts: true,
   },
-  premium: {
+  the_show: {
     max_edges: null,
     show_distributions: true,
     show_shap: true,

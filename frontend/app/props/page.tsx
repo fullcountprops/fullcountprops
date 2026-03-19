@@ -1,4 +1,11 @@
+import type { Metadata } from 'next'
 import { createClient } from '@supabase/supabase-js'
+
+export const metadata: Metadata = {
+  title: "Today's Props — FullCountProps",
+  description:
+    'MLB player prop lines with model edge percentages. Updated 4x daily. Over/under odds from major sportsbooks compared to FullCountProps projections.',
+}
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''

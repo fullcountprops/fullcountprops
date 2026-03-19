@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { RATE_LIMITS, type SubscriptionTier, type ApiError } from './types'
+import { normalizeTier } from './tiers'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
@@ -50,7 +51,7 @@ const ipRequestCounts = new Map<string, { count: number; windowStart: number }>(
 function checkIpRateLimit(ip: string): { allowed: boolean; remaining: number } {
   const now = Date.now()
   const windowMs = 60 * 60 * 1000 // 1 hour
-  const limit = RATE_LIMITS.free.requests_per_hour
+  const limit = RATE_LIMITS.single_a.requests_per_hour
 
   const record = ipRequestCounts.get(ip)
 
@@ -113,14 +114,14 @@ export async function authenticateRequest(
         'RATE_LIMIT_EXCEEDED',
         429
       )
-      res.headers.set('X-RateLimit-Limit', String(RATE_LIMITS.free.requests_per_hour))
+      res.headers.set('X-RateLimit-Limit', String(RATE_LIMITS.single_a.requests_per_hour))
       res.headers.set('X-RateLimit-Remaining', '0')
       res.headers.set('Retry-After', '3600')
       return { error: res }
     }
 
     return {
-      auth: { tier: 'free' },
+      auth: { tier: 'single_a' },
     }
   }
 
@@ -151,7 +152,7 @@ export async function authenticateRequest(
     .eq('status', 'active')
     .single()
 
-  const tier: SubscriptionTier = (sub?.tier as SubscriptionTier) || keyRecord.tier || 'free'
+  const tier: SubscriptionTier = normalizeTier(sub?.tier || keyRecord.tier) as SubscriptionTier
 
   // ── Key-based rate limiting ──────────────────────────────────────
   const windowStart = getWindowStart()
@@ -209,7 +210,7 @@ export function requireTier(
   auth: AuthResult,
   minTier: SubscriptionTier
 ): NextResponse | null {
-  const tierOrder: SubscriptionTier[] = ['free', 'pro', 'premium']
+  const tierOrder: SubscriptionTier[] = ['single_a', 'double_a', 'triple_a', 'the_show']
   const authLevel = tierOrder.indexOf(auth.tier)
   const requiredLevel = tierOrder.indexOf(minTier)
 

@@ -19,6 +19,11 @@ const nextConfig = {
         destination: 'https://www.fullcountprops.com/:path*',
         permanent: true,
       },
+      {
+        source: '/subscribe',
+        destination: '/pricing',
+        permanent: true,
+      },
     ];
   },
   async headers() {

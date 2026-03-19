@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-fetch_games.py - Baseline MLB
+fetch_games.py - FullCountProps
 Fetch MLB game schedule via BallDontLie licensed API.
 Replaces previous statsapi.mlb.com integration for legal compliance.
 
