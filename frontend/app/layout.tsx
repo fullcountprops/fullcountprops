@@ -6,6 +6,7 @@ import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { GoogleAnalytics } from './components/GoogleAnalytics'
 import { Navbar } from './components/Navbar'
+import { TIER_DISPLAY } from './lib/tiers'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -77,6 +78,9 @@ export const metadata: Metadata = {
 }
 
 function JsonLd() {
+  const tierPrice = (id: string) =>
+    String(TIER_DISPLAY.find((t) => t.id === id)?.price ?? 0);
+
   const structuredData = {
     '@context': 'https://schema.org',
     '@type': 'WebApplication',
@@ -90,28 +94,28 @@ function JsonLd() {
       {
         '@type': 'Offer',
         name: 'Single-A',
-        price: '0',
+        price: tierPrice('single_a'),
         priceCurrency: 'USD',
         description: 'Top 3 best bets daily with grade, direction, and edge %',
       },
       {
         '@type': 'Offer',
         name: 'Double-A',
-        price: '9',
+        price: tierPrice('double_a'),
         priceCurrency: 'USD',
         description: 'Full daily best bets, edges page, basic SHAP, daily email digest',
       },
       {
         '@type': 'Offer',
         name: 'Triple-A',
-        price: '19',
+        price: tierPrice('triple_a'),
         priceCurrency: 'USD',
         description: 'Full SHAP breakdowns, probability distributions, Kelly sizing, simulator',
       },
       {
         '@type': 'Offer',
         name: 'The Show',
-        price: '39',
+        price: tierPrice('the_show'),
         priceCurrency: 'USD',
         description: 'Everything in Triple-A plus REST API access, CSV export, priority support',
       },
