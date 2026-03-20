@@ -102,6 +102,12 @@ jobs:
         run: python pipeline/fetch_umpire_framing.py
       - name: Compute 14-day weighted rolling stats
         run: python pipeline/compute_rolling_stats.py
+      - name: Notify Discord on failure
+        if: failure()
+        run: |
+          curl -s -X POST "${{ secrets.DISCORD_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"content\": \"**Pipeline FAILED** — ${{ github.job }}\\nRun: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}"
 
   # -- Morning Pipeline: Schedule + Rosters (8 AM ET)
   fetch-games-players:
@@ -157,6 +163,12 @@ jobs:
       - name: Generate daily content
         run: python scripts/generate_daily_content.py --format all --top 5
         continue-on-error: true
+      - name: Notify Discord on failure
+        if: failure()
+        run: |
+          curl -s -X POST "${{ secrets.DISCORD_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"content\": \"**Pipeline FAILED** — ${{ github.job }}\\nRun: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}"
 
   # -- Post-Picks: Twitter Thread + Newsletter (runs after 10:30 AM projections) --
   post-picks:
@@ -183,6 +195,12 @@ jobs:
         run: python pipeline/post_to_twitter.py
       - name: Send daily newsletter
         run: python pipeline/send_newsletter.py
+      - name: Notify Discord on failure
+        if: failure()
+        run: |
+          curl -s -X POST "${{ secrets.DISCORD_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"content\": \"**Pipeline FAILED** — ${{ github.job }}\\nRun: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}"
 
   # -- Afternoon Pipeline: Props Refresh + Update Projections (4:30 PM ET)
   afternoon-props-projections:
@@ -213,6 +231,12 @@ jobs:
         run: python pipeline/generate_batter_projections.py
       - name: Pipeline health check
         run: python scripts/pipeline_health_check.py
+      - name: Notify Discord on failure
+        if: failure()
+        run: |
+          curl -s -X POST "${{ secrets.DISCORD_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"content\": \"**Pipeline FAILED** — ${{ github.job }}\\nRun: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}"
 
   # -- Overnight Pipeline: Statcast + Accuracy Grading (2 AM ET)
   overnight-statcast-grading:
@@ -237,6 +261,12 @@ jobs:
         run: python scripts/track_clv.py
       - name: Compute umpire framing composites
         run: python pipeline/fetch_umpire_framing.py
+      - name: Notify Discord on failure
+        if: failure()
+        run: |
+          curl -s -X POST "${{ secrets.DISCORD_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"content\": \"**Pipeline FAILED** — ${{ github.job }}\\nRun: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}"
 
   # -- Weekly Pipeline: Statcast Historical Refresh + Training Data (Sun 3 AM ET)
   weekly-statcast-historical:
