@@ -3,7 +3,7 @@
 [![Build Status](https://img.shields.io/github/actions/workflow/status/fullcountprops/fullcountprops/pipelines.yml?branch=main&label=CI)](https://github.com/fullcountprops/fullcountprops/actions)
 [![Pipeline](https://img.shields.io/github/actions/workflow/status/fullcountprops/fullcountprops/simulator.yml?branch=main&label=pipeline)](https://github.com/fullcountprops/fullcountprops/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Vercel](https://img.shields.io/badge/frontend-Vercel-black?logo=vercel)](https://fullcountprops.vercel.app)
+[![Vercel](https://img.shields.io/badge/frontend-Vercel-black?logo=vercel)](https://fullcountprops.com)
 
 **MLB player prop analytics powered by plate-appearance-level Monte Carlo simulation.**
 
@@ -23,7 +23,7 @@ The simulation uses an LightGBM matchup model trained on ~6 million historical p
 |-----------|---------|
 | **Simulation depth** | 5,000 iterations per game; full nine-inning game state |
 | **Model basis** | LightGBM multiclass, 24 features, ~6M training PA |
-| **Prop types covered** | Strikeouts, hits, total bases, RBIs, walks, runs scored |
+| **Prop types covered** | Strikeouts (K), hits (H), total bases (TB), home runs (HR), runs (R), RBI |
 | **Context adjustments** | Park factors, weather, umpire tendencies, catcher framing |
 | **Edge detection** | No-vig implied probability vs. simulated probability |
 | **Stake sizing** | Fractional Kelly criterion (default: quarter Kelly) |
@@ -98,14 +98,7 @@ python models/train_model.py
 ### 5. Run the Pipeline
 
 ```bash
-python pipeline/fetch_games.py
-python pipeline/fetch_players.py
-python pipeline/fetch_props.py
-python pipeline/fetch_weather.py
-python scripts/generate_projections.py --date today
-python simulator/monte_carlo_engine.py --date today
-python simulator/prop_calculator.py --date today
-python simulator/find_edges.py --date today
+make simulate
 ```
 
 ### 6. Start the Frontend
@@ -131,7 +124,7 @@ FullCountProps's core is a **plate-appearance-level Monte Carlo simulator**. Rat
 4. **Game state advances**: runners move, outs recorded, score updated
 5. **Repeat** for every PA in all 9 innings
 
-This runs 3,000 times per game. The resulting distribution lets us compute:
+This runs 5,000 times per game. The resulting distribution lets us compute:
 - `P(player records ≥ 7 strikeouts)` — over the sportsbook's 6.5 line
 - The expected mean, median, and variance of any stat
 - A confidence score via bootstrap resampling

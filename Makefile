@@ -1,5 +1,5 @@
 # =============================================================================
-# Makefile — Baseline MLB
+# Makefile — FullCountProps
 # Common commands for local development and CI
 # =============================================================================
 
@@ -23,7 +23,7 @@ RESET := \033[0m
 
 help: ## Show available commands
 	@echo ""
-	@echo "$(CYAN)Baseline MLB — Development Commands$(RESET)"
+	@echo "$(CYAN)FullCountProps — Development Commands$(RESET)"
 	@echo ""
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-24s$(RESET) %s\n", $$1, $$2}'
@@ -32,7 +32,7 @@ help: ## Show available commands
 setup: ## Install all dependencies (Python + Node)
 	$(PIP) install --upgrade pip
 	$(PIP) install -r requirements.txt
-	$(PIP) install ruff pytest pytest-cov xgboost scikit-learn numpy scipy joblib
+	$(PIP) install ruff pytest pytest-cov scikit-learn numpy scipy joblib
 	cd frontend && $(NPM) install
 
 simulate: ## Run Monte Carlo simulation for today's games
@@ -52,7 +52,7 @@ backtest: ## Run backtest for the past week
 	$(PYTHON) scripts/grade_accuracy.py --backfill 7
 	@echo "$(GREEN)Backtest complete.$(RESET)"
 
-train: ## Retrain the XGBoost matchup model
+train: ## Retrain the LightGBM matchup model
 	@echo "$(CYAN)Retraining model...$(RESET)"
 	@mkdir -p models data/training
 	$(PYTHON) scripts/grade_accuracy.py --backfill 30
