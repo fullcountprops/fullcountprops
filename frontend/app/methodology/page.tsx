@@ -3,7 +3,7 @@ import { Metadata } from 'next'
 export const metadata: Metadata = {
   title: 'Methodology',
   description:
-    'How FullCountProps works: LightGBM matchup model trained on 6M+ Statcast plate appearances, 5,000 PA-level Monte Carlo simulations per game, umpire and catcher framing adjustments, SHAP explanations.',
+    'How FullCountProps works: LightGBM matchup model trained on ~1M Statcast plate appearances, 5,000 PA-level Monte Carlo simulations per game, umpire and catcher framing adjustments, SHAP explanations.',
   openGraph: {
     title: 'Methodology — FullCountProps',
     description:
@@ -93,7 +93,7 @@ export default function MethodologyPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-16">
             <StatBox value="5,000" label="Simulations / Game" />
             <StatBox value="24" label="Statcast Features" />
-            <StatBox value="6M+" label="Training PAs" />
+            <StatBox value="~1M" label="Training PAs" />
             <StatBox value="8" label="Outcome Classes" />
           </div>
 
@@ -158,7 +158,7 @@ export default function MethodologyPage() {
             <p>
               At the heart of everything is a{' '}
               <strong className="text-white">LightGBM gradient-boosted tree classifier</strong>{' '}
-              trained on over 6 million plate appearances from 5 seasons of
+              trained on ~1 million plate appearances from 5 seasons of
               Statcast data (2021&ndash;2025).
             </p>
             <p>
