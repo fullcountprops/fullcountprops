@@ -62,6 +62,8 @@ if TYPE_CHECKING:
 
 import requests
 
+from simulator.matchup_model_wrapper import MatchupModelWrapper
+
 # ---------------------------------------------------------------------------
 # Logging
 # ---------------------------------------------------------------------------
@@ -397,17 +399,18 @@ def load_matchup_model(model_path: Path | None = None) -> Any:
         The deserialised sklearn / custom model object, or ``None`` if the
         file is not found (caller should fall back to baseline probabilities).
     """
-    path = model_path or MATCHUP_MODEL_PATH
-    if not path.exists():
-        logger.warning("Matchup model not found at %s; using baseline probabilities.", path)
-        return None
     try:
-        import joblib  # type: ignore[import]
-        model = joblib.load(path)
-        logger.info("Loaded matchup model from %s", path)
-        return model
+        wrapper = MatchupModelWrapper(
+            model_path=str(model_path) if model_path else None
+        )
+        logger.info(
+            "Loaded LightGBM matchup model with %d pitcher and %d batter profiles.",
+            len(wrapper.pitcher_features),
+            len(wrapper.batter_features),
+        )
+        return wrapper
     except Exception as exc:  # noqa: BLE001
-        logger.error("Failed to load matchup model: %s", exc)
+        logger.warning("Failed to load matchup model: %s; using league averages.", exc)
         return None
 
 
@@ -441,6 +444,7 @@ def generate_matchup_probs(
     pitcher_id: str,
     batter_id: str,
     model: Any,
+    context: dict[str, Any] | None = None,
 ) -> dict[str, float]:
     """Generate per-PA outcome probabilities from the matchup model.
 
@@ -464,7 +468,7 @@ def generate_matchup_probs(
         # Assumes model has a predict_proba(pitcher_id, batter_id) interface
         # or a feature-extraction wrapper.  Adjust to your actual model API.
         if hasattr(model, "predict_proba_for_matchup"):
-            return model.predict_proba_for_matchup(pitcher_id, batter_id)
+            return model.predict_proba_for_matchup(pitcher_id, batter_id, context=context)
         # Fallback: use league average if model API is unknown
         return dict(_LEAGUE_AVG_PROBS)
     except Exception as exc:  # noqa: BLE001
@@ -556,7 +560,11 @@ def build_pitcher_probs(
     """
     probs: dict[str, dict[str, float]] = {}
     for batter_id in lineup:
-        base_probs = generate_matchup_probs(pitcher_id, batter_id, model)
+        base_probs = generate_matchup_probs(pitcher_id, batter_id, model, context={
+            "temp_f": weather.get("temp_f", 72.0),
+            "wind_mph": weather.get("wind_mph", 5.0),
+            "wind_out": 1.0 if weather.get("wind_dir") == "out" else 0.0,
+        })
         adjusted = apply_weather_adjustments(base_probs, weather)
         probs[batter_id] = adjusted
     return probs
