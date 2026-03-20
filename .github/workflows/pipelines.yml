@@ -14,7 +14,7 @@
 # v3.1 Changes:
 #   - Added post-picks job (Twitter thread via post_to_twitter.py)
 #   - Added send-newsletter step (email digest via send_newsletter.py)
-#   - Both run with --dry-run by default until API keys are configured
+#   - Both are now live (--dry-run removed)
 #   - Added TWITTER_* and RESEND_API_KEY secrets references
 #
 # Schedule (all times ET during EDT):
@@ -180,8 +180,7 @@ jobs:
           pip install -r requirements.txt
           pip install tweepy
       - name: Post top picks to Twitter
-        # TODO: Remove --dry-run after adding TWITTER_* secrets to GitHub Actions
-        run: python pipeline/post_to_twitter.py --dry-run
+        run: python pipeline/post_to_twitter.py
       - name: Send daily newsletter
         run: python pipeline/send_newsletter.py
 
