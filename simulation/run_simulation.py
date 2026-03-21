@@ -842,9 +842,9 @@ def run_daily_simulation(
 
     try:
         mlb_client = MLBApiClient()
-        raw_games = mlb_client.get_todays_games(sim_date)
+        raw_games = mlb_client.get_schedule(sim_date)
     except Exception as exc:
-        logger.error("MLBApiClient.get_todays_games failed: %s", exc)
+        logger.error("MLBApiClient.get_schedule failed: %s", exc)
         if verbose:
             traceback.print_exc()
         return 2
@@ -1131,7 +1131,7 @@ def run_backtest(
 
     try:
         mlb_client = MLBApiClient()
-        raw_games = mlb_client.get_todays_games(backtest_date)
+        raw_games = mlb_client.get_schedule(backtest_date)
         for raw_game in raw_games:
             game_pk = raw_game.get("game_pk")
             if not game_pk:
