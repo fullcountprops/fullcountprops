@@ -220,8 +220,8 @@ const CHECKLIST = [
   { done: false, text: 'Code freeze + v1.0.0 tag',                        category: 'critical' },
   { done: false, text: 'Whop Discord role sync (or manual plan)',          category: 'ops' },
   { done: false, text: 'War room rehearsal (Wed 8 PM)',                    category: 'ops' },
-  { done: false, text: 'Terms of Service + Privacy Policy',               category: 'legal' },
-  { done: false, text: 'Gambling disclaimer on footer',                    category: 'legal' },
+  { done: true,  text: 'Terms of Service + Privacy Policy',               category: 'legal' },
+  { done: true,  text: 'Gambling disclaimer on footer',                    category: 'legal' },
   { done: false, text: 'EIN + business bank account',                      category: 'legal' },
   { done: false, text: 'Schedule Opening Day tweets (3)',                  category: 'content' },
 ]
