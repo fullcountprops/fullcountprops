@@ -1,4 +1,4 @@
-'use client';
+j'use client';
 // frontend/app/login/LoginClient.tsx
 // ============================================================
 // Supabase Auth UI login/signup component.
@@ -19,7 +19,7 @@ interface Props {
 export default function LoginClient({ defaultView = 'sign_in' }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const basePath = searchParams.get('redirect') || '/edges';
+  const basePath = searchParams.get('redirect') || '/';
   const plan = searchParams.get('plan');
   const redirectTo = plan ? `${basePath}?plan=${plan}` : basePath;
   const view = (searchParams.get('view') as 'sign_in' | 'sign_up') || defaultView;
