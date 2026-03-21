@@ -19,7 +19,6 @@ export const metadata: Metadata = {
     title: 'How Park Factors Affect MLB Player Props: Coors Field to Oracle Park',
     description:
       'The ballpark can shift expected totals by 15–20%. Learn how park factors affect strikeout, home run, and hit props — and which venues move the needle most.',
-    images: ['/og-image.png'],
   },
   twitter: {
     card: 'summary_large_image',

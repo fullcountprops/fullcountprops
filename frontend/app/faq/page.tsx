@@ -9,14 +9,12 @@ export const metadata: Metadata = {
     title: 'FAQ — FullCountProps',
     description:
       'Everything you need to know about FullCountProps prop analytics.',
-    images: ['/og-image.png'],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'FAQ — FullCountProps',
     description:
       'What props we cover, how picks update, what edge % means, and more.',
-    images: ['/og-image.png'],
   },
 }
 

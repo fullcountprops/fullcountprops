@@ -19,7 +19,6 @@ export const metadata: Metadata = {
     title: 'MLB Strikeout Props: A Complete Guide to Pitcher K Predictions',
     description:
       'Learn the key factors behind pitcher strikeout props — K rate, whiff rate, opponent K%, park and umpire adjustments — and how simulation improves your edge.',
-    images: ['/og-image.png'],
   },
   twitter: {
     card: 'summary_large_image',

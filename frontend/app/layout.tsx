@@ -41,21 +41,12 @@ export const metadata: Metadata = {
     title: 'FullCountProps — Monte Carlo MLB Prop Analytics',
     description:
       'MLB player prop edges powered by 5,000 PA-level Monte Carlo simulations per game. Glass-box transparency.',
-    images: [
-      {
-        url: '/og-image.png',
-        width: 1200,
-        height: 630,
-        alt: 'FullCountProps — Monte Carlo MLB Prop Analytics',
-      },
-    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'FullCountProps — Monte Carlo MLB Prop Analytics',
     description:
       'MLB player prop edges powered by 5,000 PA-level Monte Carlo simulations. Glass-box transparency.',
-    images: ['/og-image.png'],
     creator: '@fullcountprops',
   },
   robots: {

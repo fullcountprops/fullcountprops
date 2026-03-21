@@ -19,7 +19,6 @@ export const metadata: Metadata = {
     title: 'Monte Carlo Simulation in Sports Betting: How 5,000 Simulations Beat Point Estimates',
     description:
       'A single projection misses variance. Run 5,000 simulations and you get a full probability distribution — the same approach sportsbooks use. Here\'s how it works.',
-    images: ['/og-image.png'],
   },
   twitter: {
     card: 'summary_large_image',

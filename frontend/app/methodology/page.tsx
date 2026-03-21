@@ -8,14 +8,12 @@ export const metadata: Metadata = {
     title: 'Methodology — FullCountProps',
     description:
       'A detailed, plain-English walkthrough of our Monte Carlo simulation engine, matchup model, and edge detection system.',
-    images: ['/og-image.png'],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Methodology — FullCountProps',
     description:
       'How our Monte Carlo MLB prop simulator works — from Statcast data to actionable edges.',
-    images: ['/og-image.png'],
   },
 }
 
