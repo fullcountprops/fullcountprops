@@ -11,7 +11,7 @@ export default function PrivacyPage() {
       <div className="max-w-3xl mx-auto px-4 py-16">
         <h1 className="text-3xl font-bold tracking-tight mb-6">Privacy Policy</h1>
         <div className="prose prose-invert prose-slate max-w-none text-slate-300 space-y-4 text-sm leading-relaxed">
-          <p>Last updated: March 2, 2026</p>
+          <p>Last updated: March 22, 2026</p>
           <h2 className="text-lg font-semibold text-white mt-8">1. Information We Collect</h2>
           <p>
             When you sign up for the waitlist or subscribe, we collect your email
@@ -43,6 +43,23 @@ export default function PrivacyPage() {
           <p>
             We may update this policy from time to time. Changes will be posted on
             this page.
+          </p>
+          <h2 className="text-lg font-semibold text-white mt-8">7. Your Rights</h2>
+          <p>
+            You may request deletion of your account and associated data by emailing
+            grant@fullcountprops.com. We will process your request within 30 days.
+          </p>
+          <h2 className="text-lg font-semibold text-white mt-8">8. Third-Party Services</h2>
+          <p>
+            We use the following third-party services: Stripe (payment processing),
+            Supabase (data storage), Resend (transactional email), and Vercel (hosting).
+            Each has its own privacy policy governing data they process on our behalf.
+          </p>
+          <h2 className="text-lg font-semibold text-white mt-8">9. Jurisdiction</h2>
+          <p>
+            FullCountProps is operated from the United States. Users are responsible
+            for compliance with the laws of their own jurisdiction, including any
+            restrictions on sports betting tools or analytics.
           </p>
         </div>
       </div>
