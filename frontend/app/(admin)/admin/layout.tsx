@@ -1,11 +1,11 @@
 // frontend/app/(admin)/admin/layout.tsx
-// Auth gate — only gnlescallett@gmail.com may pass.
+// Auth gate — only grantlescallett.work@gmail.com may pass.
 
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 
-const ADMIN_EMAILS = ['gnlescallett@gmail.com']
+const ADMIN_EMAILS = ['grantlescallett.work@gmail.com']
 
 export default async function AdminLayout({
   children,
