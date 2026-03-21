@@ -1,4 +1,4 @@
-j'use client';
+'use client';
 // frontend/app/login/LoginClient.tsx
 // ============================================================
 // Supabase Auth UI login/signup component.
